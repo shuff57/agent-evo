@@ -1,6 +1,6 @@
 ---
 name: pdf
-description: Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple PDFs into one, splitting PDFs apart, rotating pages, adding watermarks, creating new PDFs, filling PDF forms, encrypting/decrypting PDFs, extracting images, and OCR on scanned PDFs to make them searchable. If the user mentions a .pdf file or asks to produce one, use this skill.
+description: "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple PDFs into one, splitting PDFs apart, rotating pages, adding watermarks, creating new PDFs, filling PDF forms, encrypting/decrypting PDFs, extracting images, OCR on scanned PDFs, and editing PDF text/typos via nano-pdf CLI. If the user mentions a .pdf file or asks to produce one, use this skill."
 license: Proprietary. LICENSE.txt has complete terms
 ---
 
@@ -292,6 +292,19 @@ writer.encrypt("userpassword", "ownerpassword")
 with open("encrypted.pdf", "wb") as output:
     writer.write(output)
 ```
+
+## Quick PDF Text Editing (from nano-pdf)
+
+For simple text/typo edits, use `nano-pdf` CLI with natural language:
+
+```bash
+uv pip install nano-pdf  # if not installed
+nano-pdf edit <file.pdf> <page_number> "<instruction>"
+```
+
+Examples: `nano-pdf edit deck.pdf 1 "Change title to 'Q3 Results'"` or `nano-pdf edit report.pdf 3 "Update date from January to February"`
+
+Notes: Page numbers may be 0-based or 1-based; if wrong page hit, retry ±1. Always verify output. Requires LLM API key under the hood.
 
 ## Quick Reference
 
