@@ -60,30 +60,6 @@ oracle-then-build:
     - agent: critic
       prompt: "Review this implementation for plan alignment and code quality:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
 
-ultrawork:
-  description: "5-phase autonomous loop — explore, plan, decide, execute, verify. Maximum performance mode."
-  steps:
-    - agent: scout
-      prompt: "EXPLORE: Map the codebase terrain for this task. Find relevant files, patterns, dependencies, and entry points:\n\n$INPUT\n\nReturn structured findings: key files, existing patterns, potential impacts."
-    - agent: planner
-      prompt: "PLAN: Based on this codebase analysis, create a detailed implementation strategy:\n\nTask: $ORIGINAL\n\nExploration findings:\n$INPUT\n\nInclude: approach, task breakdown, risk assessment, and acceptance criteria."
-    - agent: critic
-      prompt: "DECIDE: Review this plan for feasibility, gaps, and risks. Challenge assumptions. Approve or reject with specifics:\n\nOriginal task: $ORIGINAL\n\nPlan:\n$INPUT\n\nVerdict: APPROVED (proceed) or REVISE (with specific feedback)."
-    - agent: prometheus
-      prompt: "EXECUTE: Implement the approved plan. Follow existing patterns, verify each change:\n\nOriginal task: $ORIGINAL\n\nApproved plan:\n$INPUT"
-    - agent: critic
-      prompt: "VERIFY: Verify the implementation is correct and complete. Check every changed file against requirements:\n\nOriginal task: $ORIGINAL\n\nImplementation report:\n$INPUT\n\nVerdict: APPROVED or REJECT with specifics."
-
-deep-interview-then-build:
-  description: "Socratic requirements clarification, then plan and build — for vague or complex requests"
-  steps:
-    - agent: metis
-      prompt: "Conduct a deep interview about this request. Use Socratic questioning to expose hidden assumptions, clarify ambiguities, and surface failure modes. Ask the 3-5 most critical questions that must be answered before planning:\n\n$INPUT"
-    - agent: planner
-      prompt: "Create an implementation plan informed by this requirements analysis:\n\nOriginal request: $ORIGINAL\n\nRequirements analysis:\n$INPUT"
-    - agent: critic
-      prompt: "Review this plan against the requirements analysis. Are all clarified requirements addressed? Any gaps?\n\nOriginal request: $ORIGINAL\n\nPlan:\n$INPUT"
-    - agent: prometheus
-      prompt: "Implement the reviewed plan:\n\nOriginal request: $ORIGINAL\n\nPlan:\n$INPUT"
-    - agent: critic
-      prompt: "Final verification — does the implementation satisfy all requirements from the deep interview?\n\nOriginal request: $ORIGINAL\n\nImplementation:\n$INPUT"
+# ultrawork and deep-interview-then-build moved to commands/ultrawork.md
+# and commands/deep-interview.md — slash commands are the canonical seam
+# for those two workflows.

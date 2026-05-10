@@ -1,6 +1,6 @@
 # Agent Roster
 
-29 agents, 11 teams, 8 chains for Claude Code.
+29 agents, 11 teams, 6 chains for Claude Code.
 
 ## Agent Categories
 
