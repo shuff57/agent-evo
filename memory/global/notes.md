@@ -35,7 +35,7 @@ Cross-project learnings, preferences, and patterns that apply across all work.
 - Prefer markdown for notes/memory over JSON or JSONL
 - Agent memory system: simple flat files, no database dependencies
 - Tools to keep: `session-reflector` skill (explicit user choice)
-- Do NOT use: LightRAG, hivemind, swarmmail, pi-memories, hermes-bridge
+- Do NOT use: LightRAG, hivemind, swarmmail, pi-memories, hermes-bridge, get-shit-done (GSD)
 
 ---
 

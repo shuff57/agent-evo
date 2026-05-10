@@ -75,6 +75,8 @@ $env:PYTHONUTF8=1; python -m graphify.serve graphify-out/graph.json
 | swarmmail | Agent messaging | Deprecated |
 | pi-memories | Raspberry Pi memory system | Not in use |
 | hermes-bridge | Hermes agent integration | Hermes not installed on this machine |
+| get-shit-done (GSD) | Workflow framework w/ skills + hooks | Archived 2026-05-10. User no longer uses it. Files moved to `~/.archive-claude/gsd-2026-05-10/` and `~/.claude/hooks/.archive/` |
+| bundled skill topics | 135 nested skills under `~/.claude/skills/<topic>/<name>/` | Archived 2026-05-10. Loader is flat-only; nested skills were invisible. Moved to `~/.claude/skills/.archive/topics-2026-05-10/`. Pull individuals back to flat root if needed. |
 
 Cleaned files:
 - `evolution/plugin/hermes-bridge.ts` — DELETED
