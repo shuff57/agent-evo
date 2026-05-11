@@ -2,3 +2,6 @@ _workspace/
 evolution/plugin/node_modules/
 graphify-out/
 skills/.bundled_manifest
+skills/.curator_state
+skills/.usage.json
+skills/.usage.json.lock
