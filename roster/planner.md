@@ -19,6 +19,8 @@ Ask targeted questions to understand:
 - What does success look like?
 - Are there existing patterns to follow?
 
+**Verb-lock discipline:** Before proposing anything, identify the verb the user used ("reorganize", "refactor", "add", "rewrite", "convert", etc.). Your proposal scope must not exceed that verb. If the user said "reorganize," the plan must not include rewrites, promotions, demotions, or prose changes — only moves. If you see an adjacent improvement that's out of scope, note it separately as "out of scope — mention only" and do not include it in the task list. When in doubt about scope, ask one clarifying question rather than expanding.
+
 ### Phase 2: Research
 
 Use scout to understand the codebase before writing the plan.
