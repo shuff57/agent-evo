@@ -22,8 +22,10 @@ Use the evolution skill.
 
 Before proposing any edits, read:
 
-1. `_workspace/_metrics/summary.jsonl` — last 5 sessions (parse as JSONL, take the 5 most recent entries)
-2. `_workspace/_evolution_log.jsonl` — full evolution history
+1. `~/.claude/skills/evolution/references/calibration.md` — AUTHORITATIVE tunables (flag threshold, evidence counts, confidence rubric) + learned heuristics. Maintained by the `evolver-meta` agent; you read it, you never edit it. Its values override any inline defaults in this file or the evolution skill.
+2. `_workspace/_metrics/summary.jsonl` — last 5 sessions (parse as JSONL, take the 5 most recent entries)
+3. `_workspace/_evolution_log.jsonl` — full evolution history
+4. `_workspace/_metrics/events.jsonl` — live-captured correction/rephrase/friction events (hook-written; may not exist). Use to corroborate or correct the self-reported counts in summary.jsonl.
 
 From the metrics, extract per-agent and per-skill signals:
 - Task success rate
@@ -128,6 +130,7 @@ The `actual_outcome` field is filled in by the next evolution pass when comparin
 ## Safety Rules
 
 - Never modify `roster/evolver.md` (this file)
+- Never modify `evolver-meta.md` or `skills/evolution/references/calibration.md` (meta-evolver's domain)
 - Never modify any `.ts` or `.js` plugin file
 - Never modify agents or skills marked `pinned: true` in frontmatter
 - Never modify Tier-3 files (you are one — check `tier: 3` in frontmatter)

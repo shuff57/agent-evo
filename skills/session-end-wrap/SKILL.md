@@ -16,7 +16,7 @@ license: MIT
 
 # session-end-wrap
 
-End-of-session orchestrator. Four phases run in sequence; each one is
+End-of-session orchestrator. Five phases run in sequence; each one is
 independent so a failure in any single phase does not block the others.
 
 This is the **user-global** copy and is project-agnostic. It discovers
@@ -62,6 +62,13 @@ does not block the others.
    hit ≥2 times). Drafts at most ONE new artefact per evolver to
    `.claude/`, logs to `.agents/_evolution_log.jsonl`. Never auto-commits.
    Modify-mode signals are deferred back to phase 3's evolver.
+5. **`evolver-meta` fifth (optional)** — user-global agent at
+   `~/.claude/agents/evolver-meta.md`. Scores the evolver's prediction
+   accuracy from the evolution logs and applies at most one calibration
+   edit to `~/.claude/skills/evolution/references/calibration.md` when its
+   evidence gate is met (it self-no-ops otherwise). Invoke via the `Agent`
+   tool with `subagent_type: "evolver-meta"`. If the agent is not
+   installed, skip cleanly with "meta pass skipped".
 
 ## Execution protocol
 
@@ -92,7 +99,7 @@ For each phase, in order:
      create-mode pattern.
 2. Capture the outcome (success summary or error message). Continue
    regardless.
-3. After all four phases have been attempted, present a consolidated
+3. After all phases have been attempted, present a consolidated
    summary to the user:
    - What `memory-hygiene` archived (`N moved to long-term/`) — or the error.
    - What `session-reflector` wrote (`active/<filename>.md`) — or the error.
@@ -101,6 +108,8 @@ For each phase, in order:
    - What each project-local create-mode evolver proposed (new draft path +
      rationale, or "no capability gap detected") — or the error / "phase
      skipped, no project-local evolver found".
+   - What `evolver-meta` did (calibration edit + predicted outcome, or
+     "gate not met — no-op") — or "meta pass skipped".
 4. Do NOT auto-commit. The user reviews each phase's diff and stages manually.
 
 ## What this skill does NOT do
