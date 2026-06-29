@@ -1,0 +1,38 @@
+{
+  "jobs": [
+    {
+      "id": "b0d4ea3fe9db",
+      "name": "obsidian-memory-sync",
+      "prompt": "You are syncing Hermes agent memory to an Obsidian vault as a background maintenance task. Do the following steps silently -- no user interaction needed.\n\nVAULT PATH: /mnt/c/Users/shuff57/Documents/Obsidian Vault\n\nSTEP 1: Read current Hermes memory state.\nUse the memory tool (or read ~/.hermes/memory.json if it exists) to get all current memory entries for both 'memory' and 'user' targets.\n\nSTEP 2: Write/overwrite the memory note.\nWrite to: VAULT/Hermes/Memory.md\nFormat:\n---\ntags: [hermes/memory]\nupdated: YYYY-MM-DD HH:MM\n---\n\n# Agent Memory\n\n> Auto-synced from Hermes memory \u2014 last updated YYYY-MM-DD HH:MM\n\n(one ## Entry N section per entry, content verbatim)\n\nSTEP 3: Write/overwrite the user profile note.\nWrite to: VAULT/Hermes/User Profile.md\nSame format but tag hermes/user-profile and title \"User Profile\".\n\nSTEP 4: Search recent sessions (last 3) via session_search with no query (recent mode).\nAppend a ## Recent Sessions section to VAULT/Hermes/Memory.md listing the session titles and timestamps found.\n\nSTEP 5: Report what was written (filenames + line counts). Keep it brief.\n",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 360,
+        "display": "every 360m"
+      },
+      "schedule_display": "every 360m",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-04-12T08:50:38.876262-07:00",
+      "next_run_at": "2026-04-12T14:50:38.876342-07:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": null
+    }
+  ],
+  "updated_at": "2026-04-12T08:50:38.878240-07:00"
+}
