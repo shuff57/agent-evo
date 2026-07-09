@@ -62,6 +62,21 @@ to add an 8th, evolver-meta must prune the least-validated one.
    summary.jsonl entry count and the date of the most recent entry.
    (added 2026-06-09)
 
+4. During reconciliation, when an APPLIED mutation's target domain (e.g.
+   figure-animator, manim-textbook, section-video-pipeline, a per-figure
+   cache-buster scope) has zero relevant sessions in the current data
+   window while sessions logged are real (non-skeleton, summary.jsonl is
+   growing) but belong to a different sustained domain (e.g. an extended
+   run of bookshelf-studio/Electron work), the evolver must tag the
+   INSUFFICIENT_DATA sub-reason as "relevance gap: <domain> dormant since
+   <date/pass>" — a third sub-reason distinct from heuristic #3's
+   "no sessions logged" and "skill not loaded". A relevance-gap mutation
+   is not a calibration failure and needs no intervention; reconcile it
+   with a single compact one-line note per pass (not a full restatement
+   of the original mechanism) until the dormant domain reactivates, to
+   keep reconciliation output proportional to new information. (added
+   2026-07-03)
+
 ## Change history
 
 Meta edits are logged to `_workspace/_meta_evolution_log.jsonl` in the

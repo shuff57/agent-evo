@@ -31,6 +31,8 @@ Before any analysis, load:
 3. `_workspace/_evolution_log.jsonl` — full history
 4. `_workspace/_metrics/events.jsonl` — live correction/rephrase/friction events (hook-written; may not exist). Corroborates self-reported counts.
 
+**Path pinning (required):** every `_workspace/...` path above resolves relative to the current session's working directory — the project checkout or worktree the invoking session was started in — never a cached, user-global, or other-repo location. This applies even when that working directory is a git worktree rather than the project's primary clone. If a mutated agent/skill/config's home repo differs from the data-source project, state both paths explicitly in the report rather than silently assuming one root. Confirmed failure mode (2026-07-04): a pass resolved `_workspace/` to the user-global agent-evo checkout instead of the invoking bookSHelf worktree and incorrectly reported "insufficient data."
+
 Key metric fields to extract per session entry:
 - `agent_id` — which agent handled the task
 - `task_success` — boolean or score
