@@ -21,8 +21,11 @@ can't replace media, so a bad first upload burns an ID and leaves an orphan).
 
 ## Ears — what you check (in order of value)
 
-1. **Words**: transcribe with faster-whisper (cuda float16 on this machine's RTX 4070,
-   cpu/int8 fallback) and compute word error rate against the expected script.
+1. **Words**: transcribe with faster-whisper and compute word error rate against
+   the expected script. Runs on the RTX 4070 (`cuda/float16`) — ear_check's
+   invocation pulls the three `nvidia-*-cu12` wheels and `_register_cuda_dlls()`
+   puts the CUDA DLLs on PATH; it falls back to `cpu/int8` only if those are
+   absent. Use the full `--with nvidia-*` invocation in rig/README.md.
    Word diffs matter more than the WER number — a single wrong content word
    ("variance" → "variant") can flunk a clip that scores 3% WER.
 2. **Voice identity**: resemblyzer cosine similarity between the clip and the
