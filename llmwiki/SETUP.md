@@ -19,18 +19,32 @@ cd web && npm install && cd ..    # optional: web viewer + Chrome clipper
 
 Requires Python 3.11+ (3.14 works — all deps had wheels) and Node 20+.
 
-## 2. Create the workspace and link the synced wiki
+## 2. Create the workspace
 
 ```bash
 python llmwiki init ~/research          # creates ~/research/.llmwiki + wiki/ scaffold
-rm -rf ~/research/wiki                   # remove the fresh scaffold...
-# ...and point it at the synced copy in this repo:
-#   Windows (PowerShell):
-#     New-Item -ItemType SymbolicLink -Path ~/research/wiki -Target ~/Documents/GitHub/agent-evo/llmwiki/wiki
-#   macOS/Linux:
-#     ln -s ~/Documents/GitHub/agent-evo/llmwiki/wiki ~/research/wiki
-python llmwiki reindex ~/research        # rebuild the local index over the linked wiki
 ```
+
+**Do NOT symlink `~/research/wiki` into this repo.** llmwiki rejects writes that
+resolve outside its workspace (path-escape guard), so a symlinked wiki makes every
+`create` fail with "invalid path". Keep `wiki/` as a **real directory** in the
+workspace. The `Agent-Evo Sync` task mirror-copies it in/out of `llmwiki/wiki/`
+here (via robocopy), so the pages still sync — no symlink involved.
+
+On this device the synced pages land in `~/research/wiki` on the sync task's next
+run (it mirrors `llmwiki/wiki/` -> the workspace). Then:
+
+```bash
+python llmwiki reindex ~/research        # index the pulled-down wiki + your sources
+```
+
+### PDF ingestion needs Java
+
+PDF text extraction uses `opendataloader-pdf`, which requires a JRE on PATH. If
+`java` is missing, PDFs index but extract nothing (status `failed`,
+"'java' command not found"). Install any JRE 17+ (e.g. Temurin 21) and ensure its
+`bin` is on PATH, or set `MISTRAL_API_KEY` to use cloud OCR instead. Extraction
+runs in the API/`llmwiki open` process (reconcile on startup) — not the CLI.
 
 ## 3. Register the MCP server in Claude Code
 
