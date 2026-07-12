@@ -1,0 +1,9 @@
+Read the guide first (the llmwiki `guide` tool), then check the workspace for anything added since your last run -- new sources, uploads, web clips, and highlights.
+
+If nothing is new since the last run, do nothing and exit -- do not rewrite unchanged pages.
+
+For each new item: read it, then update the wiki. Write new pages where they are warranted, fold new material into existing pages, and fix any cross-references or citations it affects. Cite sources with footnotes back to the originals.
+
+When done making changes, run the `lint` tool and fix anything it flags (dangling links, unresolved citations, orphan/stale pages).
+
+Finally, append a short dated note to wiki/log.md summarizing what changed this run (or "no new sources" if nothing changed).

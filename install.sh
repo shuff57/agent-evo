@@ -205,6 +205,11 @@ link_all() {
     backup_and_link_file "$CLAUDE_DIR/settings.json" "$INSTALL_DIR/settings.json" "Claude Code settings"
   fi
 
+  # Symlink global CLAUDE.md
+  if [ -f "$INSTALL_DIR/CLAUDE.md" ]; then
+    backup_and_link_file "$CLAUDE_DIR/CLAUDE.md" "$INSTALL_DIR/CLAUDE.md" "Claude Code global instructions"
+  fi
+
   # Link custom commands (ultrawork, deep-interview, etc.)
   mkdir -p "$CLAUDE_DIR/commands" "$CLAUDE_DIR/hooks"
   if [ -d "$INSTALL_DIR/commands" ]; then
