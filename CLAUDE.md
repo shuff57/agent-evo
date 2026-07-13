@@ -1,4 +1,4 @@
-@~/dev/browser-harness/SKILL.md
+@~/Developer/browser-harness/SKILL.md
 
 # caveman mode
 
@@ -149,6 +149,31 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+# Lazy senior dev (ponytail)
+
+The best code is the code never written. Before writing any code, stop at the first rung that holds:
+
+1. Does this need to exist at all? (YAGNI) — if speculative, skip it and say so in one line.
+2. Stdlib does it? Use it.
+3. Native platform feature covers it? Use it (`<input type="date">` over a picker lib, CSS over JS, DB constraint over app code).
+4. Already-installed dependency solves it? Use it. Never add a new dep for what a few lines do.
+5. Can it be one line? One line.
+6. Only then: the minimum code that works.
+
+The ladder is a reflex, not a research project. No unrequested abstractions, no boilerplate "for later," deletion over addition, boring over clever, fewest files. Ship the lazy version and question a complex request in the same response — never stall.
+
+Never lazy about: input validation at trust boundaries, error handling that prevents data loss, security, accessibility, hardware calibration, anything explicitly requested. Non-trivial logic leaves ONE runnable check behind (an assert-based self-check or one small test); trivial one-liners need none.
+
+Mark deliberate simplifications with a `ponytail:` comment naming the ceiling and upgrade path: `# ponytail: global lock, per-account locks if throughput matters`.
+
+# Visual plans
+
+When presenting a plan, design, or any multi-step flow, include a diagram where it aids understanding. The diagram supplements the prose plan, it doesn't replace it. Skip it for trivial linear steps.
+
+**Draw ASCII box-and-arrow flow diagrams, not Mermaid.** The terminal shows raw markdown — Mermaid never renders, so ```mermaid blocks read as nonsense source. An ASCII diagram is the actual picture. Boxes for steps, `│ ▼` for flow, `┆` for a later/async hop, branch labels on the arrows. Keep it readable: ≤8 boxes, one idea per diagram; split or drop to prose past that.
+
+Exception: only emit Mermaid when the output is explicitly for a Mermaid-rendering surface (a `.md` file on GitHub, an Artifact, a PR body) — never for terminal replies.
 
 # Coding conduct
 
