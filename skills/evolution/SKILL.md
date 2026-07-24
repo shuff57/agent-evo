@@ -130,7 +130,7 @@ Map divergence type to the file section most likely responsible:
 | MISLEADING | description — differentiate from overlapping agents |
 | INEFFICIENT | delegation rules or step ordering in body |
 | STRUCTURAL | add delegation rule to body |
-| SKILL_GAP | create new SKILL.md stub |
+| SKILL_GAP | extend an existing skill first (add a `references/*.md` + pointer line) if one fits the gap; only create a new `skills/<name>/SKILL.md` when none does |
 | SKILL_STALE | `description` or "When to Trigger" section of SKILL.md |
 | SKILL_WEAK | body instructions of SKILL.md |
 | SKILL_EXTERNAL | flag only — do not edit |
@@ -143,7 +143,9 @@ Rules for minimal edits:
 - Add trigger phrases by appending to the existing list — do not replace
 - Remove trigger phrases only if they are demonstrably wrong
 - Body edits: change one paragraph or add one rule at most
-- New skill stubs: SKILL.md with frontmatter + "When to Trigger" section only — leave body as `[TODO: flesh out]`
+- Prefer extending an existing skill over a new top-level folder (see SKILL_GAP). Only mint a new skill when nothing fits.
+- New skill stubs: SKILL.md with frontmatter + "When to Trigger" section only — leave body as `[TODO: flesh out]`. A stub left `[TODO]` past 2 sessions is a cleanup candidate (Safety Rules) — finish it or drop it.
+- Consolidated skills (a `SKILL.md` + `references/`): edit the relevant reference file and update the pointer line — never add a parallel top-level folder for a sub-capability.
 
 ### Step 3 — Model-Agnostic Check
 
@@ -188,6 +190,8 @@ For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 | No meta-domain edits | Never edit `evolver-meta.md` or `skills/evolution/references/calibration.md` — calibration is written only by evolver-meta |
 | No plugin edits | Never edit `.ts` or `.js` files |
 | No pinned edits | Never edit files with `pinned: true` in frontmatter |
+| Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md |
+| Stub hygiene | A skill folder with no `SKILL.md`, or a body still `[TODO]` after 2+ sessions, is a cleanup candidate — flag it for removal; don't let empty stubs accrete |
 | No Tier-3 edits | Never edit files with `tier: 3` in frontmatter |
 | Mutation caps | Max 3 agent mutations + 2 skill mutations per session |
 | Model-agnostic | All edits must work on cheap models, not just Claude |
