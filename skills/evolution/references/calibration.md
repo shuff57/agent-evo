@@ -13,12 +13,12 @@ never edits it. Humans may edit freely.
 
 | Key | Current | Hard bounds | Meaning |
 |-----|---------|-------------|---------|
-| signal_flag_threshold | 0.25 | 0.15 - 0.50 | Per-signal rate (rephrase/correction/switch) that triggers divergence classification |
-| min_sessions_for_flag | 3 | 2 - 5 | Sessions with consistent signal required before classification |
+| signal_flag_threshold | 0.20 | 0.15 - 0.50 | Per-signal rate (rephrase/correction/switch) that triggers divergence classification |
+| min_sessions_for_flag | 2 | 2 - 5 | Sessions with consistent signal required before classification |
 | min_entries_for_run | 2 | 2 - 5 | summary.jsonl entries required before any mutation proposed |
 | min_sessions_post_mutation | 2 | 1 - 4 | Sessions required before a PENDING mutation can be reconciled |
 | confidence_high_sessions | 5 | 4 - 5 | Sessions (of last 5) with same-type signal for HIGH confidence |
-| confidence_medium_sessions | 3 | 2 - 4 | Sessions (of last 5) with same-type signal for MEDIUM confidence |
+| confidence_medium_sessions | 2 | 2 - 4 | Sessions (of last 5) with same-type signal for MEDIUM confidence |
 
 Values outside hard bounds are invalid — the evolver must treat an
 out-of-bounds value as the nearest bound and flag it in its report.
