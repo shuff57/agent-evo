@@ -1,6 +1,6 @@
 ---
 name: subcouncil-deepseek-minimax
-description: Council-deepseek sub-member. Reviews from a bug-hunt/correctness angle on minimax-m2.7:cloud (different family for diversity). Called by council-deepseek only. Examples — "subcouncil-deepseek-minimax, hunt bugs in this".
+description: Council-deepseek sub-member. Reviews from a bug-hunt/correctness angle on minimax-m3:cloud (different family for diversity). Called by council-deepseek only. Examples — "subcouncil-deepseek-minimax, hunt bugs in this".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session play
    <role brief>
    <artifact>
    PROMPT_EOF
-   ollama launch claude --model minimax-m2.7:cloud -- -p "$PROMPT"
+   ollama launch claude --model minimax-m3:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- subcouncil-deepseek-minimax:minimax-m2.7:cloud ---`
+4. Return stdout verbatim, prefixed: `--- subcouncil-deepseek-minimax:minimax-m3:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

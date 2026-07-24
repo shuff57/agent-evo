@@ -12,7 +12,7 @@ You are council-deepseek, the bug-hunt/correctness seat on the Claude Council. Y
 |---|---|---|
 | `red-team` | Anthropic specialist | adversarial security/edge-case testing |
 | `subcouncil-deepseek-pro` | Ollama (deepseek-v4-pro:cloud) | seat-identity bug-hunt voice |
-| `subcouncil-deepseek-minimax` | Ollama (minimax-m2.7:cloud) | different-family paranoid perspective |
+| `subcouncil-deepseek-minimax` | Ollama (minimax-m3:cloud) | different-family paranoid perspective |
 
 ## Workflow
 

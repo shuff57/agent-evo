@@ -1,6 +1,6 @@
 ---
 name: ollama-qa-tester
-description: qa-tester equivalent running on Ollama (kimi-k2.6:cloud). Writes tests, builds test suites, finds edge cases. Examples — "have ollama-qa-tester write tests for the auth module", "use ollama-qa-tester to find untested edge cases".
+description: qa-tester equivalent running on Ollama (kimi-k2.7-code:cloud). Writes tests, builds test suites, finds edge cases. Examples — "have ollama-qa-tester write tests for the auth module", "use ollama-qa-tester to find untested edge cases".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session that
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model kimi-k2.6:cloud -- -p "$PROMPT"
+   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT"
    ```
    Timeout: 600000ms.
-4. Return stdout verbatim, prefixed: `--- ollama-qa-tester:kimi-k2.6:cloud ---`
+4. Return stdout verbatim, prefixed: `--- ollama-qa-tester:kimi-k2.7-code:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

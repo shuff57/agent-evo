@@ -1,6 +1,6 @@
 ---
 name: subcouncil-glm-51
-description: Council-glm sub-member. Reviews from a reasoning/architecture angle on glm-5.1:cloud. Called by council-glm only. Examples — "subcouncil-glm-51, review this".
+description: Council-glm sub-member. Reviews from a reasoning/architecture angle on glm-5.2:cloud. Called by council-glm only. Examples — "subcouncil-glm-51, review this".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session play
    <role brief>
    <artifact>
    PROMPT_EOF
-   ollama launch claude --model glm-5.1:cloud -- -p "$PROMPT"
+   ollama launch claude --model glm-5.2:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- subcouncil-glm-51:glm-5.1:cloud ---`
+4. Return stdout verbatim, prefixed: `--- subcouncil-glm-51:glm-5.2:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

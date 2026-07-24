@@ -1,6 +1,6 @@
 ---
 name: subcouncil-glm-nemotron
-description: Council-glm sub-member. Reviews from a reasoning/architecture angle on nemotron-3-super:cloud (NVIDIA lineage for diversity). Called by council-glm only. Examples — "subcouncil-glm-nemotron, review this".
+description: Council-glm sub-member. Reviews from a reasoning/architecture angle on nemotron-3-ultra:cloud (NVIDIA lineage for diversity). Called by council-glm only. Examples — "subcouncil-glm-nemotron, review this".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session play
    <role brief>
    <artifact>
    PROMPT_EOF
-   ollama launch claude --model nemotron-3-super:cloud -- -p "$PROMPT"
+   ollama launch claude --model nemotron-3-ultra:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- subcouncil-glm-nemotron:nemotron-3-super:cloud ---`
+4. Return stdout verbatim, prefixed: `--- subcouncil-glm-nemotron:nemotron-3-ultra:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

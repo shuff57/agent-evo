@@ -1,6 +1,6 @@
 ---
 name: ollama-librarian
-description: librarian equivalent running on Ollama (minimax-m2.7:cloud). External documentation lookup, library best practices, API references, GitHub repo discovery. Cheap fast research. Examples — "have ollama-librarian find Zod v3 docs", "use ollama-librarian for JWT security best practices".
+description: librarian equivalent running on Ollama (minimax-m3:cloud). External documentation lookup, library best practices, API references, GitHub repo discovery. Cheap fast research. Examples — "have ollama-librarian find Zod v3 docs", "use ollama-librarian for JWT security best practices".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session that
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model minimax-m2.7:cloud -- -p "$PROMPT"
+   ollama launch claude --model minimax-m3:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- ollama-librarian:minimax-m2.7:cloud ---`
+4. Return stdout verbatim, prefixed: `--- ollama-librarian:minimax-m3:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

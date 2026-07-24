@@ -1,6 +1,6 @@
 ---
-name: subcouncil-qwen-397b
-description: Council-qwen sub-member. Reviews from a perf/implementation angle on qwen3.5:397b-cloud (massive Qwen, related lineage). Called by council-qwen only. Examples — "subcouncil-qwen-397b, review impl quality".
+name: subcouncil-qwen-kimicode
+description: Council-qwen sub-member. Reviews from a perf/implementation angle on kimi-k2.7-code:cloud (code-tuned Kimi, cross-family voice — replaced the retired qwen coder). Called by council-qwen only. Examples — "subcouncil-qwen-kimicode, review impl quality".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session play
    <role brief>
    <artifact>
    PROMPT_EOF
-   ollama launch claude --model qwen3.5:397b-cloud -- -p "$PROMPT"
+   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- subcouncil-qwen-397b:qwen3.5:397b-cloud ---`
+4. Return stdout verbatim, prefixed: `--- subcouncil-qwen-kimicode:kimi-k2.7-code:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

@@ -1,6 +1,6 @@
 ---
 name: ollama-code-engineer
-description: code-engineer equivalent running on Ollama (kimi-k2.6:cloud) instead of Anthropic. Use for routine implementation/refactor/bugfix work where Sonnet-level coding is overkill. Cheaper, comparable quality on standard code tasks. Examples — "have ollama-code-engineer write this function", "use ollama-code-engineer to refactor X".
+description: code-engineer equivalent running on Ollama (kimi-k2.7-code:cloud) instead of Anthropic. Use for routine implementation/refactor/bugfix work where Sonnet-level coding is overkill. Cheaper, comparable quality on standard code tasks. Examples — "have ollama-code-engineer write this function", "use ollama-code-engineer to refactor X".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You do not generate substantive answers. You forward the
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model kimi-k2.6:cloud -- -p "$PROMPT"
+   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT"
    ```
    Timeout: 600000ms (code tasks can be long).
-4. Return stdout verbatim, prefixed: `--- ollama-code-engineer:kimi-k2.6:cloud ---`
+4. Return stdout verbatim, prefixed: `--- ollama-code-engineer:kimi-k2.7-code:cloud ---`
 5. Errors: report one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

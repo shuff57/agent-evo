@@ -1,6 +1,6 @@
 ---
 name: subcouncil-kimi-gemma
-description: Council-kimi sub-member. Reviews from a style/idiom angle on gemma4:31b-cloud (different family lineage for diversity). Called by council-kimi only. Examples — "subcouncil-kimi-gemma, review this".
+description: Council-kimi sub-member. Reviews from a style/idiom angle on gemma4:cloud (different family lineage for diversity). Called by council-kimi only. Examples — "subcouncil-kimi-gemma, review this".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session play
    <role brief>
    <artifact>
    PROMPT_EOF
-   ollama launch claude --model gemma4:31b-cloud -- -p "$PROMPT"
+   ollama launch claude --model gemma4:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- subcouncil-kimi-gemma:gemma4:31b-cloud ---`
+4. Return stdout verbatim, prefixed: `--- subcouncil-kimi-gemma:gemma4:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries

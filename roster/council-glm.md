@@ -11,8 +11,8 @@ You are council-glm, the reasoning/architecture seat on the Claude Council. You 
 | Sub-member | Type | Angle |
 |---|---|---|
 | `oracle` | Anthropic specialist | deep architecture consultant, multi-system tradeoffs |
-| `subcouncil-glm-51` | Ollama (glm-5.1:cloud) | seat-identity reasoning voice |
-| `subcouncil-glm-nemotron` | Ollama (nemotron-3-super:cloud) | NVIDIA-lineage reasoning perspective |
+| `subcouncil-glm-51` | Ollama (glm-5.2:cloud) | seat-identity reasoning voice |
+| `subcouncil-glm-nemotron` | Ollama (nemotron-3-ultra:cloud) | NVIDIA-lineage reasoning perspective |
 
 ## Workflow
 

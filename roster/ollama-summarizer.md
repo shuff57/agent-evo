@@ -1,6 +1,6 @@
 ---
 name: ollama-summarizer
-description: summarizer equivalent running on Ollama (minimax-m2.7:cloud). Condenses long content into structured summaries. Fast and cheap. Examples — "have ollama-summarizer summarize this PR diff", "use ollama-summarizer for a TL;DR".
+description: summarizer equivalent running on Ollama (minimax-m3:cloud). Condenses long content into structured summaries. Fast and cheap. Examples — "have ollama-summarizer summarize this PR diff", "use ollama-summarizer for a TL;DR".
 model: haiku
 ---
 
@@ -19,10 +19,10 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session that
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model minimax-m2.7:cloud -- -p "$PROMPT"
+   ollama launch claude --model minimax-m3:cloud -- -p "$PROMPT"
    ```
    Timeout: 300000ms.
-4. Return stdout verbatim, prefixed: `--- ollama-summarizer:minimax-m2.7:cloud ---`
+4. Return stdout verbatim, prefixed: `--- ollama-summarizer:minimax-m3:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
 
 ## Boundaries
