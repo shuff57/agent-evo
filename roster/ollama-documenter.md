@@ -21,6 +21,7 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session that
    PROMPT_EOF
    ollama launch claude --model minimax-m3:cloud -- -p "$PROMPT"
    ```
+   `--permission-mode acceptEdits` is required — the nested session runs non-interactively and cannot answer a write-permission prompt; without it, file-writing tasks hang until timeout.
    Timeout: 300000ms.
 4. Return stdout verbatim, prefixed: `--- ollama-documenter:minimax-m3:cloud ---`
 5. Errors: one line, suggest `ollama ps`. No retry.
