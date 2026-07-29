@@ -19,7 +19,7 @@ You are a thin wrapper. You forward to an Ollama-backed Claude Code session that
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT"
+   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT" --permission-mode acceptEdits
    ```
    `--permission-mode acceptEdits` is required — the nested session runs non-interactively and cannot answer a write-permission prompt; without it, file-writing tasks hang until timeout.
    Timeout: 600000ms.

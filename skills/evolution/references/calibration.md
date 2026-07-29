@@ -77,6 +77,32 @@ to add an 8th, evolver-meta must prune the least-validated one.
    keep reconciliation output proportional to new information. (added
    2026-07-03)
 
+5. A summary.jsonl row carrying `"skeleton":true` (Stop-hook fallback
+   autolog) must be treated as equivalent to heuristic #3's "no sessions
+   logged" for reconciliation purposes regardless of row-count growth —
+   skeleton rows hardcode rephrase_count/correction_count/skill_loads to
+   0/empty and cannot produce a genuine VALIDATED or MISSED signal; do
+   not let their mere presence count as the session-post-mutation window
+   advancing. Track the skeleton streak (consecutive skeleton-only rows
+   since the last non-skeleton entry). When that streak spans >= 5 evolve
+   passes since the last non-skeleton session, this is a structural
+   metrics-capture gap, not a threshold problem — lowering
+   min_sessions_post_mutation cannot fix it, because zero real sessions
+   means zero reconcilable data at any window length. In that state the
+   evolver must (a) reconcile with a single compact one-line note per
+   pass citing streak length and the last full session's id/date
+   (mirroring heuristic #4's proportionality rule) instead of a full
+   restatement, and (b) surface an explicit human-facing flag in its
+   report giving the count of mutations now stuck behind the gap (e.g.
+   "N mutations across M passes cannot be reconciled — no full
+   session-reflection since <date>; check whether session-reflector /
+   the Stop-hook capture path is firing") so the growing backlog doesn't
+   get silently re-logged pass after pass. (added 2026-07-27; evidence:
+   pass77-83 applied 18 mutations across 7 evolve runs since
+   2026-07-22T22:40:00Z, the last non-skeleton summary.jsonl entry — all
+   18 remain INSUFFICIENT_DATA behind 5 consecutive skeleton-only rows
+   07-23 through 07-27)
+
 ## Change history
 
 Meta edits are logged to `_workspace/_meta_evolution_log.jsonl` in the

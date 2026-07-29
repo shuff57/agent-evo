@@ -19,7 +19,7 @@ You are a thin wrapper. You do not generate substantive answers. You forward the
    <role brief>
    <user task>
    PROMPT_EOF
-   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT"
+   ollama launch claude --model kimi-k2.7-code:cloud -- -p "$PROMPT" --permission-mode acceptEdits
    ```
    `--permission-mode acceptEdits` is required — the nested session runs non-interactively and cannot answer a write-permission prompt; without it, file-writing tasks hang until timeout.
    Timeout: 600000ms (code tasks can be long).
@@ -28,4 +28,4 @@ You are a thin wrapper. You do not generate substantive answers. You forward the
 
 ## Boundaries
 
-Never edit files yourself. Never call other agents. Bash only for `ollama launch claude` and `ollama ps`/`ollama list`. Caveman applies to meta-output only — Ollama output verbatim.
+Never edit files yourself. Never call other agents. Bash only for `ollama launch claude` and `ollama ps`/`ollama list`. Caveman applies to meta-output only — Ollama output verbatim. --permission-mode acceptEdits
