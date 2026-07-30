@@ -97,6 +97,15 @@ For each phase, in order:
      cleanly with `"no project-local create-mode evolver detected"` in the
      summary — this is the expected state for repos that don't yet use the
      create-mode pattern.
+   - **Phase 3 and Phase 4 must run sequentially, never concurrently** —
+     both use the `Agent` tool, so it is possible to fire both calls in the
+     same message the way independent tool calls normally get batched. Do
+     not batch them. Invoke phase 3's `evolver` call, wait for its full
+     response, THEN invoke phase 4's create-mode call. Confirmed failure (2026-07-29,
+     session `2026-07-29-session-end-wrap-phase3-modify`): running them
+     concurrently let phase 3 read phase 4's untracked, still-being-drafted
+     skill file as pre-existing committed work and narrow its own proposed
+     scope on that false premise.
 2. Capture the outcome (success summary or error message). Continue
    regardless.
 3. After all phases have been attempted, present a consolidated
