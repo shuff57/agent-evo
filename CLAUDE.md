@@ -2,16 +2,6 @@
 
 At session start, follow `~/.claude/skills/caveman/SKILL.md` for output style. Default intensity: `full`. Stays active every response until the user says "stop caveman" or "normal mode" (then switch back to standard style for the rest of the session). Sub-skill `caveman-commit` fires on its own trigger ("write a commit").
 
-# graphify
-- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
-
-**Using the existing graph (lazy pattern, do NOT auto-update on session start):**
-- A persistent graph lives at `graphify-out/graph.json` with a human summary at `graphify-out/GRAPH_REPORT.md`. Read the report first for god nodes, communities, and surprising connections before grepping raw files.
-- Run `/graphify --update` only when (a) the user explicitly asks, or (b) you're answering a graph-relevant question (cross-file lookups, "where is X used", "trace this concept") AND files in `.agents/`, `docs/`, or `scripts/` look stale vs. the manifest. Code-only changes are AST (free); doc/markdown changes trigger LLM subagents (slow, costs tokens).
-- For deeper queries: `/graphify query "<question>"`, `/graphify path "<A>" "<B>"`, `/graphify explain "<concept>"`.
-- If `graphify-out/graph.json` doesn't exist, point the user at `/graphify <path>` for an initial build — don't try to `--update` a missing graph.
-
 # Intent routing
 Classify each non-trivial user request and delegate to the matching agent via the Agent tool. State the classification in one short sentence before spawning so the user can redirect.
 
@@ -77,7 +67,6 @@ A keyword in the user's message → invoke the named skill via the Skill tool be
 
 | Trigger | Skill |
 |---|---|
-| `/graphify`, "build a graph of" | `graphify` |
 | "write a commit", "/commit" | `caveman-commit` |
 | "deep interview", "interview me" | `deep-interview` |
 | "ultrawork", "ulw" | `ultrawork` |
