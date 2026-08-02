@@ -6,3 +6,10 @@ skills/.curator_state
 skills/.usage.json
 skills/.usage.json.lock
 skills/browser-use/
+# App-managed skills: written into ~/.claude (this repo) on every launch of the
+# app that owns them, so tracking them here means permanent churn and a stale
+# copy waiting to be clobbered. Their source of truth is version-controlled in
+# the owning repo — mom-* live at steve-desktop/skills/mom-*/SKILL.md. Edit
+# them THERE; a change made here is gone on the next launch.
+skills/mom-question/
+skills/mom-transfer/
