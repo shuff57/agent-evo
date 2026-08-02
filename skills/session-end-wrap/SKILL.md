@@ -16,30 +16,34 @@ license: MIT
 
 # session-end-wrap
 
-End-of-session orchestrator. Five phases run in sequence; each one is
-independent so a failure in any single phase does not block the others.
+End-of-session orchestrator. Six phases run in sequence (phase 0 plus five);
+each one is independent so a failure in any single phase does not block the
+others.
 
 This is the **user-global** copy and is project-agnostic. It discovers
-project-local create-mode evolvers by convention (`.claude/agents/*-evolver.md`
-in CWD) so it works across any repo that follows the pattern. If a project
-ships its own `.claude/skills/session-end-wrap/SKILL.md`, that copy shadows
-this one — useful when a repo needs custom phase behavior.
+project-local pieces by convention — create-mode evolvers via
+`.claude/agents/*-evolver.md` and a pending-triage skill via
+`.claude/skills/memory-pending-triage/SKILL.md`, both CWD-relative — so it
+works across any repo that follows the pattern and skips cleanly in repos that
+don't. If a project ships its own `.claude/skills/session-end-wrap/SKILL.md`,
+that copy shadows this one — useful when a repo needs custom phase behavior.
 
 ## Why this skill exists
 
-Three skills + one agent cover the four end-of-session concerns separately
-(`memory-hygiene`, `session-reflector`, the modify-mode `evolver` agent, and
-the project-local create-mode evolver). Running them manually one at a time
-is friction. This skill is a thin orchestrator so the user can fire all four
-with one command. The Stop-hook only nudges the user to type that command —
+Four skills + two agents cover the end-of-session concerns separately
+(`memory-pending-triage`, `memory-hygiene`, `session-reflector`, the
+modify-mode `evolver` agent, the project-local create-mode evolver, and
+`evolver-meta`). Running them manually one at a time is friction. This skill is
+a thin orchestrator so the user can fire them all with one command. The Stop-hook only nudges the user to type that command —
 it never invokes this skill directly.
 
 ## Prerequisites
 
-The orchestrator invokes up to four sub-skills/agents. Each one is optional
+The orchestrator invokes up to six sub-skills/agents. Each one is optional
 in the failure-isolation sense: a missing prerequisite skips its phase but
 does not block the others.
 
+- `memory-pending-triage` skill — project-local only, at `.claude/skills/memory-pending-triage/SKILL.md`. Bridges `pending/` (what `session-reflector` writes) to `active/` (what `memory-hygiene` manages) — nothing else does, so without it `pending/` grows unbounded. Absent in most repos; phase 0 skips.
 - `memory-hygiene` skill — project-local at `.claude/skills/memory-hygiene/SKILL.md` is preferred and resolves first; user-global at `~/.claude/skills/memory-hygiene/SKILL.md` is the cross-project fallback.
 - `session-reflector` skill — typically at `~/.claude/skills/session-reflector/SKILL.md` (user-global).
 - `evolver` agent (loads the `evolution` skill) — at `~/.claude/agents/evolver.md` (user-global). Modify-mode only.
@@ -47,22 +51,34 @@ does not block the others.
 
 ## Order matters
 
-1. **`memory-hygiene` first** — prune `.agents/memory/active/`, archive cold
+0. **`memory-pending-triage`** (when the repo has it) — promote durable
+   facts out of `.agents/memory/pending/` into `active/`, and move each read
+   note to `pending/indexed/`. This runs BEFORE hygiene because triage is what
+   puts entries INTO `active/`; hygiene is what caps and prunes it. Running
+   hygiene first just means re-running it. Skip cleanly when the skill is
+   absent — most repos have no `pending/` tier.
+
+   Triage is a judgment pass, not a sweep: a note is only marked processed once
+   it has actually been read. Do NOT bulk-move the backlog to clear a count —
+   that reports work that did not happen. If the backlog is large, triage what
+   you can, report the remainder honestly, and leave it in `pending/`.
+
+1. **`memory-hygiene`** — prune `.agents/memory/active/`, archive cold
    entries to `long-term/`, update `MEMORY.md`. This must run before reflector
    so the active tier has room for the new entry the reflector is about to add.
-2. **`session-reflector` second** — capture this session's learnings as a new
+2. **`session-reflector`** — capture this session's learnings as a new
    entry in `.agents/memory/active/`. Adds to the just-pruned active tier.
-3. **`evolver` third (modify-mode)** — user-global agent. Analyze session
+3. **`evolver` (modify-mode)** — user-global agent. Analyze session
    friction and propose surgical edits to existing agents/skills/prompts.
    Reads the freshly-written reflector entry as one of its signals. Never
    creates new artefacts — that's phase 4's job.
-4. **Project-local create-mode evolvers fourth** — each agent matching
+4. **Project-local create-mode evolvers** — each agent matching
    `.claude/agents/*-evolver.md` in CWD. Scans `.agents/memory/active/` for
    friction signals where no existing agent/skill/team fit (capability gap
    hit ≥2 times). Drafts at most ONE new artefact per evolver to
    `.claude/`, logs to `.agents/_evolution_log.jsonl`. Never auto-commits.
    Modify-mode signals are deferred back to phase 3's evolver.
-5. **`evolver-meta` fifth (optional)** — user-global agent at
+5. **`evolver-meta`** (optional) — user-global agent at
    `~/.claude/agents/evolver-meta.md`. Scores the evolver's prediction
    accuracy from the evolution logs and applies at most one calibration
    edit to `~/.claude/skills/evolution/references/calibration.md` when its
@@ -82,6 +98,11 @@ and present them all in the final summary.
 For each phase, in order:
 
 1. Invoke the phase:
+   - Phase 0 (`memory-pending-triage`): first check the skill exists with the
+     `Glob` tool, pattern `.claude/skills/memory-pending-triage/SKILL.md`
+     (CWD-relative). If it matches, invoke via the `Skill` tool. If it does not,
+     record `"no pending-triage skill in this repo"` and move on — that is the
+     expected state, not a failure.
    - Phase 1 (`memory-hygiene`) and phase 2 (`session-reflector`): use the
      `Skill` tool.
    - Phase 3 (modify-mode evolution): use the `Agent` tool with
@@ -110,6 +131,10 @@ For each phase, in order:
    regardless.
 3. After all phases have been attempted, present a consolidated
    summary to the user:
+   - What `memory-pending-triage` did (`N notes read, M facts promoted, N moved
+     to pending/indexed/, K left untriaged`) — or the error / "phase skipped, no
+     pending-triage skill". Report the leftover count explicitly; a backlog that
+     goes unmentioned reads as cleared.
    - What `memory-hygiene` archived (`N moved to long-term/`) — or the error.
    - What `session-reflector` wrote (`active/<filename>.md`) — or the error.
    - What `evolver` proposed (modify diffs, or "no friction detected") — or
