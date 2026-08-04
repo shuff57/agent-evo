@@ -45,7 +45,7 @@ research-plan-build:
       prompt: "Research external documentation and best practices for: $INPUT\n\nReturn key findings, relevant code examples, and any gotchas."
     - agent: planner
       prompt: "Based on this research, create an implementation plan for: $ORIGINAL\n\nResearch findings:\n$INPUT"
-    - agent: prometheus
+    - agent: code-engineer
       prompt: "Implement the following plan:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
     - agent: critic
       prompt: "Verify this implementation is correct and complete:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
@@ -55,7 +55,7 @@ oracle-then-build:
   steps:
     - agent: oracle
       prompt: "Analyze and advise on the best architectural approach for: $INPUT\n\nProvide a clear recommendation with rationale."
-    - agent: prometheus
+    - agent: code-engineer
       prompt: "Implement using the following architectural guidance:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
     - agent: critic
       prompt: "Review this implementation for plan alignment and code quality:\n\n$INPUT\n\nOriginal request: $ORIGINAL"

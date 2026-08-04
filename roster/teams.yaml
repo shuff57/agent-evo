@@ -17,7 +17,6 @@ frontend:
   - bowser
 
 experts:
-  - meta-orchestrator
   - extensions-expert
   - theme-expert
   - skills-expert
@@ -38,11 +37,6 @@ advisory:
   - oracle
   - metis
   - critic
-
-implementation:
-  - code-engineer
-  - prometheus
-  - atlas
 
 planning:
   - scout

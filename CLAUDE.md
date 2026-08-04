@@ -31,7 +31,7 @@ Size every non-trivial request on two axes before routing — *do I know exactly
 
 - **Tweak** — one file, obvious, reversible → **do it inline, don't delegate.** The round-trip costs more than the edit.
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
-- **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-*`, fanned out in parallel.**
+- **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-code-engineer`, fanned out in parallel.**
 - **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`code-engineer` (sonnet). Skip ollama entirely.**
 
 ### Build-from-scratch loop
@@ -55,11 +55,17 @@ Escalate, don't grind. Past two failed reviews the review cycles cost more than 
 ### Roster
 
 - **opus** — `oracle`, `metis`, `planner`, `critic`, `council-chair`. Judgment calls, vague inputs, quality gates.
-- **sonnet** — `code-engineer`, `debugger`, `qa-tester`, `designer`, `red-team`, `prometheus`, `atlas`, `meta-orchestrator`, `visual-analyzer`, `bowser`, `eyes-and-ears`, `evolver*`, the four `council-*` seats. Build when specified; review ollama output.
-- **haiku** — `scout`, `summarizer`, `documenter`, `librarian`, `test-ping`, every `*-expert`, and every `ollama-*` / `subcouncil-*` wrapper (they dispatch, they don't think).
-- **ollama** (free, via `ollama-*`) — from-scratch builds and bulk work. Higher variance; **always** review before shipping.
+- **sonnet** — `code-engineer`, `debugger`, `qa-tester`, `designer`, `red-team`, `visual-analyzer`, `bowser`, `eyes-and-ears`, `evolver*`, the four `council-*` seats. Build when specified; review ollama output.
+- **haiku** — `scout`, `summarizer`, `documenter`, `librarian`, `test-ping`, every `*-expert`, and `ollama-code-engineer` (it dispatches, it doesn't think).
+- **ollama** (free, via `ollama-code-engineer`) — bulk mechanical work. Higher variance; **always** review before shipping.
 
 Don't send a haiku task to opus. Don't send an auth change to ollama.
+
+**The main session orchestrates. There is no separate orchestrator agent.** `atlas`,
+`prometheus` and `meta-orchestrator` were retired 2026-08-04, along with 11 of the 12
+`ollama-*` wrappers and all 7 `subcouncil-*` seats — 21 agents, none of which had been
+invoked in the preceding month. Restore any of them with
+`git checkout roster/<name>.md` in `agent-evo`.
 
 # Magic keywords
 

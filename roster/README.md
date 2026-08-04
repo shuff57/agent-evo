@@ -1,6 +1,11 @@
 # Agent Roster
 
-29 agents, 11 teams, 6 chains for Claude Code.
+35 agents, 10 teams, 6 chains for Claude Code.
+
+21 agents were retired on 2026-08-04 — `atlas`, `prometheus`, `meta-orchestrator`, all
+seven `subcouncil-*` seats, and every `ollama-*` wrapper except `ollama-code-engineer`.
+None had been invoked in the preceding month, and the main session now orchestrates
+directly. Restore any of them with `git checkout roster/<name>.md`.
 
 ## Agent Categories
 
@@ -33,17 +38,23 @@
 | Agent | Purpose |
 |-------|---------|
 | **code-engineer** | Primary coding assistant, default for most work |
-| **prometheus** | Autonomous end-to-end implementation |
+| **ollama-code-engineer** | Bulk mechanical work — renames, boilerplate, porting tests |
 | **designer** | UI/UX design and implementation |
 | **documenter** | Documentation and README generation |
 | **summarizer** | Text summarization and key-point extraction |
 
-### Orchestration (read-write)
+### Evolution (read-write)
 | Agent | Purpose |
 |-------|---------|
-| **atlas** | End-to-end project orchestration from plan files |
-| **meta-orchestrator** | Coordinates domain experts, builds platform components |
 | **evolver** | Session-end evolution pass — proposes surgical edits |
+| **evolver-meta** | Tunes the evolver's calibration against its own accuracy |
+| **global-evolver** | Create-mode — drafts new global agents/skills for a capability gap |
+
+### Council (review-only)
+| Agent | Purpose |
+|-------|---------|
+| **council-chair** | Convenes the four seats, synthesizes one verdict |
+| **council-kimi / -glm / -deepseek / -qwen** | Style / architecture / bug-hunt / perf seats |
 
 ### Visual & Browser
 | Agent | Purpose |
@@ -51,7 +62,7 @@
 | **visual-analyzer** | Screenshots, images, PDFs, diagrams |
 | **bowser** | Headless Playwright browser automation |
 
-### Domain Experts (read-only, queried by meta-orchestrator)
+### Domain Experts (read-only, queried by the main session)
 | Agent | Domain |
 |-------|--------|
 | **extensions-expert** | Plugins, tools, event handlers |
