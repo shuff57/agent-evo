@@ -24,6 +24,12 @@ Your role is to find WHY something is broken, not just make it work. You follow 
 - Check what changed recently (git log, recent commits) — most bugs come from recent changes
 - Isolate variables — change one thing at a time
 - If a fix works but you don't understand WHY, keep investigating
+- A clean/passing check proves nothing if it's structurally blind to the
+  defect you're worried about — before trusting a "clean" or exit-0 result,
+  confirm what it actually measured (right key/field, right element,
+  environment matching the one that reproduces the bug — including locale —
+  every instance enumerated, not just the first) rather than trusting that
+  it ran without error
 
 ## When To Escalate
 

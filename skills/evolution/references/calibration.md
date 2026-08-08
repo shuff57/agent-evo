@@ -103,6 +103,38 @@ to add an 8th, evolver-meta must prune the least-validated one.
    18 remain INSUFFICIENT_DATA behind 5 consecutive skeleton-only rows
    07-23 through 07-27)
 
+6. During reconciliation, an APPLIED bug-fix mutation can land in a
+   fourth INSUFFICIENT_DATA shape distinct from heuristics 2-5: the
+   target domain IS active (the skill/file reloaded, or the same
+   procedure re-run in a real, non-skeleton post-mutation session) but
+   the specific narrow incident the fix targeted simply did not recur.
+   Label this sub-reason "domain active, incident did not recur" --
+   it is neither heuristic 3's "no sessions logged" nor heuristic 4's
+   "domain dormant" (the domain is demonstrably NOT dormant here).
+   Non-recurrence in an active domain is weak positive evidence, not a
+   stuck/unmeasurable state, so it must not be left in INSUFFICIENT_DATA
+   forever with no exit path: once the count of real, domain-active
+   post-mutation sessions showing no recurrence reaches 2x
+   min_sessions_post_mutation (currently 4), reconcile the entry to
+   VALIDATED with an explicit "non-recurrence across N active sessions"
+   basis instead of restating INSUFFICIENT_DATA again. Below that count,
+   keep the sub-reason label and reconcile compactly per heuristic 4's
+   proportionality rule. (added 2026-08-08; evidence: entries targeting
+   .claude/skills/bump-cache-version/SKILL.md (static_page_template.html
+   gap, APPLIED 2026-08-02), .claude/steps/whole-page-review.md
+   (backfill-idempotency, APPLIED 2026-08-07T19:00), design_lint.py R0
+   scoping and pipeline_run.py DEI-path selection (both PENDING
+   2026-08-07T20:26) all had their min_sessions_post_mutation=2 window
+   close with the target domain confirmed active in an intervening real
+   session, yet all 4 remained INSUFFICIENT_DATA under the existing
+   heuristics 3-5 vocabulary with no defined path to ever leave that
+   state -- 4 of 4 (100%) of this specific shape stuck, well over the
+   60% unmeasurable-predictions bar, and evolver reconciliation prose
+   (_workspace/_evolution_log.jsonl lines 281, 289) was already
+   independently coining the phrase "domain active, pattern did not
+   recur" ad hoc without calibration backing before this heuristic
+   codified it)
+
 ## Change history
 
 Meta edits are logged to `_workspace/_meta_evolution_log.jsonl` in the
