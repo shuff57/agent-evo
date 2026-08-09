@@ -42,16 +42,19 @@ system-reminder. Do not touch any other project's memory dir.
    - De-duplicate pointer lines that point at the same file.
    Pointer edits are safe and regenerable — apply them directly.
 
-2. **Duplicate / overlap sweep (report, don't auto-merge).** Flag files whose
-   `description` or subject substantially overlap another's (same host, same
-   app, same project thread). Recommend which to merge into which and why.
-   Merging changes user-authored content — propose, let the user confirm.
+2. **Duplicate / overlap sweep (merge it).** Flag files whose `description` or
+   subject substantially overlap another's (same host, same app, same project
+   thread). Merge the weaker into the stronger, keep every distinct measured
+   detail, retire the source via step 3's `_removed/` move, and fix the
+   pointers. Ask only if the two entries genuinely **contradict** each other
+   and you can't tell which is current.
 
-3. **Staleness sweep (report).** Flag `project`-type memories describing work
-   that is clearly complete/superseded (e.g. a migration marked DONE whose
-   follow-up memory now exists). Global memory has no cold tier — the choice is
-   keep or delete, and deletion needs user sign-off. Surface candidates with the
-   reason; never delete unilaterally.
+3. **Staleness sweep (retire it).** Flag `project`-type memories describing
+   work that is clearly complete/superseded (e.g. a migration marked DONE whose
+   follow-up memory now exists). Retire them yourself — `git mv`/move the file
+   to `_removed/<name>.md` inside the memory dir and drop its pointer. Never
+   `rm`: `_removed/` is the undo, and it is what makes this call safe to make
+   without asking.
 
 4. **Frontmatter validity (report + safe fixes).** Flag files missing `name`,
    `description`, or a valid `metadata.type`. Fix an obviously-missing `name`
@@ -60,8 +63,12 @@ system-reminder. Do not touch any other project's memory dir.
 
 ## Safety properties
 
-- **No deletion of fact files without explicit user confirmation.** Only
-  `MEMORY.md` pointer lines and trivially-derivable frontmatter are auto-edited.
+- **Autonomous, but nothing is destroyed** (2026-08-06 operator directive:
+  "make the memory handling fully automatic — you decide"). Merge and retire
+  without asking; retiring means a move to `_removed/`, never `rm`. Interrupt
+  the user only for a genuine contradiction between two entries.
+- **`_removed/` is not scanned.** Files there are invisible to every pass and
+  keep no pointer.
 - **`*.md` only.** Never touch non-markdown artefacts.
 - **Single dir.** Only the current session's memory dir; never another
   project's, never `.agents/memory/`.
