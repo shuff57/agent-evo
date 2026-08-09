@@ -1,29 +1,39 @@
 {
+  "spinnerVerbs": {"mode":"replace","verbs":["show me your stack - ep 2 w alana goyal is live"]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "PYTHONUTF8": "1"
+    "PYTHONUTF8": "1",
+    "ODYSSEUS_URL": "http://127.0.0.1:7000"
   },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "model": "opus",
+  "skillOverrides": {
+    "hyperframes": "off",
+    "hyperframes-animation": "off",
+    "hyperframes-cli": "off",
+    "hyperframes-core": "off",
+    "hyperframes-creative": "off",
+    "hyperframes-keyframes": "off",
+    "hyperframes-registry": "off",
+    "media-use": "off",
+    "parallel-build": "off",
+    "roster-match": "off",
+    "caveman-compress": "off",
+    "steve": "off",
+    "caveman-review": "off",
+    "security-audit": "off",
+    "grill-with-docs": "off",
+    "officecli": "off"
+  },
+  "statusLine": {"type":"command","command":"node \"C:\\\\Users\\\\shuff\\\\.kickbacks\\\\vibe-ads-statusline.mjs\"","padding":0},
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "accessibility-compliance@claude-code-workflows": true,
+    "typescript-lsp@claude-plugins-official": false,
     "superpowers@superpowers-dev": true,
-    "javascript-typescript@claude-code-workflows": true,
-    "code-documentation@claude-code-workflows": true,
-    "debugging-toolkit@claude-code-workflows": true,
-    "backend-development@claude-code-workflows": true,
-    "frontend-mobile-development@claude-code-workflows": true,
-    "full-stack-orchestration@claude-code-workflows": true,
-    "unit-testing@claude-code-workflows": true,
-    "code-review-ai@claude-code-workflows": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -31,8 +41,38 @@
         "source": "github",
         "repo": "anthropics/skills"
       }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
     }
   },
   "autoUpdatesChannel": "latest",
-  "skipDangerousModePermissionPrompt": true
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [{"type": "command", "command": "\"C:/Users/shuff/AppData/Local/Programs/Python/Python313/Scripts/graphify.exe\" hook-guard search"}]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [{"type": "command", "command": "\"C:/Users/shuff/AppData/Local/Programs/Python/Python313/Scripts/graphify.exe\" hook-guard read"}]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [{"type": "command", "command": "node C:/Users/shuff/.claude/bin/msg.mjs guard --as claude --hook"}]
+      }
+    ]
+  },
+  "theme": "dark",
+  "teammateMode": "auto",
+  "voiceEnabled": true
 }
