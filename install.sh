@@ -291,101 +291,73 @@ install_evolution() {
   ok "Evolution workspace ready"
 }
 
-# ── Graphify ───────────────────────────────────────────────────────────────
-# Installs the graphify knowledge-graph tool for the target project directory.
-# Graceful: prints a warning and continues if Python/pip are unavailable.
+# ── Graphify ────────────────────────────────────────────────────────────────
+# Per-device bootstrap for the knowledge graph. The graph itself is NEVER
+# synced (derived data, tens of MB) — each device builds its own. What travels
+# is: the repo's tracked .githooks/ + .graphifyignore, and this function.
+# Graceful: warns and continues if Python is unavailable.
 install_graphify() {
   info "Installing graphify knowledge graph..."
 
-  # ── Find Python ────────────────────────────────────────────────────────
-  _find_python() {
-    # Windows: check $HOME-based paths (works in Git Bash/MSYS2 without hardcoded username)
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || -n "$WINDIR" ]]; then
-      for pyver in Python314 Python313 Python312 Python311 Python310 Python39; do
-        local _candidate="$HOME/AppData/Local/Programs/Python/${pyver}/python.exe"
-        [ -f "$_candidate" ] && echo "$_candidate" && return
-      done
-      # py launcher as fallback (may point to a different install)
-      command -v py &>/dev/null && echo "py" && return
-    fi
-    # Standard names
-    for p in python3 python; do
-      command -v "$p" &>/dev/null && echo "$p" && return
+  local PY=""
+  if [ -n "${WINDIR:-}" ] || [ -n "${MSYSTEM:-}" ]; then
+    for v in Python314 Python313 Python312 Python311 Python310; do
+      [ -f "$HOME/AppData/Local/Programs/Python/$v/python.exe" ] && \
+        PY="$HOME/AppData/Local/Programs/Python/$v/python.exe" && break
     done
-  }
-
-  local PYTHON
-  PYTHON="$(_find_python)"
-  if [ -z "$PYTHON" ]; then
-    warn "Python not found — skipping graphify install"
-    warn "To install manually: pip install graphifyy mcp"
+  fi
+  [ -z "$PY" ] && PY="$(command -v python3 || command -v python || true)"
+  if [ -z "$PY" ]; then
+    warn "Python not found — skipping graphify (manual: pip install graphifyy mcp)"
     return 0
   fi
-  ok "Python found: $PYTHON"
 
-  # ── Install packages ───────────────────────────────────────────────────
-  if PYTHONUTF8=1 $PYTHON -c "import graphify" &>/dev/null 2>&1; then
+  if PYTHONUTF8=1 "$PY" -c "import graphify" &>/dev/null 2>&1; then
     ok "graphifyy already installed"
   else
-    info "Installing graphifyy and mcp via pip..."
-    if PYTHONUTF8=1 $PYTHON -m pip install graphifyy mcp --quiet 2>/dev/null; then
-      ok "graphifyy installed"
-    else
-      warn "pip install graphifyy failed — skipping graphify setup"
-      return 0
-    fi
+    PYTHONUTF8=1 "$PY" -m pip install graphifyy mcp --quiet 2>/dev/null \
+      && ok "graphifyy installed" \
+      || { warn "pip install graphifyy failed — skipping graphify"; return 0; }
   fi
 
-  # ── Install git hooks for the target project ───────────────────────────
-  local target_dir="${1:-$INSTALL_DIR}"
-  if [ -d "$target_dir/.git" ]; then
-    info "Installing graphify git hooks in $target_dir..."
-    # Must cd into target dir — `--path` flag is ignored by graphify hook install
-    if (cd "$target_dir" && PYTHONUTF8=1 $PYTHON -m graphify hook install) &>/dev/null 2>&1; then
-      ok "Graphify git hooks installed"
-      # Patch the hook fallback so it uses our resolved Python, not `python3`
-      # (on Windows, `python3` is often not on PATH)
-      for hook_file in "$target_dir/.git/hooks/post-commit" "$target_dir/.git/hooks/post-checkout"; do
-        if [ -f "$hook_file" ] && grep -q "GRAPHIFY_PYTHON=\"python3\"" "$hook_file" 2>/dev/null; then
-          sed -i "s|GRAPHIFY_PYTHON=\"python3\"|GRAPHIFY_PYTHON=\"$PYTHON\"|g" "$hook_file" 2>/dev/null && \
-            ok "Patched hook fallback Python in $(basename "$hook_file")"
-        fi
-      done
-    else
-      warn "graphify hook install failed — hooks not set up (graph will still build manually)"
-    fi
-  else
-    info "No .git directory found at $target_dir — skipping git hooks"
-  fi
-
-  # ── Install Claude Code skill + PreToolUse hook ────────────────────────
-  if PYTHONUTF8=1 $PYTHON -m graphify install &>/dev/null 2>&1; then
-    ok "Graphify Claude skill + hook registered"
-  else
-    warn "graphify install step failed — Claude integration may be incomplete"
-  fi
-
-  # ── Build initial graph ────────────────────────────────────────────────
-  info "Building initial knowledge graph for $target_dir..."
-  if PYTHONUTF8=1 $PYTHON -c "
-import os, sys
+  # Read path: PreToolUse guard in ~/.claude/settings.json. Nudges the agent to
+  # `graphify query` before grepping. Silent in repos with no graph, so it is
+  # registered once, globally, and needs no per-repo install.
+  # GRAPHIFY_HOOK_STRICT=1 upgrades the nudge to a hard block (no reinstall).
+  PYTHONUTF8=1 "$PY" - "$HOME/.claude/settings.json" <<'PYEOF' && ok "Read-path hook registered in ~/.claude/settings.json"
+import json, sys, shutil
 from pathlib import Path
-from graphify.watch import _rebuild_code
-_rebuild_code(Path('$target_dir'))
-" 2>/dev/null; then
-    ok "Knowledge graph built in $target_dir/graphify-out/"
-  else
-    warn "Initial graph build failed — run manually: python -m graphify build"
-  fi
+p = Path(sys.argv[1])
+exe = shutil.which("graphify") or ""
+if not exe:
+    print("  graphify exe not on PATH — hook not registered"); sys.exit(0)
+exe = exe.replace("\\", "/")
+s = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+pre = [h for h in s.setdefault("hooks", {}).setdefault("PreToolUse", [])
+       if "graphify" not in json.dumps(h)]
+for matcher, kind in (("Bash|Grep", "search"), ("Read|Glob", "read")):
+    pre.append({"matcher": matcher,
+                "hooks": [{"type": "command", "command": f'"{exe}" hook-guard {kind}'}]})
+s["hooks"]["PreToolUse"] = pre
+p.write_text(json.dumps(s, indent=2) + "\n", encoding="utf-8")
+PYEOF
 
-  # ── Ensure graphify-out/ is gitignored ────────────────────────────────
-  local gitignore="$target_dir/.gitignore"
-  if [ -f "$gitignore" ]; then
-    if ! grep -q "graphify-out" "$gitignore"; then
-      echo "graphify-out/" >> "$gitignore"
-      ok "Added graphify-out/ to .gitignore"
+  # Write path: repos that ship a tracked .githooks/ only need core.hooksPath
+  # pointed at it (a LOCAL config, so it never clones — this is the one command
+  # a fresh clone always needs). Repos without one get hooks installed directly.
+  local repo
+  for repo in "$@"; do
+    [ -d "$repo/.git" ] || continue
+    if [ -d "$repo/.githooks" ]; then
+      git -C "$repo" config --local core.hooksPath .githooks
+      ok "$(basename "$repo"): core.hooksPath -> .githooks"
+    else
+      (cd "$repo" && PYTHONUTF8=1 "$PY" -m graphify hook install) &>/dev/null \
+        && ok "$(basename "$repo"): git hooks installed"
     fi
-  fi
+    [ -f "$repo/graphify-out/graph.json" ] || \
+      info "$(basename "$repo"): no graph yet — first commit will build one"
+  done
 
   ok "Graphify setup complete"
 }
@@ -581,21 +553,6 @@ summary() {
     echo "    tests   -> $INSTALL_DIR/evolution/tests/"
     echo ""
   fi
-  if [ -d "$INSTALL_DIR/graphify-out" ]; then
-    local node_count=""
-    local _py_for_summary
-    for pyver in Python314 Python313 Python312 Python311 Python310 Python39; do
-      local _c="$HOME/AppData/Local/Programs/Python/${pyver}/python.exe"
-      [ -f "$_c" ] && _py_for_summary="$_c" && break
-    done
-    [ -z "$_py_for_summary" ] && _py_for_summary="python3"
-    node_count=$(PYTHONUTF8=1 "$_py_for_summary" -c "import json; d=json.load(open('$INSTALL_DIR/graphify-out/graph.json')); print(len(d.get('nodes', [])))" 2>/dev/null || echo "?")
-    echo "  Graphify Knowledge Graph:"
-    echo "    graph -> $INSTALL_DIR/graphify-out/"
-    echo "    nodes: $node_count"
-    echo "    rebuild: python -m graphify build (or commit to trigger hook)"
-    echo ""
-  fi
   echo "  Edit agents/skills/memory in the repo — Claude Code sees changes instantly."
   echo ""
 
@@ -616,7 +573,7 @@ main() {
   setup_repo
   link_all
   install_evolution
-  install_graphify "$INSTALL_DIR"
+  install_graphify "$HOME/Documents/GitHub/Syllabus" "$HOME/Documents/GitHub/bookSHelf"
   verify
   summary
 }

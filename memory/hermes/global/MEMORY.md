@@ -6,7 +6,7 @@ Hermes config: ~/.hermes/config.yaml. Model catalog in fact_store id 4. agent-me
 §
 bookSHelf: Ch1 remaster 89/89 PASS committed a2a8655. Prompts: Context Pause + Insight Note REQUIRED. Full worked solutions mandatory. Subsection rule-lists: explain + notate only.
 §
-Obsidian MCP fix: use Linux Node.js (~/.local/nodejs/bin/npx) + WSL path. Windows npx via WSL shim caused CancelledError on MCP handshake. Linux npx+v22.14.0 at ~/.local/nodejs/. Config: command=/home/shuff57/.local/nodejs/bin/npx, path=/mnt/c/Users/shuff57/Documents/Obsidian Vault. Graphify integration: mirror graphify-out/wiki/ -> vault/Knowledge/graphify-wiki/.
+Obsidian MCP fix: use Linux Node.js (~/.local/nodejs/bin/npx) + WSL path. Windows npx via WSL shim caused CancelledError on MCP handshake. Linux npx+v22.14.0 at ~/.local/nodejs/. Config: command=/home/shuff57/.local/nodejs/bin/npx, path=/mnt/c/Users/shuff57/Documents/Obsidian Vault.
 §
 SOUL.md (~/.hermes/SOUL.md): session-startup preloaded skills. Caveman + karpathy-guidelines both inject as [SYSTEM: preloaded] blocks. Add new always-on skills there. Skill missing from skills_list? Check if symlink-to-dir in agent-evo/skills/ — os.walk skips symlinks.
 §

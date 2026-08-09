@@ -24,7 +24,7 @@ bash test.sh       # runs full test suite
 3. Backs up any existing agents in `~/.claude/agents/`
 4. Symlinks `roster/`, `skills/`, `memory/`, and `settings.json` into `~/.claude/`
 5. Installs the Hermes memory backend (if `uv` is available)
-6. Sets up graphify knowledge-graph hooks
+6. Installs graphify + registers the read-path hook and per-repo git hooks
 7. Validates all agents, teams, chains, and symlinks
 
 ### Configuration
