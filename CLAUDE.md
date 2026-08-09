@@ -96,9 +96,45 @@ claude: write SPEC.md + send task ──▶ opencode run "Check your inbox." --a
    └──── read reply, run tests, send defect ◀─┘  replies --re <id>
 ```
 
-- **State file ownership in the message** ("I own test.js, don't edit it") — opencode honors it.
 - **Ask for one unpinned design decision** in the reply. That is where the spec gaps surface.
 - Reply always carries `--re <id>`; never hand-edit `log.jsonl`.
+
+## File ownership (enforced)
+
+```
+node C:/Users/shuff/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
+node C:/Users/shuff/.claude/bin/msg.mjs owners
+node C:/Users/shuff/.claude/bin/msg.mjs release --as claude --all
+```
+
+Claims replay from the same log — no second state file. Enforcement is real on both sides:
+a `PreToolUse` hook on `Edit|Write|NotebookEdit` (settings.json) blocks Claude, and
+`~/.config/opencode/plugin/ownership.js` blocks opencode. A blocked write is not a puzzle to
+route around — message the owner and stop. Claim before delegating a build; release when the
+handoff closes, or the next session inherits a locked repo.
+
+Ceiling: the guards cover write tools only, so a shell heredoc can still clobber a claimed
+file. Self-check for the whole thing: `node ~/.claude/bin/msg.test.mjs`.
+
+### Install on a new box
+
+`bin/` and `opencode/` live in this repo; symlink them into place (as `sync.sh` does for
+`roster`), then add the Claude-side hook by hand — `settings.json` is not synced from here.
+
+```bash
+ln -sfn "$PWD/bin"             ~/.claude/bin
+ln -sfn "$PWD/opencode/plugin" ~/.config/opencode/plugin
+ln -sf  "$PWD/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
+```
+
+```jsonc
+// ~/.claude/settings.json -> hooks.PreToolUse[]
+{ "matcher": "Edit|Write|NotebookEdit",
+  "hooks": [{"type": "command", "command": "node C:/Users/shuff/.claude/bin/msg.mjs guard --as claude --hook"}] }
+```
+
+The hook only takes effect on the next session start. `opencode` picks the plugin up on its
+next run, no restart needed.
 
 # Magic keywords
 
