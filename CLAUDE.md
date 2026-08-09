@@ -22,6 +22,10 @@ If intent is genuinely ambiguous, ask one short clarifying question instead of g
 
 The main session (Opus) is the tech lead: it sizes the request, writes the spec, and reviews the result. It does not bulk-type. Everything else goes to the cheapest tier that can actually do the job.
 
+**Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
+
+**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. When suppressed, say so in one line rather than quietly building it yourself, and fall back to calling `opencode run "<spec>" --auto -m ollama-cloud/kimi-k2.7-code` directly via Bash, which is never suppressed.
+
 Size every non-trivial request on two axes before routing — *do I know exactly what "done" looks like*, and *how much breaks if this is wrong*:
 
 |  | Low blast radius | High blast radius |
@@ -66,6 +70,35 @@ Don't send a haiku task to opus. Don't send an auth change to ollama.
 `ollama-*` wrappers and all 7 `subcouncil-*` seats — 21 agents, none of which had been
 invoked in the preceding month. Restore any of them with
 `git checkout roster/<name>.md` in `agent-evo`.
+
+# Cross-CLI message center
+
+Claude Code and opencode share an append-only message log so they can hand work back and
+forth in one repo. Zero per-repo setup — the box resolves itself.
+
+```
+node C:/Users/shuff/.claude/bin/msg.mjs where                                  # which box am I in
+node C:/Users/shuff/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
+node C:/Users/shuff/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
+node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             # whole thread
+```
+
+Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. The opencode side reads the same
+protocol from `~/.config/opencode/AGENTS.md`, so a bare `opencode run "Check your inbox."`
+is enough to hand off. Add `.msgbox/` to a repo's `.gitignore` if the thread shouldn't ship.
+
+Handoff shape that works:
+
+```
+claude: write SPEC.md + send task ──▶ opencode run "Check your inbox." --auto
+   ▲                                          │ builds, self-verifies
+   │                                          ▼
+   └──── read reply, run tests, send defect ◀─┘  replies --re <id>
+```
+
+- **State file ownership in the message** ("I own test.js, don't edit it") — opencode honors it.
+- **Ask for one unpinned design decision** in the reply. That is where the spec gaps surface.
+- Reply always carries `--re <id>`; never hand-edit `log.jsonl`.
 
 # Magic keywords
 
@@ -123,13 +156,22 @@ When writing `.ps1` scripts (e.g. statusline, hooks) that will be invoked by Cla
 - **Bash builtin/special variables silently shadow your own assignment.** `GROUPS` is a bash builtin array holding the user's group ids — `GROUPS=(a b c)` doesn't error, it just no-ops your intent, and the failure surfaces far away (a later `${GROUPS[0]}`-style expansion pulls a numeric gid instead of your value, producing something like a baffling `fatal: Not a valid object name 197610` out of an unrelated `git` command). Other bash-reserved names to avoid for your own variables: `RANDOM`, `SECONDS`, `LINENO`, `PPID`, `REPLY`, `IFS`, `PATH`, `PS1`-`PS4`, `BASH_*`. Check `declare -p <name>` before reusing a short/common name for a loop or array variable.
 - **An ESM script written to the session scratchpad can't resolve the repo's `node_modules`.** Node's ESM resolver walks up from the *script's own file location*, not the shell's cwd — a `.mjs` file under the scratchpad temp dir throws `ERR_MODULE_NOT_FOUND` for packages (e.g. `playwright`) that are installed in the project repo, even though the shell cwd is the repo root. Fix: `import { createRequire } from 'module'; const require = createRequire(pathToRepoPackageJson);` — pointing `createRequire` at the repo's own `package.json` (not the scratchpad file) re-roots resolution at the repo's `node_modules`. This will recur for any scratchpad-written ESM script that imports a repo dependency; the scratchpad convention itself doesn't account for it.
 
-# Visual plans
+# Visual over textual
 
-When presenting a plan, design, or any multi-step flow, include a diagram where it aids understanding. The diagram supplements the prose plan, it doesn't replace it. Skip it for trivial linear steps.
+Structure carries the meaning. Prose is the fallback, not the default. Show the shape first; explain only what the shape can't.
 
-**Draw ASCII box-and-arrow flow diagrams, not Mermaid.** The terminal shows raw markdown — Mermaid never renders, so ```mermaid blocks read as nonsense source. An ASCII diagram is the actual picture. Boxes for steps, `│ ▼` for flow, `┆` for a later/async hop, branch labels on the arrows. Keep it readable: ≤8 boxes, one idea per diagram; split or drop to prose past that.
+| Answer is about | Use |
+|---|---|
+| Flow, architecture, pipeline, before/after | ASCII diagram |
+| Options, specs, comparisons, checklists, "what do I need" | Table |
+| Ordered actions | Numbered list |
+| Config, commands | Code block |
+| Why / tradeoffs / caveats only | Prose, 1–3 lines |
 
-Exception: only emit Mermaid when the output is explicitly for a Mermaid-rendering surface (a `.md` file on GitHub, an Artifact, a PR body) — never for terminal replies.
+- Lead with the picture, then the words. Never restate in prose what the diagram already showed.
+- **ASCII box-and-arrow, not Mermaid.** Terminal shows raw markdown — ```mermaid renders as nonsense. Boxes for steps, `│ ▼` flow, `┆` later/async, labels on arrows. ≤8 boxes, one idea each; split or drop to prose past that.
+- Mermaid only for Mermaid-rendering surfaces (GitHub `.md`, Artifact, PR body) — never terminal replies.
+- Skip it when trivial. A two-box diagram is noise.
 
 # Coding conduct
 
