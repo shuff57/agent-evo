@@ -68,7 +68,8 @@ setup_repo() {
     ok "Using existing directory"
   else
     info "Cloning repo to $INSTALL_DIR..."
-    git clone "$REPO_URL" "$INSTALL_DIR"
+    # Longest tracked path is ~142 chars, so a deep INSTALL_DIR blows MAX_PATH on Windows.
+    git -c core.longpaths=true clone "$REPO_URL" "$INSTALL_DIR"
     ok "Cloned"
   fi
 }
@@ -246,9 +247,15 @@ install_evolution() {
         cd ~/hermes-agent || exit 1
         uv venv venv --python 3.11 --quiet 2>/dev/null || { warn "Hermes venv creation failed (Python 3.11 required) — memory will use fallback JSONL"; exit 1; }
         VIRTUAL_ENV="$(pwd)/venv" uv pip install -e "." --quiet 2>/dev/null || { warn "Hermes pip install failed — memory will use fallback JSONL"; exit 1; }
-        mkdir -p ~/.local/bin
-        ln -sf ~/hermes-agent/venv/bin/hermes ~/.local/bin/hermes
-        mkdir -p ~/.hermes/{memories,skills,sessions,logs}
+        mkdir -p ~/.local/bin ~/.hermes/{memories,skills,sessions,logs}
+        # uv puts the entrypoint in venv/Scripts on Windows, venv/bin elsewhere. The old
+        # code linked the POSIX path unconditionally and printed ok even when ln failed.
+        HERMES_BIN=""
+        for cand in ~/hermes-agent/venv/bin/hermes ~/hermes-agent/venv/Scripts/hermes.exe; do
+          [ -e "$cand" ] && HERMES_BIN="$cand" && break
+        done
+        [ -n "$HERMES_BIN" ] || { warn "Hermes entrypoint not found in venv — memory will use fallback JSONL"; exit 1; }
+        ln -sf "$HERMES_BIN" ~/.local/bin/hermes || { warn "Hermes link failed — memory will use fallback JSONL"; exit 1; }
         ok "Hermes memory backend installed (~/.local/bin/hermes)"
       ) || true
     else
@@ -462,7 +469,9 @@ verify() {
   }
 
   verify_link "$CLAUDE_DIR/agents" "$INSTALL_DIR/roster" "Claude Code agents" "$CLAUDE_DIR/agents/test-ping.md"
-  verify_link "$CLAUDE_DIR/skills" "$INSTALL_DIR/skills" "Claude Code skills" "$CLAUDE_DIR/skills/browser-use"
+  # Probe a TRACKED skill — browser-use is gitignored, so it is never present in a
+  # fresh clone and the old probe failed every clean install.
+  verify_link "$CLAUDE_DIR/skills" "$INSTALL_DIR/skills" "Claude Code skills" "$CLAUDE_DIR/skills/caveman"
   verify_link "$CLAUDE_DIR/memory" "$INSTALL_DIR/memory" "Claude Code memory" "$CLAUDE_DIR/memory"
   verify_link "$CLAUDE_DIR/settings.json" "$INSTALL_DIR/settings.json" "Claude Code settings" "$CLAUDE_DIR/settings.json"
 
