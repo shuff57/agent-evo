@@ -312,13 +312,24 @@ install_graphify() {
     return 0
   fi
 
-  if PYTHONUTF8=1 "$PY" -c "import graphify" &>/dev/null 2>&1; then
+  # tree_sitter_sql ships in the [sql] extra; without it .sql files contribute
+  # nothing to the graph. Probed alongside graphify so a machine installed before
+  # the extra was added still picks it up instead of short-circuiting on "already
+  # installed".
+  if PYTHONUTF8=1 "$PY" -c "import graphify, tree_sitter_sql" &>/dev/null 2>&1; then
     ok "graphifyy already installed"
   else
-    PYTHONUTF8=1 "$PY" -m pip install graphifyy mcp --quiet 2>/dev/null \
+    PYTHONUTF8=1 "$PY" -m pip install "graphifyy[sql]" mcp --quiet 2>/dev/null \
       && ok "graphifyy installed" \
       || { warn "pip install graphifyy failed — skipping graphify"; return 0; }
   fi
+
+  # Upstream feeds raw .svelte files to the JS grammar, collapsing each SFC to one
+  # top-level ERROR node — every script-block symbol is lost and only the file node
+  # survives. Re-applied on every install because pip overwrites site-packages.
+  PYTHONUTF8=1 "$PY" "$INSTALL_DIR/patches/graphify-svelte-symbols.py" &>/dev/null \
+    && ok "svelte extractor patched" \
+    || warn "svelte patch skipped — run patches/graphify-svelte-symbols.py to see why"
 
   # Read path: PreToolUse guard in ~/.claude/settings.json. Nudges the agent to
   # `graphify query` before grepping. Silent in repos with no graph, so it is
@@ -355,8 +366,15 @@ PYEOF
       (cd "$repo" && PYTHONUTF8=1 "$PY" -m graphify hook install) &>/dev/null \
         && ok "$(basename "$repo"): git hooks installed"
     fi
-    [ -f "$repo/graphify-out/graph.json" ] || \
-      info "$(basename "$repo"): no graph yet — first commit will build one"
+    # Build now rather than waiting for the first commit: hook-guard is silent
+    # without a graph, so a fresh machine would grep blind until you happen to
+    # commit to that repo.
+    if [ ! -f "$repo/graphify-out/graph.json" ]; then
+      info "$(basename "$repo"): building initial graph..."
+      (cd "$repo" && PYTHONUTF8=1 "$PY" -m graphify update .) &>/dev/null \
+        && ok "$(basename "$repo"): graph built" \
+        || warn "$(basename "$repo"): initial build failed — next commit retries"
+    fi
   done
 
   ok "Graphify setup complete"
@@ -573,7 +591,10 @@ main() {
   setup_repo
   link_all
   install_evolution
-  install_graphify "$HOME/Documents/GitHub/Syllabus" "$HOME/Documents/GitHub/bookSHelf"
+  # Every repo under GitHub/, not a hardcoded pair — the old two-repo list is why
+  # only Syllabus and bookSHelf had hooks. Non-repos are skipped by the .git test,
+  # as is an unmatched glob.
+  install_graphify "$HOME"/Documents/GitHub/*/
   verify
   summary
 }
