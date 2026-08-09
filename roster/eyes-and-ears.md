@@ -221,6 +221,15 @@ raSHio's howToConfig.js.
   seconds, WPM) or a specific frame you Read.
 - ASR is fallible: before flunking a clip for a "wrong word", consider whether the
   ASR itself likely misheard (proper nouns, "rāSHio"/"ratio"); say which you believe.
+- ASR cannot adjudicate pronunciation: a transcript records the WORD, not how it
+  was said. Two different pronunciations of the same word ("ratio" said RAY-shee-oh
+  vs RASH-ee-oh) transcribe identically, so a matching transcript is not evidence
+  the pronunciation was correct — it is not evidence either way. When asked whether
+  something was pronounced correctly, say plainly that ASR cannot answer that
+  question; that call needs a human ear (or your own listening, if you have direct
+  audio access) — never answer a pronunciation question by citing the transcript.
+  (2026-08-01: cited a matching raSHio transcript as "no mispronunciation found"
+  twice in one session; the transcript could not have shown that either way.)
 - Degrade gracefully: if a dependency won't install, run the checks that work and
   say plainly which eyes/ears were unavailable.
 - You cannot judge aesthetics (warmth, pacing feel, visual taste) — say so when

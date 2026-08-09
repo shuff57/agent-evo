@@ -49,6 +49,24 @@ does not block the others.
 - `evolver` agent (loads the `evolution` skill) — at `~/.claude/agents/evolver.md` (user-global). Modify-mode only.
 - Project-local create-mode evolver — any agent in `<repo>/.claude/agents/` whose filename matches `*-evolver.md` (e.g. `bookshelf-evolver.md`, `infra-evolver.md`). Each such agent is invoked once in phase 4. Repos without one simply skip phase 4 with a clean log line.
 
+## Worktree awareness
+
+`.agents/memory/` is tracked per-branch, not shared globally. If CWD is a git
+worktree (check `git rev-parse --show-toplevel` against `git worktree list`,
+or just note a `.worktrees/` segment in the path) on a branch other than the
+repo's default, phases 0-2 read and write that branch's own snapshot of
+`.agents/memory/` — which can be behind (or diverged from) what hygiene/
+reflector already did on the main branch in a different checkout. Confirmed
+2026-08-07: a `feature/*` worktree's committed `MEMORY.md` differed from
+`desktop`'s, and an uncommitted working-tree edit was already reconciling the
+gap before this skill ran. Triaging `pending/` notes or pruning `active/`
+entries here can redo work already done on the main branch, and a
+`session-reflector` entry written here won't reach the main branch's memory
+until this branch merges. Before running phases 0-2 in a worktree, diff
+`.agents/memory/` against the default branch; if it's diverged, say so in the
+summary rather than silently triaging/pruning/writing as if this were the
+canonical copy.
+
 ## Order matters
 
 0. **`memory-pending-triage`** (when the repo has it) — promote durable
