@@ -79,6 +79,7 @@ A keyword in the user's message → invoke the named skill via the Skill tool be
 | "verify this", "is this fixed" | `verify` |
 | "/loop", "every N minutes" | `loop` |
 | "claude council", "run the council", "convene the council", "council review" | `council` |
+| "gauntlet loop", "gauntlet this", "loop until it beats X" | `gauntlet-loop` |
 
 Don't activate on quoted/code-block matches. If a keyword fires but context makes it clearly inappropriate (e.g. user is asking *about* the skill, not invoking it), say so and skip.
 
