@@ -80,14 +80,32 @@ const prompt = [
   'If any path given to you does not exist, STOP and say so rather than guessing a different one.',
   reportLine,
   'State plainly which parts you did NOT finish. An honest short list beats rushed work.',
-].filter(Boolean).join('\n\n');
+]
+  .filter(Boolean)
+  .join(' ')
+  // One line, no double quotes, no angle brackets. `opencode` is a .ps1/.cmd shim on Windows, so
+  // this has to go through a shell (below) — and a shell is exactly what rewrote a prompt into a
+  // different command on 2026-08-10. Keeping the string free of the characters that get reinterpreted
+  // is what makes shell:true safe; the DETAIL lives in the spec file, not in the prompt.
+  .replace(/["<>]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 console.log(`spec   ${spec}\nmodel  ${model}\nclaims none held\n`);
 
+// shell:true is REQUIRED on Windows — `opencode` is a .ps1/.cmd shim and Node will not execute one
+// with shell:false. It returns status null and never launches, which reads exactly like a run that
+// did nothing. Measured 2026-08-10: the wrapper's own first live dispatch failed this way.
 const run = spawnSync('opencode', ['run', prompt, '--auto', '-m', model], {
   stdio: 'inherit',
-  shell: false,
+  shell: true,
 });
+
+if (run.status === null) {
+  console.error(`\nFAILED to launch opencode (status null, ${run.error ? run.error.message : 'no error given'}).`);
+  console.error('The process never started, so nothing was attempted.');
+  process.exit(2);
+}
 
 // The check that matters: exit 0 is not evidence. Either the expected files exist, or a reply came.
 if (noBox) {
