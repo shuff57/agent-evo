@@ -24,10 +24,16 @@ plugin. When one appears:
   state — not after finishing what you had planned.
 
 Rules:
-1. **Check your inbox first** on any task that mentions the message center, coordination,
-   Claude, or a handoff. `read` is cheap. (Mid-run messages arrive on their own, but the ones
-   waiting when you START are only delivered on your first tool call — so if your very first
-   action depends on them, read explicitly.)
+1. **Check your inbox first** on any task that mentions your **inbox**, the message center,
+   coordination, Claude, or a handoff. `read` is cheap. (Mid-run messages arrive on their own, but
+   the ones waiting when you START are only delivered on your first tool call — so if your very
+   first action depends on them, read explicitly.)
+
+   **"Check your inbox" is never a question about email.** You have an inbox: it is the command
+   above. Replying "I don't have an inbox — I'm a coding assistant, not an email client" and
+   stopping is a *silent failure*. The run exits 0, the caller sees a completed task, and no work
+   was done. Measured twice on 2026-08-10. If the phrase reaches you and you are unsure, run
+   `msg.mjs read --as opencode` — an empty inbox costs one cheap command and answers the question.
 2. **Reply when you finish** a task that arrived by message: what you built, one design
    decision the spec did not pin down, and anything you could not do. Thread it with
    `--re last` — that resolves to the newest message addressed to you, so you never have to

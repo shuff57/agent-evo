@@ -66,8 +66,9 @@ Two axes the table above does not capture, both of which decided real outcomes:
 Ollama builds, a smarter model reviews. The nested ollama session runs non-interactively and **cannot ask questions mid-task** — an unambiguous spec is the whole safety margin.
 
 The handoff runs through the message center (see below), not through an inline prompt: claim
-the acceptance gate, send the spec, run `opencode run "Check your inbox."`, read the threaded
-reply. Encode review feedback as a **runnable check you own** — a builder that can edit its
+the acceptance gate, send the spec, launch opencode with the `msg.mjs read` command named in the
+prompt (see the message-center section — the bare "check your inbox" phrasing can no-op silently),
+read the threaded reply. Encode review feedback as a **runnable check you own** — a builder that can edit its
 own gate eventually will, and ownership is enforced, so claiming it is a real wall.
 
 ```
@@ -111,17 +112,36 @@ node C:/Users/shuff/.claude/bin/msg.mjs send --from claude --to opencode --re 2 
 node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             # whole thread
 ```
 
-Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. The opencode side reads the same
-protocol from `~/.config/opencode/AGENTS.md`, so a bare `opencode run "Check your inbox."`
-is enough to hand off. Add `.msgbox/` to a repo's `.gitignore` if the thread shouldn't ship.
+Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Add `.msgbox/` to a repo's
+`.gitignore` if the thread shouldn't ship.
+
+**Launch with the command in the prompt, not with `"Check your inbox."`** The bare phrase depends on
+`~/.config/opencode/AGENTS.md` reaching the model, and when it doesn't the run answers *"I don't have
+an inbox — I'm a coding assistant, not an email client"* and **exits 0**. That is the worst failure
+shape available: a completed background task, a clean exit code, and nothing done. Measured twice on
+2026-08-10 in `steve-desktop`, whose own `AGENTS.md` was silent on the protocol — a repo-level file
+can be what loads instead of the global one. Naming the command depends on nothing:
+
+```bash
+opencode run 'First run: node C:/Users/shuff/.claude/bin/msg.mjs read --as opencode . That prints a
+work order addressed to you. Carry it out exactly. When finished, reply with msg.mjs send --from
+opencode --to claude --re last and your report as --text.' --auto -m ollama-cloud/<model>
+```
+
+Single-quote the prompt. A double-quoted one containing `\"…\"` or `<angle brackets>` gets mangled by
+the shell — that produced a second silent no-op the same day, where the run listed a directory and
+exited 0.
+
+**Exit code 0 is not evidence the handoff worked.** The only proof is the threaded reply, so check
+the log rather than the task notification.
 
 Handoff shape that works:
 
 ```
-claude: write SPEC.md + send task ──▶ opencode run "Check your inbox." --auto
+claude: write SPEC.md + send task ──▶ opencode run '<explicit msg.mjs read command>' --auto
    ▲                                          │ builds, self-verifies
    │                                          ▼
-   └──── read reply, run tests, send defect ◀─┘  replies --re <id>
+   └──── read reply, run tests, send defect ◀─┘  replies --re last
 ```
 
 - **Ask for one unpinned design decision** in the reply. That is where the spec gaps surface.
