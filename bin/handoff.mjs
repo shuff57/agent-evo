@@ -53,6 +53,13 @@ if (owners && !/nothing claimed/i.test(owners)) {
   process.exit(2);
 }
 
+// (6) The message log grows without bound — 119KB / ~30k tokens by 2026-08-10 — and a run told to
+// reply with `--re last` reads the whole thing to resolve "last", burning its context before it
+// writes a line. So a task that needs no coordination should not touch the box at all: pass
+// --expect and success is measured by the files appearing, not by a reply.
+const expect = (get('--expect') || '').split(',').map((s) => s.trim()).filter(Boolean);
+const noBox = expect.length > 0;
+
 const countReplies = () => {
   try {
     const log = execSync(`node "${MSG}" log --n 400`, { encoding: 'utf8' });
@@ -63,11 +70,15 @@ const before = countReplies();
 
 // (1)(3) the task goes IN the prompt. No inbox indirection, no short continuation that reads
 // as an acknowledgement. (2) single-quoted, no nested quotes, no angle brackets.
+const reportLine = noBox
+  ? 'DO NOT touch the message center: do not read or write .msgbox, do not run msg.mjs. That log is large and reading it will consume your context before you produce anything. Print your report to stdout instead.'
+  : `When finished, report by running: node ${MSG} send --from opencode --to claude --re last --text with your findings.`;
+
 const prompt = [
   `Read this file: ${spec} — that exact absolute path, it exists. Carry it out in full.`,
   note,
   'If any path given to you does not exist, STOP and say so rather than guessing a different one.',
-  `When finished, report by running: node ${MSG} send --from opencode --to claude --re last --text with your findings.`,
+  reportLine,
   'State plainly which parts you did NOT finish. An honest short list beats rushed work.',
 ].filter(Boolean).join('\n\n');
 
@@ -78,7 +89,18 @@ const run = spawnSync('opencode', ['run', prompt, '--auto', '-m', model], {
   shell: false,
 });
 
-// The check that matters: exit 0 is not evidence. A reply is.
+// The check that matters: exit 0 is not evidence. Either the expected files exist, or a reply came.
+if (noBox) {
+  const missing = expect.filter((f) => !fs.existsSync(path.resolve(f)));
+  if (!missing.length) {
+    console.log(`\nOK — all ${expect.length} expected file(s) present.`);
+    process.exit(0);
+  }
+  console.error(`\nFAILED — the run exited (code ${run.status}) but ${missing.length} of ${expect.length} expected file(s) are missing:`);
+  for (const m of missing) console.error(`  ${m}`);
+  process.exit(1);
+}
+
 const after = countReplies();
 if (after > before) {
   console.log(`\nOK — reply received (${after - before} new). Read it with: node ${MSG} read --as claude`);
