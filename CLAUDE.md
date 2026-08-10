@@ -139,6 +139,20 @@ exited 0.
 **Exit code 0 is not evidence the handoff worked.** The only proof is the threaded reply, so check
 the log rather than the task notification.
 
+**A short `--re` reply gets READ and not ACTED ON.** Twice on 2026-08-10 a follow-up of the shape
+"my error, claim released, proceed with SPEC.md as specced" was fetched by `msg.mjs read`, echoed to
+stdout, and the run exited 0 having done nothing. A brief reply reads as an acknowledgement, so
+"check your inbox" is satisfied by the reading. Full standalone work orders get carried out; short
+continuations do not. Either resend the whole order, or — when the task needs no coordination, as
+with file authoring — **skip the inbox entirely and put the task in the launch prompt.** The message
+center is for handoff and mid-run correction, not for being clever about indirection.
+
+**Release your file claims BEFORE dispatching an authoring task.** A claim on `questions/` is right
+for a browser push, where it stops the run editing the very sources its byte-exact read-back compares
+against, and completely wrong for an authoring run, whose whole job is writing files there. Same
+directory, opposite answer. A well-behaved builder will stop and say it is blocked — after reading
+the entire spec first, so the wasted cycle is real.
+
 Handoff shape that works:
 
 ```
