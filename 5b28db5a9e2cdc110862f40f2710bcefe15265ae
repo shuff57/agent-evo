@@ -1,0 +1,26 @@
+Also contains opencode/plugin/inbox.js, which this message does not mention.
+
+Mid-run message delivery. `opencode run` reads its inbox once, at launch, so a message sent
+after a run starts used to sit unread until the run ended -- measured 2026-08-09, three
+messages sat ~25 minutes during a live handoff, one of which had removed a requirement.
+
+The plugin hooks tool.execute.after, stats the message log, and when something is new appends
+the message TEXT to that tool's result. It delivers rather than notifies on purpose: a "you
+have mail" notice costs the agent a tool call to act on, and an agent mid-task reliably
+decides not to spend one. Polling was rejected for the same reason.
+
+Supporting change in bin/msg.mjs: a new `inbox` subcommand sharing ONE cursor and one filter
+with `read` -- two cursors would mean a hook-delivered message either vanishes before the
+agent can read it, or arrives twice. It excludes claim/release events, which `read` includes:
+the first version reused read's filter and would have dumped the repo's entire ownership
+history into a fresh agent's first tool call. bin/msg.test.mjs covers that case last, when
+the log is full of claim events and the reader has never read it.
+
+No Claude-side hook, deliberately -- the harness already surfaces the user's mid-turn
+messages, and a PostToolUse hook would spawn node on every tool call in every session.
+
+Verified live the same day: cursor advanced 11 -> 12 while a run was already in flight, and
+the agent's reply carried the requested probe marker.
+
+Full rationale in CLAUDE.md ("Cross-CLI message center") and opencode/AGENTS.md ("Messages
+that arrive mid-task find you"), both in this commit.
