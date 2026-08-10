@@ -3,6 +3,7 @@
 // Usage:
 //   node msg.mjs send --from claude --to opencode --text "..."   [--re 3] [--topic build]
 //   node msg.mjs read --as opencode [--peek] [--all]
+//   node msg.mjs inbox --as opencode                  # same, for hooks: silent when empty, always exit 0
 //   node msg.mjs log [--n 20]
 //   node msg.mjs claim --as claude test.js lib/        # dir claim: trailing /
 //   node msg.mjs release --as claude test.js | --all
@@ -89,18 +90,58 @@ const need = (v, msg) => { if (!v) { console.error(msg); process.exit(2); } retu
 if (cmd === 'send') {
   need(opts.from && opts.text, 'need --from and --text');
   const msg = { from: opts.from, to: opts.to ?? 'all', text: String(opts.text) };
-  if (opts.re) msg.re = Number(opts.re);
+  if (opts.re) {
+    // `--re last` = the newest message addressed to you. Threading should not
+    // require guessing the next id.
+    if (String(opts.re) === 'last') {
+      const inbox = readLog().filter((m) => !m.kind && m.from !== opts.from && (m.to === opts.from || m.to === 'all'));
+      if (inbox.length) msg.re = inbox.at(-1).id;
+    } else msg.re = Number(opts.re);
+  }
   if (opts.topic) msg.topic = opts.topic;
-  console.log(`sent #${append(msg)} -> ${msg.to}  (box: ${box})`);
+  const id = append(msg);
+  console.log(`sent #${id} -> ${msg.to}${msg.re ? ` (re #${msg.re})` : ''}  (box: ${box})`);
 
-} else if (cmd === 'read') {
+  // A builder that finishes still holding claims blocks everyone else until
+  // someone notices. Replying IS finishing, so drop its claims then - but never
+  // the host's, whose claims (specs, acceptance gates) are meant to outlive the
+  // exchange. Host = whoever opened the log. `--keep` opts out.
+  const host = readLog()[0]?.from;
+  if (msg.re && !opts.keep && opts.from !== host) {
+    const held = [...ownerMap()].filter(([, o]) => o === opts.from).map(([p]) => p);
+    if (held.length) {
+      append({ kind: 'release', from: opts.from, all: true });
+      console.log(`auto-released ${opts.from} claims on reply: ${held.join(', ')}  (--keep to opt out)`);
+    }
+  }
+
+} else if (cmd === 'read' || cmd === 'inbox') {
+  // `read` is for a human or an agent asking on purpose; `inbox` is the same delivery
+  // driven by a hook. They MUST share one cursor and one filter, or a message delivered by
+  // one silently disappears from the other. Hence one block, not two.
   const who = need(opts.as, 'need --as <name>');
   const cf = path.join(box, `cursor-${who.replace(/[^\w.-]/g, '_')}`);
   const seen = fs.existsSync(cf) ? Number(fs.readFileSync(cf, 'utf8').trim()) || 0 : 0;
   const all = readLog();
   const fresh = all.filter((m) => m.id > seen && m.from !== who && (opts.all || m.to === who || m.to === 'all' || m.kind));
   if (!opts.peek) fs.writeFileSync(cf, String(all.length));
-  console.log(fresh.length ? fresh.map(fmt).join('\n\n') : `(no new messages for ${who})`);
+  // Claim/release events are deliberately NOT pushed into a running task. They are state, not news:
+  // `owners` answers "who holds what" at any moment, and the write guard blocks at the instant it
+  // actually matters. Pushing them would mean a fresh agent's first tool call carried the entire
+  // ownership history of the repo -- which is what this filter was added to stop.
+  const news = fresh.filter((m) => !m.kind);
+  if (cmd === 'read') {
+    console.log(fresh.length ? fresh.map(fmt).join('\n\n') : `(no new messages for ${who})`);
+  } else if (news.length) {
+    // Deliver the text, do not announce that text exists: a "you have mail" notice costs the
+    // agent a whole tool call to act on, and an agent mid-task routinely decides not to spend it.
+    console.log(`[message center] ${news.length} new message${news.length > 1 ? 's' : ''} for ${who}. ` +
+      `This arrived while you were working; it may change what you should do next.\n\n` +
+      news.map(fmt).join('\n\n') +
+      `\n\nReply with: node ${process.argv[1].split(path.sep).join('/')} send --from ${who} --to <them> --re <id> --text "..."`);
+  }
+  // `inbox` prints nothing when there is nothing, and never exits non-zero — it runs on every
+  // tool call, so a noisy or failing check would break the agent it exists to help.
 
 } else if (cmd === 'log') {
   console.log(readLog().slice(-Number(opts.n ?? 20)).map(fmt).join('\n\n') || '(empty)');
@@ -151,9 +192,49 @@ if (cmd === 'send') {
   }
   process.exit(0);
 
+} else if (cmd === 'tree') {
+  const log = readLog();
+  const talk = log.filter((m) => !m.kind);
+  const who = [...new Set(log.map((m) => m.from))];
+  const host = who[0] ?? '(nobody)';
+  const owners = ownerMap();
+  const t = (s) => (s ?? '').slice(11, 19);
+
+  console.log(`box    ${box}`);
+  console.log(`host   ${host}`);
+  for (const w of who.filter((w) => w !== host)) {
+    const sent = talk.filter((m) => m.from === w);
+    const got = talk.filter((m) => m.to === w);
+    const last = log.filter((m) => m.from === w).at(-1);
+    console.log(`  runner ${w}  ${sent.length} sent / ${got.length} received  last ${t(last?.ts)}`);
+  }
+  const mine = [...owners].filter(([, o]) => o === host).map(([p]) => p);
+  const theirs = [...owners].filter(([, o]) => o !== host);
+  if (mine.length) console.log(`  claims ${host}: ${mine.join(', ')}`);
+  for (const [p, o] of theirs) console.log(`  claims ${o}: ${p}`);
+
+  console.log('\nthread');
+  const kids = new Map();
+  // A reply may point at a claim/release rather than a message; root it instead
+  // of dropping it, or the thread silently loses branches.
+  const talkIds = new Set(talk.map((m) => m.id));
+  for (const m of talk) {
+    const k = m.re && talkIds.has(m.re) ? m.re : 0;
+    if (!kids.has(k)) kids.set(k, []);
+    kids.get(k).push(m);
+  }
+  const walk = (id, depth) => {
+    for (const m of kids.get(id) ?? []) {
+      const head = (m.text ?? '').split('\n')[0].slice(0, 58);
+      console.log(`${'  '.repeat(depth)}#${m.id} ${t(m.ts)} ${m.from} -> ${m.to}${m.topic ? ` {${m.topic}}` : ''}\n${'  '.repeat(depth)}   ${head}${head.length >= 58 ? '...' : ''}`);
+      walk(m.id, depth + 1);
+    }
+  };
+  walk(0, 0);
+
 } else if (cmd === 'where') {
   console.log(box);
 } else {
-  console.log('commands: send | read | log | claim | release | owners | guard | where');
+  console.log('commands: send | read | inbox | log | claim | release | owners | guard | where');
   process.exit(2);
 }

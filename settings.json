@@ -1,5 +1,5 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["show me your stack - ep 2 w alana goyal is live"]},
+  "spinnerVerbs": {"mode":"replace","verbs":["Renting out this status line…"]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",

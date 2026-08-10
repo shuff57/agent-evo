@@ -13,3 +13,6 @@ skills/browser-use/
 # them THERE; a change made here is gone on the next launch.
 skills/mom-question/
 skills/mom-transfer/
+
+# Cross-CLI message center scratch (device-local)
+.msgbox/

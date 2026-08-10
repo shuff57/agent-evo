@@ -24,7 +24,7 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 
 **Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
-**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. When suppressed, say so in one line rather than quietly building it yourself, and fall back to calling `opencode run "<spec>" --auto -m ollama-cloud/kimi-k2.7-code` directly via Bash, which is never suppressed.
+**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. When suppressed, say so in one line rather than quietly building it yourself, and fall back to calling `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` directly via Bash, which is never suppressed.
 
 Size every non-trivial request on two axes before routing — *do I know exactly what "done" looks like*, and *how much breaks if this is wrong*:
 
@@ -32,6 +32,20 @@ Size every non-trivial request on two axes before routing — *do I know exactly
 |---|---|---|
 | **Vague** | haiku recon, then re-size | **opus** — think before anyone builds |
 | **Specified** | **ollama** or haiku | **sonnet** |
+
+Two axes the table above does not capture, both of which decided real outcomes:
+
+- **Measurement is not verdict.** A cheap model produces evidence well and judges it badly.
+  Given the same measured fact — four labels dropping to opacity 0 at a loop seam — ollama
+  called it "intentional-shaped" and sonnet called it a defect. Neither specification quality
+  nor blast radius predicts that. So: **ollama may generate the numbers, but never owns the
+  pass/fail call on its own work.** Encode the criterion as a check *you* own; a builder that
+  can edit its own gate eventually will.
+- **Vision and audio are a hard capability line, not a tier.** Ollama models are text-only.
+  Anything that must *look at* a frame or *hear* a clip — `eyes-and-ears`, `visual-analyzer`,
+  `bowser` screenshots — is sonnet or opus regardless of how cheap the task looks. Asked to
+  review a figure it could not see, ollama returned "ALL LENSES PASS". It will not tell you it
+  is blind unless the brief demands it, so demand it.
 
 - **Tweak** — one file, obvious, reversible → **do it inline, don't delegate.** The round-trip costs more than the edit.
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
@@ -41,6 +55,11 @@ Size every non-trivial request on two axes before routing — *do I know exactly
 ### Build-from-scratch loop
 
 Ollama builds, a smarter model reviews. The nested ollama session runs non-interactively and **cannot ask questions mid-task** — an unambiguous spec is the whole safety margin.
+
+The handoff runs through the message center (see below), not through an inline prompt: claim
+the acceptance gate, send the spec, run `opencode run "Check your inbox."`, read the threaded
+reply. Encode review feedback as a **runnable check you own** — a builder that can edit its
+own gate eventually will, and ownership is enforced, so claiming it is a real wall.
 
 ```
 opus: write the spec
@@ -98,6 +117,26 @@ claude: write SPEC.md + send task ──▶ opencode run "Check your inbox." --a
 
 - **Ask for one unpinned design decision** in the reply. That is where the spec gaps surface.
 - Reply always carries `--re <id>`; never hand-edit `log.jsonl`.
+
+**A running opencode session receives messages sent after it starts.** `opencode run` reads its
+inbox once, at launch, so anything later used to sit unread until the run ended — long enough for a
+correction or a stop to arrive too late to matter. `opencode/plugin/inbox.js` closes that: on every
+tool call it stats the log, and when there is something new it appends the message text to that
+tool's result, where the model cannot miss it. So a mid-run correction is worth sending:
+
+```
+opencode run ... ──tool──▶ [message center] 1 new message for opencode ──▶ it adapts
+```
+
+The delivery is the message itself, not a "you have mail" notice — a notice costs a tool call to
+act on, and an agent mid-task routinely decides not to spend one. `msg.mjs inbox` is that delivery
+and shares one cursor with `read`, so nothing is shown twice or lost between them.
+
+**Claude Code has no equivalent hook and does not need one** — the harness already surfaces the
+user's mid-turn messages. If cross-agent messages ever need to reach a long Claude turn the same
+way, it is a `PostToolUse` hook running `msg.mjs inbox --as claude`; it is left off deliberately,
+because that spawns node on every tool call in every session to cover a case that is mostly already
+covered.
 
 ## File ownership (enforced)
 
