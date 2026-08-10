@@ -124,17 +124,25 @@ the worst failure shape available: a completed background task, a clean exit cod
 Documenting the protocol harder does not fix it. `steve-desktop/AGENTS.md` was given a message-center
 section precisely because it lacked one, and the bare phrase **still** no-opped on the very next
 test. This is a cheap-model attention problem, not a config gap, so the only real fix is to stop
-depending on the model noticing. Naming the command depends on nothing:
+depending on the model noticing.
+
+**Use the wrapper. Do not hand-roll the launch.** Five distinct silent failures on 2026-08-10, every
+one exiting 0, are pre-empted by `bin/handoff.mjs`:
 
 ```bash
-opencode run 'First run: node C:/Users/shuff/.claude/bin/msg.mjs read --as opencode . That prints a
-work order addressed to you. Carry it out exactly. When finished, reply with msg.mjs send --from
-opencode --to claude --re last and your report as --text.' --auto -m ollama-cloud/<model>
+node C:/Users/shuff/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
 ```
 
-Single-quote the prompt. A double-quoted one containing `\"…\"` or `<angle brackets>` gets mangled by
-the shell — that produced a second silent no-op the same day, where the run listed a directory and
-exited 0.
+It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
+held, puts the task in the prompt rather than behind an inbox read, single-quotes it so the shell
+cannot mangle it, tells the run to STOP rather than guess a path, and — the check that matters —
+counts replies in the message log before and after, exiting **non-zero when a run exits cleanly
+having done nothing.** Its header lists which failure each guard exists for.
+
+Hand-rolling reintroduces them one at a time: a relative path (the run invents one and burns the
+session), a double-quoted prompt containing `\"…\"` or `<angle brackets>` (the shell rewrites it into
+a different command), a bare "check your inbox", a short `--re` continuation, or a claim you forgot to
+release.
 
 **Exit code 0 is not evidence the handoff worked.** The only proof is the threaded reply, so check
 the log rather than the task notification.
@@ -146,6 +154,15 @@ stdout, and the run exited 0 having done nothing. A brief reply reads as an ackn
 continuations do not. Either resend the whole order, or — when the task needs no coordination, as
 with file authoring — **skip the inbox entirely and put the task in the launch prompt.** The message
 center is for handoff and mid-run correction, not for being clever about indirection.
+
+**Give absolute paths, and tell it to stop rather than guess.** `opencode run` does not reliably
+start in the repo root — the harness leaves the shell wherever the last backgrounded command left it,
+so a relative path in the prompt resolves against a directory you did not choose. On 2026-08-10 a
+prompt saying `mom-content/SPEC-3-5.md` was launched from inside `mom-content`, the file was not
+found, and the model **invented** a path — wrong repo name (`steve-problems`), wrong filename
+(`SPEC-3.5.md`) — then spent 35 minutes and produced nothing, never having read the spec. Nothing in
+the output said "file not found"; it just quietly proceeded without it. Absolute paths everywhere,
+plus one line: *if any path I gave you does not exist, STOP and say so rather than guessing.*
 
 **Release your file claims BEFORE dispatching an authoring task.** A claim on `questions/` is right
 for a browser push, where it stops the run editing the very sources its byte-exact read-back compares
