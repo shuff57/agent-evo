@@ -18,7 +18,16 @@ import path from "path";
 import os from "os";
 
 const MSG = "C:/Users/shuff/.claude/bin/msg.mjs";
-const ME = "opencode";
+// Which mailbox this session watches. A hardcoded "opencode" silently disabled the whole feature
+// for any session addressed under another name: build-section.md fans out review lenses with a
+// distinct `--to lens-<name>` each ("keeps briefs from bleeding together"), so the mid-run
+// corrections went to lens-structure / lens-plugins / lens-a11y while this hook kept polling
+// `opencode` and found nothing. Measured 2026-08-09 on programming §3.1 — three corrections sent,
+// zero delivered, cursor-opencode ticking the whole time while cursor-lens-* stayed frozen. One of
+// them carried the fix for a wedge the lens then sat in until it was killed.
+// The launcher exports MSGBOX_AS alongside the `--to` it sends; the two must agree or delivery is
+// silently a no-op again. Default preserves the single-session behaviour.
+const ME = process.env.MSGBOX_AS || "opencode";
 
 // Box resolution is duplicated from msg.mjs ON PURPOSE: it is the one thing needed BEFORE deciding
 // whether to spawn anything, and spawning node on every tool call just to learn the path would cost
