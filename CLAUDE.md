@@ -115,12 +115,16 @@ node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             #
 Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Add `.msgbox/` to a repo's
 `.gitignore` if the thread shouldn't ship.
 
-**Launch with the command in the prompt, not with `"Check your inbox."`** The bare phrase depends on
-`~/.config/opencode/AGENTS.md` reaching the model, and when it doesn't the run answers *"I don't have
-an inbox — I'm a coding assistant, not an email client"* and **exits 0**. That is the worst failure
-shape available: a completed background task, a clean exit code, and nothing done. Measured twice on
-2026-08-10 in `steve-desktop`, whose own `AGENTS.md` was silent on the protocol — a repo-level file
-can be what loads instead of the global one. Naming the command depends on nothing:
+**Launch with the command in the prompt. Never with a bare `"Check your inbox."`** The phrase only
+works if the model acts on `AGENTS.md`, and it does so **intermittently**: a dozen handoffs on
+2026-08-10 worked, then three in a row did not — one answering *"I don't have an inbox — I'm a coding
+assistant, not an email client"*, another just listing a directory. Every one **exited 0**. That is
+the worst failure shape available: a completed background task, a clean exit code, and nothing done.
+
+Documenting the protocol harder does not fix it. `steve-desktop/AGENTS.md` was given a message-center
+section precisely because it lacked one, and the bare phrase **still** no-opped on the very next
+test. This is a cheap-model attention problem, not a config gap, so the only real fix is to stop
+depending on the model noticing. Naming the command depends on nothing:
 
 ```bash
 opencode run 'First run: node C:/Users/shuff/.claude/bin/msg.mjs read --as opencode . That prints a
