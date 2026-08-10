@@ -41,11 +41,20 @@ Two axes the table above does not capture, both of which decided real outcomes:
   nor blast radius predicts that. So: **ollama may generate the numbers, but never owns the
   pass/fail call on its own work.** Encode the criterion as a check *you* own; a builder that
   can edit its own gate eventually will.
-- **Vision and audio are a hard capability line, not a tier.** Ollama models are text-only.
-  Anything that must *look at* a frame or *hear* a clip — `eyes-and-ears`, `visual-analyzer`,
-  `bowser` screenshots — is sonnet or opus regardless of how cheap the task looks. Asked to
-  review a figure it could not see, ollama returned "ALL LENSES PASS". It will not tell you it
-  is blind unless the brief demands it, so demand it.
+- **Vision and audio are Anthropic's, full stop — normally sonnet.** Operator decision
+  2026-08-09. Ollama vision models do exist, but each has a hard, *complementary* blind spot,
+  so no free model substitutes on a visual step: `kimi-k2.7-code` and `minimax-m3` INVERT
+  alignment; `qwen3.5:397b` and `mistral-large-3` returned confident false CLEANs on a figure
+  clipped mid-glyph. (Measured on labelled pairs 2026-08-07; table in bookSHelf
+  `.claude/skills/book-pipeline/SKILL.md`.) Do not route visual work to a free model even
+  "scoped to what it can see" — the scoping is what breaks silently. Audio has no choice
+  anyway: no ollama-cloud model accepts it.
+- **The text half of a review is deepseek's — `deepseek-v4-flash:0731`.** Box containment,
+  overflow at any width, horizontal scroll, clipped content, caption pairing, duplicate ids,
+  computed colours, console and asset errors, numbering: all DOM numbers, no eyes needed. One
+  lens per opencode session, in parallel, over the message center. Deepseek has **no** image
+  input and will not volunteer that — asked to review a figure it could not see, it returned
+  "ALL LENSES PASS". Every brief ends with "state which checks you could NOT perform."
 
 - **Tweak** — one file, obvious, reversible → **do it inline, don't delegate.** The round-trip costs more than the edit.
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.

@@ -262,10 +262,18 @@ NAMED, never silently accepted.
 ## Delegating the measurement half
 
 Most lenses above are pure DOM measurement — rect math, computed colours, px gaps, presence
-checks, opacity sweeps. **None of those need eyes.** Hand them to a text-only model and spend
-your own context on the half that does. opencode on Ollama is free on this box and measures
-well; dispatch through the cross-CLI message center so each lens gets an isolated inbox and
-every finding lands in the log instead of a scrollback:
+checks, opacity sweeps. **None of those need eyes.** Hand them to a cheap model and spend your
+own context on the half that does. opencode on Ollama is free on this box and measures well;
+dispatch through the cross-CLI message center so each lens gets an isolated inbox and every
+finding lands in the log instead of a scrollback:
+
+**Delegate the DOM half only. Every frame and every clip stays with you.** Operator decision
+2026-08-09: vision and audio are Anthropic's, and the text lenses are
+`deepseek-v4-flash:0731`. Do not hand a free model a visual check even scoped to what it
+supposedly sees — ollama vision models have hard, complementary blind spots (`kimi-k2.7-code`
+and `minimax-m3` invert alignment; `qwen3.5:397b` and `mistral-large-3` pass content clipped
+mid-glyph), and the scoping is the part that fails silently. Measured table in bookSHelf
+`.claude/skills/book-pipeline/SKILL.md`. Deepseek has no image input at all.
 
 ```bash
 MSG="node C:/Users/shuff/.claude/bin/msg.mjs"
