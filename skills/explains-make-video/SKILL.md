@@ -1,6 +1,6 @@
 ---
 description: Generate a full video using the multi-stage pipeline. Use for any video creation request. Reads source material, plans chapters, creates diagrams, writes scenes, generates timing, assembles, and renders.
-argument-hint: [topic-or-source-path] [duration-minutes]
+argument-hint: "[topic-or-source-path] [duration-minutes]"
 arguments: [topic, duration]
 ---
 <!-- Vendored from noelpuig/claude-explains (MIT, (c) 2024-present Noel Puig).
