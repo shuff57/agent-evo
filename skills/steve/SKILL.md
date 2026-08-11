@@ -86,7 +86,9 @@ PY
 
 Then branch on the returned `mode`:
 
-- **`video`** → `watch()` (call again if it returns `video` — clip longer than one 9-min window).
+- **`video`** → read `dur`/`cur` from `state()` first. If `dur - cur` fits one `watch()` window
+  (≲8 min), just `watch()` (call again if it still returns `video`). If it's longer, **don't**
+  loop `watch()` turn-by-turn — hand off to the background poller in *Long videos* below.
 - **`question` / `assessment` with no `feedback`** → READ `st["text"]` + `st["options"]`, decide
   the correct answer from the course content / knowledge, then `answer("<option text>")`
   (pass a **list** for CHOOSE-ALL). Then loop.
@@ -117,6 +119,55 @@ Repeat across ALL assignments until done:
 
 Keep going until `assignments()` yields no startable/incomplete course. That is "nothing left
 to watch or click."
+
+## Long videos: don't block the conversation
+
+`watch()` blocks for at most ~9 min per call (the harness's own Bash ceiling). Looping it
+turn-by-turn across a long clip burns one full agent turn per window — for anything past a
+couple of windows that can exhaust the context budget mid-video with nothing to show for it.
+**Don't just say you'll "set up a watcher" — actually dispatch one.** The failure this section
+exists to prevent is exactly that: announcing a handoff and then never issuing it.
+
+1. Read the clip length once, from the same `state()` call that got you into `video` mode:
+   `dur` and `cur` are already there (seconds). If `dur - cur` fits one `watch()` window, skip
+   the rest of this section and just `watch()` normally.
+
+2. Otherwise, dispatch a background poller and free the turn — run it with the environment's
+   own "notify me once, in the background" primitive (`run_in_background` on Bash paired with
+   an until-style exit condition, or the `Monitor` tool), not a job you fire and then forget to
+   check on:
+
+   ```bash
+   DEADLINE=$(( $(date +%s) + 7200 ))   # hard stop after 2h regardless — never spins forever
+   while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+     OUT=$(browser-harness <<'PY'
+   exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+   import json
+   st = state()
+   if st.get("mode") == "video" and not st.get("ended") and st.get("paused"):
+       play_video()          # re-assert play; NEVER seeks
+   print(json.dumps(st))
+   PY
+   )
+     echo "$OUT"
+     echo "$OUT" | grep -q '"mode": *"video"' && { sleep 150; continue; }
+     echo "STEVE_WATCH_DONE: $OUT"
+     exit 0
+   done
+   echo "STEVE_WATCH_TIMEOUT"; exit 1
+   ```
+
+   Every 2-3 minutes this checks that nothing is lingering unattended (re-asserting play if the
+   clip paused itself) and exits the instant `state().mode` leaves `"video"` — an in-video
+   question appeared, the section ended, or playback finished. That single exit is your one
+   notification; you don't poll it from the conversation side.
+
+3. Each poll reuses the **same already-open browser-harness session** — that's the whole point
+   of pulling `state()`/`play_video()` instead of relaunching anything. Don't `new_tab()` on
+   wake; that opens a second tab into the same course and strands the one actually playing.
+   When the notification arrives, just re-read `state()` in a fresh heredoc against that same
+   session and resume the normal `step()`/`watch()`/`answer()` branching from wherever the
+   video actually left off.
 
 ## Helper API (`sc.py`)
 
@@ -149,3 +200,6 @@ to watch or click."
 - **Background-tab throttling** → Chrome plays `<video>` at ~0.3x in a non-foreground tab, so a
   12-min clip would take ~40 min. `play_video()`/`watch()` call `Page.bringToFront` to keep it
   at real-time 1x; don't click away to another tab mid-watch.
+- **Looping `watch()` turn-by-turn on a long clip** → each call is a whole agent turn; enough of
+  them exhausts context before the video even finishes. Hand off to the background poller in
+  *Long videos* instead — and actually dispatch it, don't just announce that you will.
