@@ -135,6 +135,38 @@ to add an 8th, evolver-meta must prune the least-validated one.
    recur" ad hoc without calibration backing before this heuristic
    codified it)
 
+7. When reconciling a PENDING mutation whose target is a code-level file
+   outside skills/agents/roster (e.g. `scripts/workflows/*.py`) and whose
+   edit_summary describes a specific diff, do not record a "discrepancy,
+   diff not present" verdict from `git status --porcelain` / `git diff`
+   alone. A clean working tree only means no UNCOMMITTED delta relative to
+   HEAD — it is silent about whether the described change is present IN
+   HEAD, because a fix proposed in one session is routinely committed in a
+   LATER session, after which the tree is clean AND the feature is fully
+   live. Clean status is consistent with three different states (never
+   written, written then reverted, or written then committed) and cannot
+   by itself distinguish them. Before flagging "not present," grep/read the
+   file's CURRENT CONTENT for the described change and check `git log
+   --since <mutation timestamp> -- <file>` / `git show <commit>` for a
+   commit that landed it after the mutation was logged. If content-verified
+   present and attributable to such a commit, reconcile directly to
+   VALIDATED (or MISSED if the content contradicts the prediction) instead
+   of leaving the entry PENDING with a discrepancy flag. This is the same
+   root confusion in both directions: on 2026-08-07 (commit dbaf37a8f) an
+   evolver reported two fixes "already fixed" while they were still only
+   uncommitted working-tree drafts, and a fresh checkout of `desktop`
+   still had both bugs; on 2026-08-10 the reconciliation pass logged at
+   `_workspace/_evolution_log.jsonl` line 300 inverted the same confusion,
+   flagging modify:266, 267, 275, 276, 277, 278, 279 (7 SCOREABLE entries)
+   as diffs "never actually realized on disk" based on a clean
+   `git status`/`git diff` read — but a meta-pass re-verification (reading
+   current file content plus `git log`/`git show`) found all 7 fixes
+   present in HEAD, landed via commits dbaf37a8f (2026-08-07) and
+   4d3d20015 (2026-08-09), both dated after the entries were logged and
+   before the reconciliation pass that called them absent. Two confirmed
+   instances of the same mechanism, opposite directions, each costing a
+   correct applied/not-applied verdict. (added 2026-08-10)
+
 ## Scoring a prediction: run the count, don't reconstruct it
 
 `scripts/prediction_status.py` (beside this file) answers the one question
