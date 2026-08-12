@@ -162,6 +162,26 @@ exists to prevent is exactly that: announcing a handoff and then never issuing i
    question appeared, the section ended, or playback finished. That single exit is your one
    notification; you don't poll it from the conversation side.
 
+   **Verified live (2026-08-11, `chico-keenan.safeschools.com`): `ended:true` is not always
+   enough.** Some vendors gate "section complete" behind their own periodic tracking heartbeat
+   (`/rpc/v2/json/training/tracking_update`, observed firing only every ~5-10 min of focused
+   playback) rather than the native `<video>` `ended` event — the parent DOM can sit at
+   `ended:true` indefinitely with no transition, because the site is waiting on something
+   `state()` doesn't see. `_focus()`/`Page.bringToFront` matters here too: without OS window
+   focus the whole session, no heartbeat fires at all. If `ended` has been `true` for **3+ poll
+   cycles** (~6-9 min) with no mode change, treat it as **stuck**, not "still going":
+   - Confirm focus is actually held (`document.hasFocus()`), not just requested once.
+   - Retry **at most once** — e.g. click the real Replay control, not another raw
+     `play_video()` call, and give it one full pass. Do not loop retries: three real-time
+     attempts (~20 min total) here produced zero completion signals, and by the third attempt a
+     same-origin `fetch()` against the site started returning `403` — plausibly the vendor's own
+     abuse detection reacting to repeated automated interaction. More retries risk the account,
+     not just wasted time.
+   - Still stuck after that one retry → stop and hand back to the human with what you observed
+     (last `state()`, tracking calls seen via `performance.getEntriesByType('resource')`, focus
+     state). This is a real "needs a person or a vendor ticket" case, not a persistence problem
+     you can poll your way out of.
+
 3. Each poll reuses the **same already-open browser-harness session** — that's the whole point
    of pulling `state()`/`play_video()` instead of relaunching anything. Don't `new_tab()` on
    wake; that opens a second tab into the same course and strands the one actually playing.
@@ -203,3 +223,11 @@ exists to prevent is exactly that: announcing a handoff and then never issuing i
 - **Looping `watch()` turn-by-turn on a long clip** → each call is a whole agent turn; enough of
   them exhausts context before the video even finishes. Hand off to the background poller in
   *Long videos* instead — and actually dispatch it, don't just announce that you will.
+- **Trusting `ended:true` to mean the section will progress** → some vendors gate completion
+  behind their own periodic tracking heartbeat, not the video's `ended` event. Sitting at
+  `ended:true` with no mode change for several poll cycles is a real *stuck* state, not "give it
+  more time." See *Long videos* for the bounded retry-then-stop handling.
+- **Retrying a stuck section more than once** → verified live that repeated automated
+  replay/interaction didn't unstick it and appeared to trip the vendor's own abuse detection
+  (a plain same-origin `fetch()` started returning `403` after ~20 min of automated activity on
+  one section). One retry, then stop and hand back to the human — don't hammer it.
