@@ -35,9 +35,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-DEFAULT_WORKSPACE = Path(
-    r"C:\Users\shuff\Documents\GitHub\bookSHelf\_workspace"
-)
+DEFAULT_WORKSPACE = Path.cwd() / "_workspace"
 # Heuristic #6 reconciles a non-recurrence entry at 2x the base window.
 DEFAULT_MIN_SESSIONS = 2
 NON_RECURRENCE_MULTIPLIER = 2
