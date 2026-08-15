@@ -1,112 +1,112 @@
 # Rewriting reference
 
-Read this while doing the actual rewriting pass. The SKILL.md gives the shape;
-this gives the judgement.
+Read this during the rewriting pass. SKILL.md gives the shape of the page, this
+file gives the judgement calls.
 
 ## Contents
 
-- [What "legal jargon" actually means here](#what-legal-jargon-actually-means-here)
+- [What counts as legal jargon here](#what-counts-as-legal-jargon-here)
 - [The triage question](#the-triage-question)
-- [Keep / cut catalog](#keep--cut-catalog)
+- [Keep and cut catalog](#keep-and-cut-catalog)
 - [Translation patterns](#translation-patterns)
 - [Worked examples](#worked-examples)
-- [Things that look like jargon but are not](#things-that-look-like-jargon-but-are-not)
+- [Things that look like jargon and are not](#things-that-look-like-jargon-and-are-not)
 - [When the syllabus is silent](#when-the-syllabus-is-silent)
 - [Voice](#voice)
 
 ---
 
-## What "legal jargon" actually means here
+## What counts as legal jargon here
 
-A syllabus carries two documents mashed together. One is a working agreement
-between a teacher and a family: here is what we do, here is how you pass, here
-is how to reach me. The other is a compliance artifact: the district needs the
-504 notice, the academic-integrity clause, and the ed-code citation to exist in
-writing somewhere.
+A syllabus carries two documents mashed together. The first is a working
+agreement between a teacher and a family, covering what the class does, how a
+student passes, and how to reach the teacher. The second is a compliance
+artifact, because the district needs the 504 notice, the academic integrity
+clause and the ed code citation to exist in writing somewhere.
 
-The compliance half is not useless -- it is just not addressed to the reader.
-It is addressed to an auditor. It uses the passive voice, cites policy numbers,
-and defines terms nobody looks up. When a parent skims for "what happens if he
-misses a test," it is noise between them and the answer.
+The compliance half is not useless, it is simply addressed to a different
+reader. It is written for an auditor, so it uses the passive voice, cites policy
+numbers, and defines terms nobody looks up, and when a parent skims for what
+happens if their kid misses a test, all of it sits between them and the answer.
 
-So the cut is not "remove serious content." It is **remove everything written
-for a reader other than this student and this parent.** The full syllabus still
-exists and still carries all of it.
+So the cut is not the removal of serious content, it is the removal of
+everything written for a reader other than this student and this parent. The
+full syllabus still exists and still carries all of it.
 
 ## The triage question
 
-For every paragraph, ask: **would a student or parent ever change what they do
-because of this line?**
+For every paragraph, ask whether a student or parent would ever change what they
+do because of this line.
 
-- Changes behavior -> keep, in plain words.
-- Only matters if there is a dispute -> cut, it lives in the full syllabus.
-- Describes the district rather than the class -> cut.
-- Describes the teacher's beliefs rather than the student's obligations -> cut.
+- Changes behavior: keep it, in plain words.
+- Only matters if there is a dispute: cut it, it lives in the full syllabus.
+- Describes the district rather than the class: cut it.
+- Describes the teacher's beliefs rather than the student's obligations: cut it.
 
-If a line is genuinely both -- an academic-integrity policy is legalese *and*
-tells a student what happens if they cheat -- keep the consequence, drop the
-apparatus. One line: "Copying or AI-written work: zero, and I call home."
+Some lines are genuinely both. An academic integrity policy is legalese and also
+tells a student what happens if they cheat, so keep the consequence and drop the
+apparatus around it: "Copying or AI-written work: zero, and I call home."
 
-## Keep / cut catalog
+## Keep and cut catalog
 
-**Keep, always** (these are the reasons the page exists):
+Keep, always, because these are the reasons the page exists:
 
 | Item | Form it should take |
 |---|---|
 | Teacher name, email, room, periods | one line under the title |
-| Reply time on email | "I answer within one school day" -- parents plan around this |
-| Grade categories and weights | small table, weights must sum to 100 |
+| Reply time on email | "I answer within one school day", parents plan around this |
+| Grade categories and weights | small table, weights sum to 100 |
 | Grading scale | one line: `A 90+ · B 80+ · C 70+ · D 60+` |
-| Late work rule | exact numbers: how much off, how many days |
-| Missing/absent work | what to do and by when, as a step |
+| Late work rule | exact numbers, how much off and for how many days |
+| Missing or absent work | what to do and by when, written as a step |
 | Retake or revision policy | when it is allowed and how to ask |
 | Materials needed daily | short bulleted list |
 | Where grades and assignments live | the actual link or portal name |
 | Extra help hours | day, time, place |
-| Phone/device rule | the enforced version, one line |
+| Phone and device rule | the enforced version, one line |
 | Major dates already fixed | finals, big projects |
 
-**Cut, nearly always:**
+Cut, nearly always:
 
 | Item | Why |
 |---|---|
-| Nondiscrimination, Title IX, 504/ADA, FERPA statements | addressed to a regulator; unchanged by this page |
-| Board policy and ed-code citations | nobody looks them up |
-| "The instructor reserves the right to modify this syllabus" | true of every class ever |
-| Course catalog description | written for a course-approval committee |
-| Standards alignment lists (CCSS codes) | "aligned to state standards" if it must be said at all |
-| Teaching philosophy / mission statement | describes the teacher, not the work |
-| Prerequisite and credit-transfer language | decided before the student sat down |
+| Nondiscrimination, Title IX, 504, ADA, FERPA statements | addressed to a regulator, unchanged by this page |
+| Board policy and ed code citations | nobody looks them up |
+| "The instructor reserves the right to modify this syllabus" | true of every class ever taught |
+| Course catalog description | written for a course approval committee |
+| Standards alignment lists | "aligned to state standards" if it has to be said at all |
+| Teaching philosophy and mission statements | describes the teacher rather than the work |
+| Prerequisite and credit transfer language | decided before the student sat down |
 | Definitions of terms already used plainly | "attendance means being present" |
-| Long behavior lists that restate the campus code | keep only rules this teacher actually enforces |
-| Signature/acknowledgement blocks | belongs on the full syllabus |
+| Long behavior lists restating the campus code | keep only the rules this teacher enforces |
+| Signature and acknowledgement blocks | belongs on the full syllabus |
 
-**Judgement calls** (lean toward keeping, in one line):
+Judgement calls, where the lean is toward keeping one line:
 
-- Academic integrity -> keep the consequence only.
-- Extra credit -> keep only if the syllabus commits to something specific.
-- Group-work rules -> keep if they affect a grade.
-- Bathroom/hall-pass policy -> keep if there is a hard limit students hit.
+- Academic integrity: keep the consequence only.
+- Extra credit: keep it only if the syllabus commits to something specific.
+- Group work rules: keep them if they affect a grade.
+- Bathroom and hall pass policy: keep it if there is a hard limit students hit.
 
 ## Translation patterns
 
 | Instead of | Write |
 |---|---|
 | "Students are expected to submit all assignments by the designated due date" | "Turn work in on the due date" |
-| "Late submissions will be subject to a 10% deduction per day, up to three days" | "Late: -10% a day, up to 3 days. After that, 50% if you turn it in at all" |
+| "Late submissions will be subject to a 10% deduction per day, up to three days" | "Late: 10% off a day, up to 3 days. After that, 50% if you turn it in at all" |
 | "In the event of an excused absence, the student is responsible for initiating contact" | "Absent? Ask me for the work the day you get back" |
-| "Assessments shall constitute 60% of the overall course grade" | table row: `Tests · 60%` |
+| "Assessments shall constitute 60% of the overall course grade" | a table row: `Tests · 60%` |
 | "Academic dishonesty, including unauthorized collaboration, may result in disciplinary action" | "Copying or AI-written work: zero, and I call home" |
 | "Electronic devices are prohibited during instructional time" | "Phones in the pocket, not the desk" |
 | "Office hours are held Tuesdays and Thursdays from 3:00 to 3:45 PM in Room 214" | "Extra help: Tue/Thu 3:00-3:45, Room 214" |
 
-The pattern underneath: **name the actor, name the action, name the number.**
-Passive constructions hide all three, which is exactly what they are for in a
+Underneath all of them is one move: name the actor, name the action, name the
+number. Passive constructions hide all three, which is what they are for in a
 compliance document and exactly what fails a reader here.
 
 ## Worked examples
 
-**Example 1 -- an entire section collapses to one line.**
+An entire section can collapse into one line.
 
 Source:
 
@@ -122,10 +122,10 @@ Quick reference:
 
 > - **Cheating or AI-written work:** zero on the assignment, and I call home.
 
-Everything cut is still in the full syllabus. What a student needed -- what
-counts, what happens -- survived in fourteen words.
+Everything cut is still in the full syllabus, and what a student needed, what
+counts and what happens, survived in fourteen words.
 
-**Example 2 -- a paragraph becomes a table because the numbers are the point.**
+A paragraph becomes a table when the numbers are the point.
 
 Source:
 
@@ -142,10 +142,10 @@ Quick reference:
 > | Classwork and homework | 25% |
 > | Final exam | 15% |
 
-A parent checking "why is his grade a C" reads a table in two seconds and a
+A parent checking why their kid has a C reads the table in two seconds and the
 sentence in twenty.
 
-**Example 3 -- a policy the student has to act on becomes a step.**
+A policy the student has to act on becomes a step.
 
 Source:
 
@@ -158,48 +158,59 @@ Quick reference:
 > - **Absent?** Check the class site the day you get back. You get the same
 >   number of days you missed to turn it in.
 
-## Things that look like jargon but are not
+## Things that look like jargon and are not
 
-Do not flatten these -- specificity is the value:
+Do not flatten these, because the specificity is the whole value.
 
-- **Exact numbers.** "-10% per day for 3 days" must survive as those numbers.
-  Never round, never soften to "a penalty."
-- **Named platforms and links.** Canvas, Google Classroom, Aeries, the actual URL.
-- **Room numbers, period numbers, times.** Copy them; do not re-derive.
-- **Named contacts.** Counselor, department chair -- if the syllabus lists them.
-- **Deadlines with dates.** Keep the date format the teacher used.
-- **Words with a fixed local meaning.** If the school says "progress report" or
-  "citizenship grade," students know those; a plainer synonym is less clear.
+Exact numbers stay exactly as written, so a penalty of 10% per day for 3 days
+survives as those numbers and never becomes "a penalty." Named platforms and
+links stay, meaning Canvas, Google Classroom, Aeries, and the real URL. Room
+numbers, period numbers and times get copied rather than re-derived. Named
+contacts such as a counselor or department chair stay if the syllabus lists
+them. Deadlines keep the date format the teacher used.
+
+Words with a fixed local meaning also stay. If the school says "progress report"
+or "citizenship grade," students already know those, and a plainer synonym is
+less clear rather than more.
 
 ## When the syllabus is silent
 
-The most damaging failure mode in this task is a policy that reads perfectly and
-was never in the syllabus. It is invisible on the page, it looks like the rest of
-the document, and a parent will hold the teacher to it.
+The most damaging failure in this task is a policy that reads perfectly and was
+never in the syllabus. It is invisible on the page, it looks like everything
+around it, and a parent will hold the teacher to it.
 
-So when the source does not cover something the page has a slot for -- no retake
-policy, no reply time, no tutoring hours -- do not fill it with something
-reasonable. Leave the section out and tell the teacher what was missing, framed
-as a question they can answer in a sentence:
+So when the source does not cover something the page has a slot for, meaning no
+retake policy, no reply time, no tutoring hours, leave the section out and tell
+the teacher what was missing, phrased as a question they can answer in a
+sentence:
 
 > Your syllabus does not say how long you take to answer email, or whether
-> retakes are allowed. Parents ask both constantly. Want me to add them?
+> retakes are allowed. Parents ask about both constantly. Want me to add them?
 
-That list is a deliverable, not an apology. It is often the most useful thing the
-teacher gets out of the pass.
+That list is a deliverable rather than an apology, and it is often the most
+useful thing the teacher gets out of the pass.
 
 ## Voice
 
-Write to the student, in second person, the way the teacher would say it out
-loud on the first day. Short lines. Concrete nouns. No throat-clearing.
+Write to the student the way the teacher would say it out loud on the first day,
+in short lines built out of concrete nouns, with the imperative doing the work:
+"Ask for the missed work when you get back."
 
-Two guardrails on tone:
+The house profile is `~/.claude/skills/humanizer/voice-shuff.md`, and for a
+reference document it governs rhythm and punctuation rather than injecting
+personal reflection. In practice that means no em dashes and no en dashes, with
+a colon carrying the reveal and a comma doing the joining, no semicolons, bold
+reserved for structural labels such as policy names rather than for emphasis
+inside a sentence, and specifics preserved exactly as the syllabus stated them.
 
-- **Do not add warmth the teacher did not write.** "I'm so excited to have you
-  this year!" is invention, same as a made-up policy, and it lands badly if the
-  teacher is not that person.
-- **Do not add menace either.** Compressing a policy tends to make it sound
-  harsher than the original paragraph did. "Late work is not accepted" reads
-  colder than the syllabus meant. Keep the rule exact but the framing neutral:
-  "Late work: not accepted after the due date. Talk to me if something happened."
-  Only add that second sentence if the syllabus offers something like it.
+Two guardrails on tone, both of which are forms of invention:
+
+Do not add warmth the teacher did not write. "I'm so excited to have you this
+year!" is as much an invention as a made-up policy, and it lands badly when the
+teacher is not that person.
+
+Do not add menace either. Compressing a policy tends to make it read harsher
+than the original paragraph did, so "Late work is not accepted" comes out colder
+than the syllabus meant. Keep the rule exact and the framing neutral: "Late
+work: not accepted after the due date. Talk to me if something happened." Add
+that second sentence only when the syllabus offers something like it.

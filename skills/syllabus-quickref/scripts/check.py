@@ -4,9 +4,9 @@
 Usage:
     python check.py QUICKREF.md --source SOURCE.txt [--columns 2]
 
-The whole risk of this task is quiet invention -- a late-work percentage that
-was never in the syllabus, an office hour that got rounded, a policy softened
-into something the teacher never wrote. A teacher cannot catch that by reading
+The whole risk of this task is quiet invention: a late-work percentage that was
+never in the syllabus, an office hour that got rounded, a policy softened into
+something the teacher never wrote. A teacher cannot catch that by reading
 the pretty output; it looks right. So every fact-shaped token in the rewrite is
 traced back to the source here, mechanically.
 
@@ -49,7 +49,7 @@ SECTIONS = {   # heading keyword -> why a parent needs it
     "contact":  "how to reach the teacher",
     "grade":    "how the grade is figured",
     "late":     "what happens to late or missing work",
-    "absent":   "what to do after an absence",
+    "absen":    "what to do after an absence",   # matches absent and absence
 }
 
 
@@ -61,27 +61,62 @@ def norm(s):
     return s
 
 
-def source_numbers(src):
-    """Every number the source states, in any form it states it."""
-    s = norm(src)
-    nums = set(re.findall(r"\d+(?:\.\d+)?", s))
-    for word, digit in WORD_NUM.items():           # "three days" -> 3
-        if re.search(r"\b%s\b" % word, s):
-            nums.add(digit)
+TOKEN = re.compile(r"\d+(?:\.\d+)?|%|[a-z]+")
+
+# A number is a claim when a unit sits next to it, as in "3 days" or "45%". A number
+# next to an ordinary word is usually a name or an address ("Algebra 2",
+# "Room 214") and only needs to exist somewhere in the syllabus. Checking units
+# is what separates an invented penalty from a course number.
+UNITS = {"%", "day", "wee", "min", "hou", "poi", "att", "ret", "tar", "abs",
+         "pro", "que", "pag", "cre", "cha", "tim", "dol", "tri", "per"}
+
+
+def stem(tok):
+    return tok if tok == "%" else tok[:3]
+
+
+def contexts(text, lookahead):
+    """-> ({number: stems that follow it}, {every number present}).
+
+    Deliberately ignores line breaks: a syllabus pulled out of a PDF wraps
+    wherever the column ended, so "3:45 / PM in Room 214" would otherwise look
+    like a number with no context at all.
+    """
+    toks = TOKEN.findall(norm(text))
+    ctx, bare = {}, set()
+    for i, t in enumerate(toks):
+        if not t[0].isdigit():
+            continue
+        bare.add(t)
+        ctx.setdefault(t, set()).update(stem(x) for x in toks[i + 1:i + 1 + lookahead])
+    for word, digit in WORD_NUM.items():           # "three (3) school days" -> 3
+        for m in re.finditer(r"\b%s\b(.{0,40})" % word, norm(text), re.S):
+            bare.add(digit)
+            ctx.setdefault(digit, set()).update(
+                stem(x) for x in TOKEN.findall(m.group(1))[:lookahead])
     for i, m in enumerate(MONTHS, 1):              # "August 25" -> 8
-        if re.search(r"\b%s" % m[:3], s):
-            nums.add(str(i))
-    return nums
+        if re.search(r"\b%s" % m[:3], norm(text)):
+            bare.add(str(i))
+    return ctx, bare
 
 
-def quickref_numbers(qr):
-    """Numbers the rewrite asserts, minus ones that are pure formatting."""
-    out = []
+def trace_numbers(qr, src):
+    """Numbers asserted by the rewrite that the syllabus does not support."""
+    s_ctx, s_bare = contexts(src, 4)
+    bad = []
     for line in norm(qr).splitlines():
-        line = re.sub(r"^\s*[-*|#>]+\s*", "", line)
-        for n in re.findall(r"\d+(?:\.\d+)?", line):
-            out.append((n, line.strip()))
-    return out
+        clean = re.sub(r"^\s*[-*|#>]+\s*", "", line).strip()
+        toks = TOKEN.findall(clean)
+        for i, t in enumerate(toks):
+            if not t[0].isdigit():
+                continue
+            units = [x for x in toks[i + 1:i + 3] if stem(x) in UNITS]
+            if units:
+                if not {stem(u) for u in units} & s_ctx.get(t, set()):
+                    bad.append(("%s %s" % (t, units[0]), clean))
+            elif t not in s_bare:
+                bad.append((t, clean))
+    return bad
 
 
 def sentences(text):
@@ -101,13 +136,13 @@ def main():
     src = open(a.source, encoding="utf-8").read()
     fails, warns = [], []
 
-    # 1. Number fidelity -- the one that actually catches invention.
-    known = source_numbers(src)
-    unmatched = [(n, ctx) for n, ctx in quickref_numbers(qr) if n not in known]
+    # 1. Number fidelity, the check that actually catches invention.
+    unmatched = trace_numbers(qr, src)
     if unmatched:
-        fails.append("%d number(s) in the quick reference are not in the syllabus:" % len(unmatched))
+        fails.append("%d number(s) in the quick reference are not in the syllabus:"
+                     % len(unmatched))
         for n, ctx in unmatched[:15]:
-            fails.append('    %-6s in: "%s"' % (n, ctx[:70]))
+            fails.append('    %-12s in: "%s"' % (n, ctx[:66]))
         fails.append("    Trace each one to a line in the syllabus or cut it. "
                      "Rewording is fine; new facts are not.")
 
@@ -119,47 +154,53 @@ def main():
             if hit.rstrip("/.,") not in s_low:
                 fails.append("%s %r does not appear in the syllabus" % (label, hit))
 
-    # 3. Grade weights should still add up.
-    pcts = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)\s*%", qr)]
-    weights = [p for p in pcts if p <= 100]
-    for window in range(2, len(weights) + 1):
-        for i in range(len(weights) - window + 1):
-            if abs(sum(weights[i:i + window]) - 100) < 0.51:
-                break
-        else:
-            continue
-        break
-    else:
-        if len(weights) >= 2:
-            warns.append("no run of the percentages adds to 100 -- check the grade "
-                         "table is complete (found: %s)" % weights)
+    # 3. Grade weights should still add up. Only percentages inside the table
+    #    count, because a "-10% per day" penalty in prose is not a weight.
+    weights = [float(x) for line in qr.splitlines() if line.lstrip().startswith("|")
+               for x in re.findall(r"(\d+(?:\.\d+)?)\s*%", line)]
+    if len(weights) >= 2 and abs(sum(weights) - 100) > 0.51:
+        warns.append("grade table percentages add to %g, not 100. A category was "
+                     "dropped or mistyped (found: %s)" % (sum(weights), weights))
 
     # 4. Legal register survived.
     for pat in JARGON:
         m = re.search(pat, qr, re.I)
         if m:
-            fails.append('legal phrasing left in: "%s" -- say it the way you would out loud'
+            fails.append('legal phrasing left in: "%s". Say it the way you would out loud'
                          % m.group(0))
 
-    # 5. Readable at a glance.
+    # 5. House voice: no em or en dashes, no manufactured enthusiasm.
+    for ch, name in (("—", "em dash"), ("–", "en dash")):
+        if ch in qr:
+            fails.append("%s in the text. Use a period, a comma, or a colon "
+                         "instead; the colon is the one that carries a reveal." % name)
+    if "!" in qr:
+        warns.append("exclamation point. Warmth the teacher did not write reads "
+                     "as someone else's voice on their handout.")
+
+    # 6. Readable at a glance.
     for s in sentences(qr):
         n = len(s.split())
         if n > 25:
             warns.append('%d-word sentence, split it: "%s..."' % (n, s[:60]))
 
-    # 6. Fits on the page it claims to fit on.
-    budget = 480 if a.columns >= 2 else 340
+    # 7. Fits on the page it claims to fit on.
+    # Measured on real drafts rather than guessed: a 353-word page fills 966px of
+    # the 970px of printable height a letter sheet has left after its margins.
+    # A single column holds noticeably less despite using the full width, since
+    # long lines waste the end of every wrapped bullet.
+    budget = 350 if a.columns >= 2 else 255
     words = len(re.sub(r"[|#*_-]", " ", qr).split())
     if words > budget:
-        warns.append("%d words vs ~%d that fit one %d-column page -- cut, do not shrink the font"
+        warns.append("%d words against the ~%d that fit one %d-column page. Cut, do not shrink the font"
                      % (words, budget, a.columns))
 
-    # 7. Missing sections are a question for the teacher, not a gap to fill in.
+    # 8. Missing sections are a question for the teacher, not a gap to fill in.
     heads = norm("\n".join(l for l in qr.splitlines() if l.strip().startswith("#")))
     body = norm(qr)
     for key, why in SECTIONS.items():
         if key not in heads and key not in body:
-            warns.append("nothing about %s -- if the syllabus does not say, ask the "
+            warns.append("nothing about %s. If the syllabus does not say, ask the "
                          "teacher rather than writing a reasonable-sounding rule" % why)
 
     for f in fails:

@@ -10,7 +10,7 @@ included), and .txt/.md (passthrough). Writes UTF-8 and prints the output path.
 
 Why this exists: the checker compares every number in the quick reference back
 against the source text. That comparison is only meaningful if the source text
-is a faithful, complete dump -- including tables, where grading weights live.
+is a faithful, complete dump, including tables, where grading weights live.
 """
 import argparse
 import os
@@ -52,7 +52,7 @@ def main():
         with open(a.input, encoding="utf-8", errors="replace") as f:
             text = f.read()
     else:
-        sys.exit("[FAIL] unsupported extension %r -- convert to pdf/docx/txt first" % ext)
+        sys.exit("[FAIL] unsupported extension %r. Convert to pdf/docx/txt first" % ext)
 
     out = a.out or os.path.splitext(a.input)[0] + ".source.txt"
     with open(out, "w", encoding="utf-8") as f:
