@@ -252,6 +252,7 @@ A keyword in the user's message → invoke the named skill via the Skill tool be
 | "/loop", "every N minutes" | `loop` |
 | "claude council", "run the council", "convene the council", "council review" | `council` |
 | "gauntlet loop", "gauntlet this", "loop until it beats X" | `gauntlet-loop` |
+| "/bro", "bro", "tldr", "boil it down", "too long" | `bro` |
 
 Don't activate on quoted/code-block matches. If a keyword fires but context makes it clearly inappropriate (e.g. user is asking *about* the skill, not invoking it), say so and skip.
 
@@ -294,23 +295,6 @@ When writing `.ps1` scripts (e.g. statusline, hooks) that will be invoked by Cla
 - **`/tmp` resolves differently in node vs Git Bash on Windows.** Node `fs`/`fetch` resolve `/tmp` to `C:\tmp`; Git Bash `curl`/`cat` resolve `/tmp` to the Git Bash mount. When a verification step writes a file from node and reads it from bash (or vice versa), use an explicit absolute path — `os.tmpdir()` in node, `$TEMP` or a repo-local `.tmp/` in bash — never the literal `/tmp`.
 - **Bash builtin/special variables silently shadow your own assignment.** `GROUPS` is a bash builtin array holding the user's group ids — `GROUPS=(a b c)` doesn't error, it just no-ops your intent, and the failure surfaces far away (a later `${GROUPS[0]}`-style expansion pulls a numeric gid instead of your value, producing something like a baffling `fatal: Not a valid object name 197610` out of an unrelated `git` command). Other bash-reserved names to avoid for your own variables: `RANDOM`, `SECONDS`, `LINENO`, `PPID`, `REPLY`, `IFS`, `PATH`, `PS1`-`PS4`, `BASH_*`. Check `declare -p <name>` before reusing a short/common name for a loop or array variable.
 - **An ESM script written to the session scratchpad can't resolve the repo's `node_modules`.** Node's ESM resolver walks up from the *script's own file location*, not the shell's cwd — a `.mjs` file under the scratchpad temp dir throws `ERR_MODULE_NOT_FOUND` for packages (e.g. `playwright`) that are installed in the project repo, even though the shell cwd is the repo root. Fix: `import { createRequire } from 'module'; const require = createRequire(pathToRepoPackageJson);` — pointing `createRequire` at the repo's own `package.json` (not the scratchpad file) re-roots resolution at the repo's `node_modules`. This will recur for any scratchpad-written ESM script that imports a repo dependency; the scratchpad convention itself doesn't account for it.
-
-# Visual over textual
-
-Structure carries the meaning. Prose is the fallback, not the default. Show the shape first; explain only what the shape can't.
-
-| Answer is about | Use |
-|---|---|
-| Flow, architecture, pipeline, before/after | ASCII diagram |
-| Options, specs, comparisons, checklists, "what do I need" | Table |
-| Ordered actions | Numbered list |
-| Config, commands | Code block |
-| Why / tradeoffs / caveats only | Prose, 1–3 lines |
-
-- Lead with the picture, then the words. Never restate in prose what the diagram already showed.
-- **ASCII box-and-arrow, not Mermaid.** Terminal shows raw markdown — ```mermaid renders as nonsense. Boxes for steps, `│ ▼` flow, `┆` later/async, labels on arrows. ≤8 boxes, one idea each; split or drop to prose past that.
-- Mermaid only for Mermaid-rendering surfaces (GitHub `.md`, Artifact, PR body) — never terminal replies.
-- Skip it when trivial. A two-box diagram is noise.
 
 # Coding conduct
 
