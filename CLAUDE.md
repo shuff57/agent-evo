@@ -106,10 +106,10 @@ Claude Code and opencode share an append-only message log so they can hand work 
 forth in one repo. Zero per-repo setup — the box resolves itself.
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs where                                  # which box am I in
-node C:/Users/shuff/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
-node C:/Users/shuff/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
-node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             # whole thread
+node C:/Users/shuff57/.claude/bin/msg.mjs where                                  # which box am I in
+node C:/Users/shuff57/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
+node C:/Users/shuff57/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
+node C:/Users/shuff57/.claude/bin/msg.mjs log --n 20                             # whole thread
 ```
 
 Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Add `.msgbox/` to a repo's
@@ -130,7 +130,7 @@ depending on the model noticing.
 one exiting 0, are pre-empted by `bin/handoff.mjs`:
 
 ```bash
-node C:/Users/shuff/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
+node C:/Users/shuff57/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
 ```
 
 It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
@@ -205,9 +205,9 @@ covered.
 ## File ownership (enforced)
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
-node C:/Users/shuff/.claude/bin/msg.mjs owners
-node C:/Users/shuff/.claude/bin/msg.mjs release --as claude --all
+node C:/Users/shuff57/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
+node C:/Users/shuff57/.claude/bin/msg.mjs owners
+node C:/Users/shuff57/.claude/bin/msg.mjs release --as claude --all
 ```
 
 Claims replay from the same log — no second state file. Enforcement is real on both sides:
@@ -233,7 +233,7 @@ ln -sf  "$PWD/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
 ```jsonc
 // ~/.claude/settings.json -> hooks.PreToolUse[]
 { "matcher": "Edit|Write|NotebookEdit",
-  "hooks": [{"type": "command", "command": "node C:/Users/shuff/.claude/bin/msg.mjs guard --as claude --hook"}] }
+  "hooks": [{"type": "command", "command": "node C:/Users/shuff57/.claude/bin/msg.mjs guard --as claude --hook"}] }
 ```
 
 The hook only takes effect on the next session start. `opencode` picks the plugin up on its
