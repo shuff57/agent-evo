@@ -127,6 +127,26 @@ When confidence is MEDIUM or HIGH and the mutation is within caps:
 
 The `actual_outcome` field is filled in by the next evolution pass when comparing predicted vs actual.
 
+**Reconciliation REWRITES the original row. It does not append a verdict.**
+This is the one place the log is not append-only, and getting it wrong is
+silent: a reconciliation that only appends a new entry leaves the original row
+reading `"status": "PENDING"` forever, so the same backlog is re-verified every
+pass and never shrinks. Measured 2026-08-16 — 11 rows reported as "reconciled
+in place, atomically" were all still `PENDING` at the field level afterwards,
+and the meta-evolver had to hand-reconcile narrative-against-field verdicts to
+compute a miss rate at all. Three consecutive daily passes had "cleared" the
+same ~25 rows.
+
+To reconcile row N:
+1. Read line N and confirm it is the row you mean (match `target` + `timestamp`,
+   never the line number alone — the file grows between passes).
+2. Rewrite that line with `status` set to `VALIDATED` / `MISSED` /
+   `INSUFFICIENT_DATA` and `actual_outcome` set to the measured result.
+3. Write the whole file via `.tmp` + rename, as with any other edit.
+4. **Re-read line N and assert the field actually changed.** A success message
+   from the write step is not evidence — this exact claim has been false before.
+   Report reconciliation counts only from the re-read, never from the write.
+
 ## Safety Rules
 
 - Never modify `roster/evolver.md` (this file)
@@ -162,7 +182,11 @@ End each evolution session with a structured report:
 
 ### Prior Evolution Accuracy
 [For each PENDING log entry from previous sessions where actual_outcome is now measurable:
- - Was the prediction correct? Update the log entry status to VALIDATED or MISSED]
+ - Was the prediction correct? REWRITE that row in place with its VALIDATED /
+   MISSED / INSUFFICIENT_DATA status and actual_outcome, then re-read the row to
+   confirm the field changed. Report only counts you re-read — never counts you
+   wrote. Appending a verdict entry without rewriting the source row leaves it
+   PENDING forever and is the single most repeated defect in this log.]
 ```
 
 ## What You Are Not

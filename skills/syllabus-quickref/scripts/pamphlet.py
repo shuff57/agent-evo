@@ -360,7 +360,12 @@ def main():
                          "half the paper, at the price of the cover panel.")
     a = ap.parse_args()
     md = open(a.quickref, encoding="utf-8").read()
-    out = a.out or a.quickref.rsplit(".", 1)[0] + "-pamphlet.html"
+    # The two modes MUST default to different filenames. They used to share one,
+    # so the common `pamphlet.py x.md` then `pamphlet.py x.md --single` pair
+    # silently overwrote the trifold with the single-sided sheet -- both runs
+    # printed [OK], and you were left with one file believing you had two.
+    suffix = "-pamphlet-single.html" if a.single else "-pamphlet.html"
+    out = a.out or a.quickref.rsplit(".", 1)[0] + suffix
     open(out, "w", encoding="utf-8").write(build_single(md) if a.single else build(md))
     print("[OK] wrote %s (%s)"
           % (out, "single sided, Z fold" if a.single else "trifold, two sides"))
