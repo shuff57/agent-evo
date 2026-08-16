@@ -32,6 +32,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import diagrams
 from render import parse, inline          # one parser, one Markdown dialect
 
 PANELS = 3                                 # inside panels available for sections
@@ -207,6 +208,13 @@ def render_blocks(blocks):
     for kind, payload in blocks:
         if kind == "ul":
             out.append("<ul>%s</ul>" % "".join("<li>%s</li>" % inline(x) for x in payload))
+        elif kind == "flow":
+            # Shares render.py's parser, so a ```flow block arrives here too. The
+            # panel :root already carries every var the diagram paints with, and
+            # a two-step chain that diagrams.flow declines to draw falls back to
+            # the list rather than vanishing.
+            out.append(diagrams.flow(payload) or
+                       "<ul>%s</ul>" % "".join("<li>%s</li>" % inline(x) for x in payload))
         elif kind == "table":
             bar = weight_bar(payload)
             if bar:
