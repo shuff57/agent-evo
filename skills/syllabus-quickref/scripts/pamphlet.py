@@ -73,8 +73,8 @@ body { margin: 0; background: #d8d6cc; font: 11pt/1.55 var(--sans); color: var(-
 .panel section { margin: 0 0 20pt; break-inside: avoid; }
 .panel h2 { font: 500 15pt/1.2 var(--serif); margin: 0 0 7pt; padding-bottom: 4pt;
             border-bottom: 1px solid var(--border-warm); }
-.panel h2 .num { display: block; font: 500 9.5pt/1.4 var(--serif);
-                 color: var(--wedgwood); }
+.panel h2 .num { font: 500 9.5pt/1.4 var(--serif); color: var(--wedgwood);
+                 margin-right: 6pt; }
 ul { margin: 0; padding: 0; list-style: none; }
 li { position: relative; padding-left: 13pt; margin-bottom: 5pt; color: var(--charcoal); }
 li::before { content: "\\2013"; position: absolute; left: 0; color: var(--wedgwood); }

@@ -55,7 +55,9 @@ SECTIONS = {   # heading keyword -> why a parent needs it
 
 def norm(s):
     s = s.lower()
-    s = s.replace("percent", "%").replace("per cent", "%")
+    # Word-bounded: without it, "percentage" becomes "%age" and the number in
+    # front of it reads as a percentage claim that the syllabus never made.
+    s = re.sub(r"\bper ?cent\b", "%", s)
     s = re.sub(r"[‐-―]", "-", s)          # unicode dashes
     s = re.sub(r"[‘’]", "'", s)
     return s

@@ -173,6 +173,35 @@ than that is too elaborate for a one-pager.
 Offer to publish the HTML as an Artifact when the teacher wants a link to send
 home rather than a printout.
 
+### The pamphlet form
+
+For back-to-school night, an open house, or anything handed to a room full of
+people, the same Markdown lays out as a folded pamphlet:
+
+```bash
+python scripts/pamphlet.py <course>-quickref.md            # trifold, two sides
+python scripts/pamphlet.py <course>-quickref.md --single   # one sheet, one side
+```
+
+The default is a six-panel trifold on two sides, with a cover panel carrying the
+course name and a back panel a parent can read without unfolding anything. The
+last section in the file becomes that back panel, so put the parent material
+last. Print landscape letter, double sided, flipped on the short edge, then fold
+the right third in and the left third over it.
+
+`--single` puts three panels on one side of one sheet and folds in a Z, first
+panel forward and last panel back, so one panel still faces outward. It holds
+the same content at the same density as the portrait one-pager and costs half
+the paper, at the price of the dedicated cover: panel one gets a masthead
+instead. A letter fold would hide both printed faces on a one-sided sheet, which
+is why this mode folds differently, and the printed banner says so.
+
+A grading table whose percentages sum to 100 renders as a proportional bar
+rather than rows, with the largest category in Wedgwood. Three numbers in a
+table are three numbers to compare, and a student who sees that tests are three
+quarters of the bar has taken in the most important thing on the page without
+reading a word of it.
+
 ### 6. Tell the teacher what the syllabus did not say
 
 Gaps found in step 3 are a deliverable rather than a footnote, so close with
@@ -212,3 +241,5 @@ guardrails on adding warmth or menace that the syllabus never carried.
 - `scripts/extract.py`, PDF, DOCX or TXT into plain text.
 - `scripts/check.py`, the fidelity, jargon, voice, readability and length audit.
 - `scripts/render.py`, Markdown into printable HTML and .docx.
+- `scripts/pamphlet.py`, the same Markdown into a folded trifold, either six
+  panels across two sides or three on one.

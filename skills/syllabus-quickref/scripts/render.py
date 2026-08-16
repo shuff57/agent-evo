@@ -14,7 +14,12 @@ with whatever Python happens to be installed.
 """
 import argparse
 import html
+import os
 import re
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import diagrams
 
 # bookSHelf house theme: parchment canvas, one Wedgwood accent held under 5% of
 # the surface, warm ink ramp, serif headings capped at weight 500, no italic.
@@ -23,15 +28,15 @@ CSS = """
 @page { size: letter; margin: 0.45in; }
 :root {
   --wedgwood: #4e6e8e; --wedgwood-deep: #3d5a80;
-  --parchment: #f5f4ed; --warm-sand: #e8e6dc;
+  --parchment: #f5f4ed; --ivory: #faf9f5; --warm-sand: #e8e6dc;
   --ink: #141413; --charcoal: #3d3d3a; --olive: #504e49; --stone: #6b6a64;
-  --border-cream: #f0eee6; --border-warm: #e8e6dc;
+  --border-cream: #f0eee6; --border-warm: #e8e6dc; --ring-warm: #d1cfc5;
   --serif: "Source Serif 4", "Source Serif Pro", Charter, Georgia, "Times New Roman", serif;
   --sans: Inter, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 body { font: 10.5pt/1.55 var(--sans); color: var(--ink);
-       background: var(--parchment); margin: 0; padding: 0.45in; max-width: 8.5in;
+       background: var(--parchment); margin: 0 auto; padding: 0.45in; max-width: 8.5in;
        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 h1 { font: 500 25pt/1.1 var(--serif); margin: 0 0 3pt; letter-spacing: -0.4px; }
 .sub { font-size: 10pt; color: var(--olive); margin: 0 0 10pt;
@@ -47,13 +52,15 @@ h2 { font: 500 13pt/1.2 var(--serif); color: var(--ink); margin: 0 0 5pt;
      padding-bottom: 3pt; border-bottom: 1px solid var(--border-warm);
      break-after: avoid; break-inside: avoid; }
 h2::before { content: counter(sec, decimal-leading-zero);
-             display: block; font: 500 9pt/1.4 var(--serif);
-             color: var(--wedgwood); letter-spacing: 0.5px; }
+             font: 500 9pt/1.4 var(--serif); color: var(--wedgwood);
+             letter-spacing: 0.5px; margin-right: 6pt; }
 p { margin: 0 0 5pt; color: var(--charcoal); }
 ul { margin: 0; padding: 0; list-style: none; }
 li { position: relative; padding-left: 13pt; margin-bottom: 2.5pt;
      color: var(--charcoal); break-inside: avoid; }
 table, tr { break-inside: avoid; }
+svg.fig { display: block; width: 100%; height: auto; margin: 3pt 0 5pt;
+          break-inside: avoid; }
 li::before { content: "\\2013"; position: absolute; left: 0;
              color: var(--wedgwood); }
 table { border-collapse: collapse; width: 100%; margin: 2pt 0 4pt;
@@ -88,11 +95,29 @@ def parse(md):
     cur = None
     lines = md.splitlines()
     i = 0
+    # A blank line ends the current list or table. Without this, two tables in
+    # one section fuse into one: a grading table followed by a grade-scale table
+    # became a single eight-column block that no longer looked like weights, so
+    # the figure silently disappeared and a merged table took its place.
+    fresh = True
     while i < len(lines):
         raw = lines[i]
         line = raw.strip()
         i += 1
         if not line:
+            fresh = True
+            continue
+        if line.startswith("```flow"):          # a sequence to draw as a chain
+            steps = []
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                if lines[i].strip():
+                    steps.append(lines[i].strip().lstrip("- "))
+                i += 1
+            i += 1
+            if cur is None:
+                cur = ("", [])
+                sections.append(cur)
+            cur[1].append(("flow", steps))
             continue
         if line.startswith("# "):
             title = line[2:].strip()
@@ -115,7 +140,7 @@ def parse(md):
             cur = ("", [])
             sections.append(cur)
         if line.startswith(("- ", "* ")):
-            if cur[1] and cur[1][-1][0] == "ul":
+            if cur[1] and cur[1][-1][0] == "ul" and not fresh:
                 cur[1][-1][1].append(line[2:].strip())
             else:
                 cur[1].append(("ul", [line[2:].strip()]))
@@ -123,12 +148,13 @@ def parse(md):
             cells = [c.strip() for c in line.strip("|").split("|")]
             if all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
                 continue                                  # separator row
-            if cur[1] and cur[1][-1][0] == "table":
+            if cur[1] and cur[1][-1][0] == "table" and not fresh:
                 cur[1][-1][1].append(cells)
             else:
                 cur[1].append(("table", [cells]))
         else:
             cur[1].append(("p", line))
+        fresh = False
     return title, sub, sections, notes
 
 
@@ -147,7 +173,15 @@ def to_html(md, columns):
             if kind == "ul":
                 body.append("<ul>%s</ul>" %
                             "".join("<li>%s</li>" % inline(x) for x in payload))
+            elif kind == "flow":
+                body.append(diagrams.flow(payload) or
+                            "<ul>%s</ul>" % "".join("<li>%s</li>" % inline(x)
+                                                    for x in payload))
             elif kind == "table":
+                fig = diagrams.weight_bar(payload)
+                if fig:
+                    body.append(fig)
+                    continue
                 head_row, *rest = payload
                 body.append("<table><tr>%s</tr>%s</table>" % (
                     "".join("<th>%s</th>" % inline(c) for c in head_row),
@@ -229,7 +263,13 @@ def to_docx(md, path):
             p.paragraph_format.line_spacing = 1.2
             p.paragraph_format.space_after = Pt(2)
         for kind, payload in blocks:
-            if kind == "ul":
+            if kind == "flow":
+                # Word gets the chain as text. python-docx cannot place an SVG,
+                # and rasterising one would put a picture of a fact into an
+                # editable document where the teacher can no longer correct it.
+                p = plain("  →  ".join(payload))
+                p.paragraph_format.left_indent = Inches(0.16)
+            elif kind == "ul":
                 for item in payload:
                     # En-dash bullets in Wedgwood, per the theme. Word's own
                     # bullet glyph cannot be recolored independently of the text,
