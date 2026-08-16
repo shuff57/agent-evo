@@ -134,10 +134,15 @@ node C:/Users/shuff57/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--not
 ```
 
 It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
-held, puts the task in the prompt rather than behind an inbox read, single-quotes it so the shell
-cannot mangle it, tells the run to STOP rather than guess a path, and — the check that matters —
+held (unless `--allow-claims`), puts the task in the prompt rather than behind an inbox read, strips
+the characters a `shell:true` launch would otherwise let the shell reinterpret and wraps what's left
+in double quotes, tells the run to STOP rather than guess a path, and — the check that matters —
 counts replies in the message log before and after, exiting **non-zero when a run exits cleanly
 having done nothing.** Its header lists which failure each guard exists for.
+
+**Not single quotes.** An earlier version of this doc said "single-quotes it" — the actual
+implementation double-quotes after stripping `"<>&|^%`; single-quoting was never shipped. Verify
+against `bin/handoff.mjs` itself before repeating a claim about its behavior, not this doc.
 
 Hand-rolling reintroduces them one at a time: a relative path (the run invents one and burns the
 session), a double-quoted prompt containing `\"…\"` or `<angle brackets>` (the shell rewrites it into
@@ -295,6 +300,7 @@ When writing `.ps1` scripts (e.g. statusline, hooks) that will be invoked by Cla
 - **`/tmp` resolves differently in node vs Git Bash on Windows.** Node `fs`/`fetch` resolve `/tmp` to `C:\tmp`; Git Bash `curl`/`cat` resolve `/tmp` to the Git Bash mount. When a verification step writes a file from node and reads it from bash (or vice versa), use an explicit absolute path — `os.tmpdir()` in node, `$TEMP` or a repo-local `.tmp/` in bash — never the literal `/tmp`.
 - **Bash builtin/special variables silently shadow your own assignment.** `GROUPS` is a bash builtin array holding the user's group ids — `GROUPS=(a b c)` doesn't error, it just no-ops your intent, and the failure surfaces far away (a later `${GROUPS[0]}`-style expansion pulls a numeric gid instead of your value, producing something like a baffling `fatal: Not a valid object name 197610` out of an unrelated `git` command). Other bash-reserved names to avoid for your own variables: `RANDOM`, `SECONDS`, `LINENO`, `PPID`, `REPLY`, `IFS`, `PATH`, `PS1`-`PS4`, `BASH_*`. Check `declare -p <name>` before reusing a short/common name for a loop or array variable.
 - **An ESM script written to the session scratchpad can't resolve the repo's `node_modules`.** Node's ESM resolver walks up from the *script's own file location*, not the shell's cwd — a `.mjs` file under the scratchpad temp dir throws `ERR_MODULE_NOT_FOUND` for packages (e.g. `playwright`) that are installed in the project repo, even though the shell cwd is the repo root. Fix: `import { createRequire } from 'module'; const require = createRequire(pathToRepoPackageJson);` — pointing `createRequire` at the repo's own `package.json` (not the scratchpad file) re-roots resolution at the repo's `node_modules`. This will recur for any scratchpad-written ESM script that imports a repo dependency; the scratchpad convention itself doesn't account for it.
+- **Piping a backgrounded process through `tail`/`head` buffers until the pipe closes.** Checking on a long dispatch with `... | tail -n 20` or `| head -c 500` reads back 0 bytes every time until the underlying process exits — the pipe doesn't flush interim output, so it looks like the run has produced nothing right up until it's already over. Measured 2026-08-16 polling a `handoff.mjs` dispatch. Read the target file/log directly (no pipe) to see interim progress, or poll a sentinel the run itself writes.
 
 # Coding conduct
 

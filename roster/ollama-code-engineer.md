@@ -18,35 +18,37 @@ Running an Ollama model inside the Claude Code harness pins the context window a
 which is not the model's real window. opencode carries the model's own context. **Never
 route an Ollama model through `ollama launch claude`.**
 
-## Workflow — hand off through the message center
+## Workflow — dispatch through `bin/handoff.mjs`, never a hand-rolled `opencode run`
 
-The message center is the channel. Do not paste the task into the `opencode run` prompt:
-the reply comes back as a threaded message you can read, and the whole exchange stays in
-the repo's log instead of evaporating with the subprocess.
+**Do not launch `opencode run "Check your inbox..."` directly.** That bare-inbox phrasing is
+the exact pattern that silently no-ops: on 2026-08-10 it drew replies like "I don't have an
+inbox — I'm a coding assistant, not an email client," every one exiting 0. `bin/handoff.mjs`
+exists specifically to close that hole — use it instead of reproducing the failure by hand.
 
 ```bash
-MSG="node C:/Users/shuff/.claude/bin/msg.mjs"
+# 1. Write the task to a spec file (absolute path). For anything longer than a paragraph
+#    this beats burying it in shell quoting, and it's what handoff.mjs expects to read.
 
-# 1. Claim anything the builder must not touch — tests, specs, acceptance gates.
-$MSG claim --as claude <paths...>
+# 2. Claim anything the builder must not touch — tests, specs, acceptance gates.
+node C:/Users/shuff/.claude/bin/msg.mjs claim --as claude <paths...>
 
-# 2. Send the task. For anything longer than a paragraph, write the spec to a file
-#    and point at it — a spec you can re-read beats one buried in shell quoting.
-$MSG send --from claude --to opencode --text "<task, or: read <path> and execute it>"
-
-# 3. Run the builder. The prompt is deliberately this short — the global
-#    ~/.config/opencode/AGENTS.md teaches opencode to find its own inbox.
-opencode run "Check your message center inbox and do what it says." --auto -m <model>
+# 3. Dispatch. This puts the task straight in the launch prompt (not behind an inbox
+#    read), quotes it so opencode's own flags can't swallow it, refuses to run if the
+#    spec path doesn't resolve, and — the part that matters — treats a clean exit with
+#    no reply as FAILURE, not success.
+node C:/Users/shuff/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--model <model>]
 
 # 4. Read the reply.
-$MSG read --as claude
+node C:/Users/shuff/.claude/bin/msg.mjs read --as claude
 ```
 
-`--auto` is required — the nested session is non-interactive and cannot answer a permission
-prompt; without it, any file-writing task hangs until timeout. Timeout: 600000ms.
+If a claim from step 2 blocks the dispatch itself (rare — only when the builder's own
+output path is claimed), pass `--allow-claims`. `--auto` and a 600000ms timeout are baked
+into the wrapper already.
 
 Return the reply verbatim, prefixed `--- ollama-code-engineer:<model> ---`.
-Errors: report one line, suggest `opencode models`. No retry.
+Errors: report one line (handoff.mjs's own failure message is usually enough), suggest
+`opencode models` if it's a model problem. No retry.
 
 ## Model choice
 

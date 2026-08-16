@@ -46,10 +46,16 @@ if (!fs.existsSync(spec)) {
 
 // (4) a claim on the files the run must write blocks every Write. Surface it now, not 40
 // minutes in. Claims are right for a browser push and wrong for authoring.
+// A browser push WANTS a claim on the sources its read-back compares against, so --allow-claims
+// opts out of the refusal. It still prints them: a claim that blocks the run's real output is the
+// failure this guard exists for, and only the dispatcher knows which case this is.
+const allowClaims = args.includes('--allow-claims');
 const owners = execSync(`node "${MSG}" owners`, { encoding: 'utf8' }).trim();
-if (owners && !/nothing claimed/i.test(owners)) {
+const heldClaims = owners && !/nothing claimed/i.test(owners);
+if (heldClaims && !allowClaims) {
   console.error('FAILED before launch: file claims are held.\n' + owners);
   console.error('\nRelease them first (msg.mjs release --as claude --all) if this run must write.');
+  console.error('Or pass --allow-claims if the claim is deliberate (a browser push guarding its gate).');
   process.exit(2);
 }
 
@@ -91,12 +97,18 @@ const prompt = [
   .replace(/\s+/g, ' ')
   .trim();
 
-console.log(`spec   ${spec}\nmodel  ${model}\nclaims none held\n`);
+console.log(`spec   ${spec}\nmodel  ${model}\nclaims ${heldClaims ? owners.replace(/\n/g, '; ') + '  (allowed)' : 'none held'}\n`);
 
 // shell:true is REQUIRED on Windows — `opencode` is a .ps1/.cmd shim and Node will not execute one
 // with shell:false. It returns status null and never launches, which reads exactly like a run that
 // did nothing. Measured 2026-08-10: the wrapper's own first live dispatch failed this way.
-const run = spawnSync('opencode', ['run', prompt, '--auto', '-m', model], {
+// shell:true joins argv into ONE command line WITHOUT quoting, so an unquoted prompt splits on
+// spaces and any `--word` inside it is parsed as an opencode flag — yargs prints usage and exits 1,
+// having launched nothing. Measured 2026-08-16: the default reportLine contains `--from --to --re
+// --text` and hit exactly this. Double quotes are safe here because the prompt had `"` `<` `>`
+// stripped above; strip the remaining cmd.exe metacharacters too.
+const shellSafePrompt = `"${prompt.replace(/[&|^%]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
+const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model], {
   stdio: 'inherit',
   shell: true,
 });
