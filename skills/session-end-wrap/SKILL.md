@@ -45,7 +45,7 @@ does not block the others.
 
 - `memory-pending-triage` skill — project-local only, at `.claude/skills/memory-pending-triage/SKILL.md`. Bridges `pending/` (what `session-reflector` writes) to `active/` (what `memory-hygiene` manages) — nothing else does, so without it `pending/` grows unbounded. Absent in most repos; phase 0 skips.
 - `memory-hygiene` skill — project-local at `.claude/skills/memory-hygiene/SKILL.md` is preferred and resolves first; user-global at `~/.claude/skills/memory-hygiene/SKILL.md` is the cross-project fallback.
-- `session-reflector` skill — typically at `~/.claude/skills/session-reflector/SKILL.md` (user-global).
+- `session-reflector` skill — project-local at `.claude/skills/session-reflector/SKILL.md` is preferred and resolves first when a repo ships one; user-global at `~/.claude/skills/session-reflector/SKILL.md` is the cross-project fallback (typical case).
 - `evolver` agent (loads the `evolution` skill) — at `~/.claude/agents/evolver.md` (user-global). Modify-mode only.
 - Project-local create-mode evolver — any agent in `<repo>/.claude/agents/` whose filename matches `*-evolver.md` (e.g. `bookshelf-evolver.md`, `infra-evolver.md`). Each such agent is invoked once in phase 4. Repos without one simply skip phase 4 with a clean log line.
 
@@ -118,11 +118,26 @@ For each phase, in order:
 1. Invoke the phase:
    - Phase 0 (`memory-pending-triage`): first check the skill exists with the
      `Glob` tool, pattern `.claude/skills/memory-pending-triage/SKILL.md`
-     (CWD-relative). If it matches, invoke via the `Skill` tool. If it does not,
-     record `"no pending-triage skill in this repo"` and move on — that is the
-     expected state, not a failure.
-   - Phase 1 (`memory-hygiene`) and phase 2 (`session-reflector`): use the
-     `Skill` tool.
+     (CWD-relative). If it matches, Read that file directly and follow its
+     instructions instead of invoking the `Skill` tool by bare name — the same
+     shadowing risk phases 1-2 hit applies here too if a user-global
+     `memory-pending-triage` skill is ever added (none exists today, but
+     Read-direct costs nothing and closes the exposure before it can bite).
+     If it does not match, record `"no pending-triage skill in this repo"`
+     and move on — that is the expected state, not a failure.
+   - Phase 1 (`memory-hygiene`) and phase 2 (`session-reflector`): first check
+     for a project-local shadow with the `Glob` tool, pattern
+     `.claude/skills/memory-hygiene/SKILL.md` (phase 1) or
+     `.claude/skills/session-reflector/SKILL.md` (phase 2), CWD-relative. If
+     it matches, Read that file directly and follow its instructions instead
+     of invoking the `Skill` tool by bare name — bare-name resolution is not
+     guaranteed to prefer a project-local copy over the user-global one even
+     when a repo ships both (confirmed 2026-08-16, session
+     `2026-08-16-flowchart-renderer-chapter-2`: both phase-1 and phase-2
+     `Skill` invocations resolved to the user-global copy in a repo shadowing
+     both skills; the workaround was reading the project `SKILL.md` directly
+     — phase 0's step above now does the same proactively). If the Glob
+     finds no project-local copy, invoke via the `Skill` tool as before.
    - Phase 3 (modify-mode evolution): use the `Agent` tool with
      `subagent_type: "evolver"` (user-global).
    - Phase 4 (create-mode evolution): before invoking, use the `Glob` tool
