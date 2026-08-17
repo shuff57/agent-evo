@@ -164,6 +164,18 @@ pair (see `docs/plans/2026-08-09-svg-figure-path.md`). These are reviewed
 differently from video and BETTER: you can measure the DOM instead of guessing
 from pixels, and you can seek deterministically instead of extracting frames.
 
+**There is a reusable harness for the measuring half — use it rather than
+rebuilding one.** bookSHelf's `svg-figure-visual-verify` skill ships the
+Playwright code this section describes: it inlines the figure, sweeps
+`getBBox()` containment plus text/text and text/shape overlap across ~60 points
+of the loop in both themes, and its overlap check was proven non-blind by
+re-running it against known-bad geometry. It is denser than the minimum below
+(t=0, beat midpoints, t≈0.98·DUR) and catches defects that exist only between
+beats. This section stays the authority on WHAT to judge and on the traps; that
+skill is the instrument. Written 2026-08-17 after three sessions each improvised
+a separate harness — one of them rebuilding this very section's method from
+scratch, unaware it existed.
+
 **Seek, don't sample.** The CSS `@keyframes` produce real `Animation` objects.
 Pause them and drive `currentTime` to inspect any beat exactly:
 
@@ -248,7 +260,18 @@ beat is invisible at t=0 — same trap as sampling an MP4 only at its open.
    measurement at several points: `cursorX - lineStart` must equal the reveal
    clip's width. Drift means the step counts or keyframe percentages differ
    between the two.
-13. Numbers with every claim: rect coordinates, computed colours, px gaps, the
+13. **Paint order can HIDE a routed line, not just cross it.** SVG paints in
+   source-DOM order — a shape emitted after a path paints over it completely.
+   An edge/arrow routed underneath a box is not merely visually crossing that
+   box, it is fully occluded, and the figure passes every geometric check
+   because there is nothing wrong to measure — the arrow's own bbox is still
+   "present," just invisible under the shape's fill. Check element order in
+   the markup (paths before shapes = at risk) and confirm visually: any edge
+   segment whose path geometry passes under a shape's bbox must still be
+   visible outside that shape's bounds. (Hit for real: a flowchart's return
+   arrow was fully hidden behind a box it routed behind — 2026-08-16, the
+   `flow_svg` renderer.)
+14. Numbers with every claim: rect coordinates, computed colours, px gaps, the
    `currentTime` you measured at — same rule as the ears.
 
 **Parity against the manim original** (when replacing an existing figure):
