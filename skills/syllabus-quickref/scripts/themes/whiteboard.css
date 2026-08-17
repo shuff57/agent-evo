@@ -1,0 +1,96 @@
+/* whiteboard — pens and whiteboard markers on clean white paper. Hand-drawn
+   frames, cursive headings with a marker swipe, checkbox bullets, sticky note.
+   Needs whiteboard.defs.html for the #rough / #rough-fine filters.
+   Token contract as in spec.css; diagrams.py paints from those names. */
+@page { size: letter; margin: 0; }
+:root {
+  --wedgwood:#C8322B; --wedgwood-deep:#A0241E;
+  --parchment:#FDFDFB; --ivory:#FFFFFF; --warm-sand:#FFE86B;
+  --ink:#1F1F1F; --charcoal:#2A2A28; --olive:#43433F; --stone:#6B6B66;
+  --border-cream:#EDEDE8; --border-warm:#D8D8D2; --ring-warm:#1F1F1F;
+  --board:#FDFDFB;
+  --blue:#1B5FAA; --red:#C8322B; --green:#2E8B4F; --orange:#E0801F; --pen:#2B4C9B;
+  --hi:#FFE86B; --hi-pink:#FFB9C6; --hi-green:#B9EFA8; --hi-blue:#C6DEF5;
+  --serif:"Bodoni Moda","Bodoni MT","Didot",Georgia,serif;
+  --body:"DM Sans","Helvetica Neue","Segoe UI",Helvetica,Arial,system-ui,sans-serif;
+  --hand:"Caveat","Segoe Script","Bradley Hand",cursive;
+}
+* { box-sizing:border-box; }
+body {
+  font:9pt/1.42 var(--body); color:var(--charcoal); background:var(--board);
+  margin:0 auto; padding:0.4in; max-width:8.5in;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+
+.head { display:flex; align-items:flex-start; justify-content:space-between; gap:16pt;
+        margin-bottom:10pt; }
+.headline { flex:1; min-width:0; }
+h1 { font:700 34pt/.94 var(--hand); color:var(--ink); margin:0 0 5pt; letter-spacing:.005em; }
+.sub { display:flex; flex-wrap:wrap; gap:2pt 14pt; margin:0;
+       font-size:8.6pt; color:var(--charcoal);
+       border-top:3pt solid var(--red); padding-top:7pt; }
+.sub span:first-child { font-weight:700; color:var(--ink); }
+.sticky { flex:0 0 auto; width:104pt; padding:7pt 9pt 8pt; margin-top:2pt;
+          background:var(--hi); transform:rotate(2.2deg); box-shadow:2pt 3pt 6pt -2pt #00000030;
+          font:11pt/1.14 var(--hand); color:var(--ink); }
+.sticky b { display:block; font-size:13.5pt; color:var(--red); margin-bottom:1pt; }
+
+.cols { column-count:__COLS__; column-gap:18pt; counter-reset:sec; }
+section { break-inside:avoid; margin:0 0 9pt; counter-increment:sec;
+          padding:7pt 9pt 8pt; position:relative; }
+/* the drawn frame lives on a pseudo-element so the TEXT is never displaced */
+section::before { content:""; position:absolute; inset:0; z-index:0;
+                  border:2pt solid var(--c,var(--ink));
+                  border-radius:255px 14px 225px 15px / 15px 225px 15px 255px;
+                  filter:url(#rough); }
+section:nth-of-type(even)::before { border-radius:15px 225px 15px 255px / 255px 15px 225px 15px; }
+section > * { position:relative; z-index:1; }
+/* marker colours cycle so no two neighbours share a pen */
+section:nth-of-type(5n+1){ --c:var(--blue);   --sw:var(--hi-blue); }
+section:nth-of-type(5n+2){ --c:var(--red);    --sw:var(--hi-pink); }
+section:nth-of-type(5n+3){ --c:var(--orange); --sw:var(--hi); }
+section:nth-of-type(5n+4){ --c:var(--green);  --sw:var(--hi-green); }
+section:nth-of-type(5n+5){ --c:var(--ink);    --sw:var(--hi); }
+
+h2 { font:700 17pt/1 var(--hand); color:var(--c,var(--ink)); margin:0 0 5pt;
+     display:flex; align-items:baseline; gap:6pt; break-after:avoid; }
+h2::before { content:counter(sec); font:400 10pt/1 var(--hand); color:var(--c);
+             opacity:.7; flex-shrink:0; }
+
+ul { margin:0; padding:0; list-style:none; }
+li { position:relative; padding-left:12pt; margin-bottom:3.6pt; color:var(--charcoal);
+     break-inside:avoid; }
+/* no filter at this size — even the fine one only muddies a 6pt box; the
+   uneven corner radii carry the hand-drawn read on their own */
+li::before { content:""; position:absolute; left:0; top:.4em; width:6.4pt; height:6.4pt;
+             border:1pt solid var(--c,var(--ink)); border-radius:1px 4px 2px 5px;
+             transform:rotate(-1.5deg); }
+p { margin:0 0 5pt; }
+strong { font-weight:700; color:var(--ink); }
+a { color:var(--pen); text-decoration:none; }
+svg.fig { display:block; width:100%; height:auto; margin:3pt 0 5pt; break-inside:avoid; }
+
+table { border-collapse:collapse; width:100%; margin:2pt 0 4pt;
+        font-variant-numeric:tabular-nums; }
+th { text-align:left; font:700 6.6pt/1.4 var(--body); text-transform:uppercase;
+     letter-spacing:.1em; color:var(--stone); border-bottom:1.2pt solid var(--c,var(--ink));
+     padding:3pt 5pt; }
+td { padding:3pt 5pt; border-bottom:1pt solid var(--border-cream); }
+tr:last-child td { border-bottom:0; }
+
+.note { column-span:all; margin-top:5pt; padding-top:6pt;
+        border-top:1.2pt dashed #C9C9C2; font-size:8pt; color:var(--stone); }
+@media print { .note { page-break-inside:avoid; } }
+
+/* ---- hand marks: ==swiped==  ((circled))  ~in hand~ ---- */
+.sub em { font-style:normal; font-weight:400; color:var(--stone); margin-right:4pt; }
+.hi { position:relative; isolation:isolate; padding:0 .16em; color:var(--ink); font-weight:700; }
+.hi::before { content:""; position:absolute; z-index:-1; inset:.02em 0;
+              background:var(--hi); mix-blend-mode:multiply;
+              border-radius:2px 6px 3px 7px; transform:rotate(-.5deg); }
+.circ { font:700 12.5pt/1 var(--hand); color:var(--wedgwood); position:relative;
+        padding:0 5pt; display:inline-block; margin-right:2pt; }
+.circ::before { content:""; position:absolute; inset:-3pt -2pt; border:1.3pt solid var(--wedgwood);
+                border-radius:50% 46% 52% 48% / 48% 52% 46% 54%; transform:rotate(-2deg); }
+.hand { font:12pt/1 var(--hand); color:var(--pen);
+        display:inline-block; transform:rotate(-1.6deg); }

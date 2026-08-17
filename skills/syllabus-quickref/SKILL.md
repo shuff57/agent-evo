@@ -159,6 +159,116 @@ This produces a print-ready two-column letter page, `--columns 1` for a single
 column, and an editable Word file carrying the same content. The Markdown file
 is already usable for Canvas, Google Classroom, or an email body.
 
+**For the copies that get handed out, print the HTML.** `--pdf` runs it through
+headless Chrome or Edge, which is the only renderer that agrees with the page
+exactly, because it is the same engine and the same `@page` rules:
+
+```bash
+python scripts/render.py <course>-quickref.md --theme annotated \
+    --html <course>-quickref.html --pdf <course>-quickref.pdf
+```
+
+With no browser installed it says so and stops; opening the `.html` and hitting
+Ctrl+P → Save as PDF gives a byte-for-byte equivalent result. Nothing is lost by
+doing it by hand. The page also carries a **Save as PDF** button in its footer,
+which is the same `window.print()` and is hidden from the printed sheet.
+
+**Every theme sets `@page { margin: 0 }` and holds the page margin on `body`
+padding instead. Do not "tidy" that back.** Chrome and Edge draw their print
+header and footer — the date, the title, the file URL, the page number — inside
+the `@page` margin box. Print with a margin there and a teacher gets
+`8/16/26, 3:28 PM   Introduction to Statistics: Quick Reference` across the top
+of a handout. With no margin box there is nowhere to draw them. The printed
+geometry is unchanged because the same measurement moved onto the body, which is
+why the print block no longer zeroes body padding.
+
+The three outputs are for three different jobs, and it is worth not confusing
+them. The **PDF** is the artifact you print and hand out. The **HTML** is the
+one you publish or email a link to. The **.docx** is for the person who needs to
+change a date — it rebuilds the layout out of Word primitives (a compartment is
+a one-column bordered table, a column is a section property, the weight bar is a
+row of proportionally-sized shaded cells) and is a good likeness, not a copy. If
+the Word file and the page disagree, the page is right.
+
+#### The three hand marks
+
+Beyond `**bold**`, the dialect carries the three marks a teacher actually makes
+on a page. Use them on the handful of facts a family comes to the page for, and
+nothing else: a page where everything is highlighted has highlighted nothing.
+
+| Syntax | Mark |
+|---|---|
+| `==ten per semester==` | a highlighter band behind the words |
+| `((No retakes))` | a pen circle round a hard rule |
+| `~~check here first~~` | a handwritten aside |
+
+All three delimiters are two characters, and that is deliberate. A single `~`
+was tried first: one stray tilde anywhere in a syllabus silently turns the rest
+of its line into handwriting, and neither the checker nor the renderer would say
+so. Doubling costs one character and removes the failure. GFM reads `~~` as
+strikethrough, which this dialect does not have, so nothing is shadowed.
+
+`render.py` warns on an unclosed mark, with a line number, before it writes
+anything. An odd `==` otherwise reaches the handout as a literal `==` and the
+first person to notice is whoever printed thirty copies.
+
+The `.docx` keeps all three. Word has a real highlighter and real fonts, so
+`==swiped==` becomes a yellow highlight and `~~in hand~~` becomes Segoe Script,
+both still editable as text. Word cannot draw an ellipse behind a run, so
+`((circled))` becomes a character border in the accent colour — a box rather
+than a circle, which still reads as "someone ringed this."
+
+#### The byline
+
+The line under the title is one `·`-separated list. A segment written
+`Label: value` carries its label separately, which the grid themes stack above
+the value as a spec cell and the rest print inline:
+
+```markdown
+Instructor: Steven Huff · Contact: shuff@chicousd.org · Periods: 3, 4, 7 · Reply within: 48 hours
+```
+
+Putting contact and reply time here as well as under **Contact** is not
+redundancy worth cutting. It is the masthead, and it is where someone looks
+first.
+
+#### Themes
+
+`--theme NAME` picks the look. `--list-themes` prints what is installed, and
+`--sticky "Head|body"` adds the corner note the themes place top right.
+
+```bash
+python scripts/render.py <course>-quickref.md --theme annotated \
+    --sticky "Read this first|the syllabus is longer. this is the part you need." \
+    --html <course>-quickref.html
+```
+
+| Theme | What it is |
+|---|---|
+| `bookshelf` | The default. Parchment, one Wedgwood accent, the house theme below. |
+| `annotated` | Crisp ruled compartments, Bodoni headings over Charter, hand used only as annotation. |
+| `spec` | The technical one. Monospace, coded section IDs, hard-ruled compartments, spec bar. |
+| `markedup` | Hand-drawn frames keeping `spec`'s header bars and coded IDs, in academic serif. |
+| `whiteboard` | Pens and whiteboard markers on white. Drawn frames, cursive heads, checkbox bullets. |
+
+All five hold one letter page for a quick reference of the size step 3 targets.
+Print each after a content change: the hand-drawn themes carry larger type and
+run out of page soonest, and a two-page "one-pager" is the failure to watch for.
+
+Writing another: a theme is `scripts/themes/NAME.css` redefining the token block
+at the top of `spec.css`. `diagrams.py` paints the weight bar from those same
+token names, so the figure recolours itself and never needs touching. A theme
+that needs an SVG filter ships `NAME.defs.html` beside it, injected into the top
+of `<body>`. Two rules learned the hard way and worth keeping:
+
+- **Displacement scales with the mark.** One `feDisplacementMap` cannot serve
+  both a 200pt frame and a 6pt checkbox: the scale that makes the frame read as
+  hand-drawn shreds the checkbox into noise. Use a second, gentler filter for
+  small marks, and below roughly 8pt use none at all, just uneven corner radii.
+- **The corner note is a flex child, never `position: absolute`.** Absolute
+  reserves no space, so the note overflows itself and lands on top of whatever
+  section sits underneath it.
+
 Both renderers apply the bookSHelf house theme: parchment canvas, one Wedgwood
 blue accent held under five percent of the surface, warm ink ramp, serif
 headings at weight 500, en-dash bullets in Wedgwood, and numbered section

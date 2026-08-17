@@ -1,0 +1,97 @@
+/* markedup — the hand-drawn frames of `whiteboard` keeping the compartment
+   header bar and coded ID of `spec`, set in academic serif. Between the two.
+   Needs whiteboard.defs.html (shared) for #rough. */
+@page { size: letter; margin: 0; }
+:root {
+  --wedgwood:#7A2626; --wedgwood-deep:#5C1C1C;
+  --parchment:#FFFFFF; --ivory:#F4F3EC; --warm-sand:#C7C3B6;
+  --ink:#1C1F24; --charcoal:#4A505A; --olive:#59606A; --stone:#8A9099;
+  --border-cream:#F4F3EC; --border-warm:#C7C3B6; --ring-warm:#C7C3B6;
+  --sheet:#FDFDFA; --white:#FFFFFF; --line:#C7C3B6;
+  --blood:#7A2626; --blue:#1B5FAA; --green:#2E8B4F; --orange:#C2701A; --pen:#2B4C9B;
+  --hi:#FFE580; --hi-pink:#FFC6CE; --hi-green:#BFEBB4; --hi-blue:#C6DEF5;
+  --serif:"Bodoni Moda","Bodoni MT","Didot","Playfair Display",Georgia,serif;
+  --text:Charter,"Bitstream Charter","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --hand:"Caveat","Segoe Script","Bradley Hand",cursive;
+}
+* { box-sizing:border-box; }
+body {
+  font:9.3pt/1.45 var(--text); color:var(--ink); background:var(--sheet);
+  margin:0 auto; padding:0.36in; max-width:8.5in;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+
+.head { display:flex; align-items:flex-start; justify-content:space-between; gap:16pt;
+        margin-bottom:11pt; }
+.headline { flex:1; min-width:0; }
+h1 { font:400 33pt/.96 var(--serif); margin:0 0 6pt; letter-spacing:-.02em; }
+.sub { display:flex; flex-wrap:wrap; gap:2pt 14pt; margin:0; font-size:8.4pt;
+       color:var(--charcoal); border-top:2.8pt solid var(--blood); padding-top:7pt; }
+.sub span:first-child { font-weight:700; color:var(--ink); }
+.sticky { flex:0 0 auto; width:106pt; padding:7pt 9pt 8pt; margin-top:2pt;
+          background:var(--hi); transform:rotate(2.4deg); box-shadow:2pt 3pt 6pt -2pt #00000030;
+          font:11pt/1.14 var(--hand); color:var(--ink); }
+.sticky b { display:block; font-size:13.5pt; color:var(--blood); margin-bottom:1pt; }
+
+.cols { column-count:__COLS__; column-gap:0.26in; counter-reset:sec; }
+section { break-inside:avoid; margin:0 0 10pt; counter-increment:sec;
+          position:relative; padding:0 0 9pt; }
+section::before { content:""; position:absolute; inset:0; z-index:0;
+                  border:2pt solid var(--c,var(--ink));
+                  border-radius:255px 14px 225px 15px / 15px 225px 15px 255px;
+                  filter:url(#rough); }
+section:nth-of-type(even)::before { border-radius:15px 225px 15px 255px / 255px 15px 225px 15px; }
+section > * { position:relative; z-index:1; }
+section:nth-of-type(5n+1){ --c:var(--blue);   --sw:var(--hi-blue); }
+section:nth-of-type(5n+2){ --c:var(--blood);  --sw:var(--hi-pink); }
+section:nth-of-type(5n+3){ --c:var(--orange); --sw:var(--hi); }
+section:nth-of-type(5n+4){ --c:var(--green);  --sw:var(--hi-green); }
+section:nth-of-type(5n+5){ --c:var(--ink);    --sw:var(--hi); }
+
+/* the compartment header bar, kept from `spec` but written in cursive */
+h2 { font:700 19pt/1 var(--hand); color:var(--c,var(--ink));
+     margin:0 0 6pt; padding:5pt 10pt 4pt; border-bottom:1.2pt solid var(--c);
+     display:flex; align-items:center; gap:7pt; break-after:avoid; }
+h2::before { content:counter(sec,decimal-leading-zero);
+             font:700 6.2pt/1 var(--mono); letter-spacing:.06em;
+             color:var(--white); background:var(--c); padding:1.5pt 4.5pt;
+             transform:rotate(-1.2deg); flex-shrink:0; }
+section > :not(h2) { padding-left:10pt; padding-right:10pt; }
+
+ul { margin:0; padding:0; list-style:none; }
+li { position:relative; padding-left:11pt; margin-bottom:3.6pt; color:var(--charcoal);
+     break-inside:avoid; }
+li::before { content:""; position:absolute; left:0; top:.4em; width:6.4pt; height:6.4pt;
+             border:1pt solid var(--c,var(--ink)); border-radius:1px 4px 2px 5px;
+             transform:rotate(-1.5deg); }
+p { margin:0 0 4pt; color:var(--charcoal); }
+strong { font-weight:700; color:var(--ink); }
+a { color:var(--pen); text-decoration:none; }
+svg.fig { display:block; width:100%; height:auto; margin:3pt 0 5pt; break-inside:avoid; }
+
+table { border-collapse:collapse; width:100%; margin:2pt 0 4pt;
+        font-variant-numeric:tabular-nums; }
+th { text-align:left; font:400 6.2pt/1.4 var(--mono); text-transform:uppercase;
+     letter-spacing:.13em; color:var(--stone); border-bottom:1.2pt solid var(--c,var(--ink));
+     padding:3pt 5pt; }
+td { padding:3pt 5pt; border-bottom:.75pt solid var(--border-cream); color:var(--charcoal); }
+tr:last-child td { border-bottom:0; }
+
+.note { column-span:all; margin-top:3pt; padding-top:6pt;
+        border-top:1.2pt dashed var(--line); font:6.2pt/1.5 var(--mono);
+        letter-spacing:.07em; text-transform:uppercase; color:var(--stone); }
+@media print { .note { page-break-inside:avoid; } }
+
+/* ---- hand marks: ==swiped==  ((circled))  ~in hand~ ---- */
+.sub em { font-style:normal; font-weight:400; color:var(--stone); margin-right:4pt; }
+.hi { position:relative; isolation:isolate; padding:0 .16em; color:var(--ink); font-weight:700; }
+.hi::before { content:""; position:absolute; z-index:-1; inset:.02em 0;
+              background:var(--hi); mix-blend-mode:multiply;
+              border-radius:2px 6px 3px 7px; transform:rotate(-.5deg); }
+.circ { font:700 12.5pt/1 var(--hand); color:var(--wedgwood); position:relative;
+        padding:0 5pt; display:inline-block; margin-right:2pt; }
+.circ::before { content:""; position:absolute; inset:-3pt -2pt; border:1.3pt solid var(--wedgwood);
+                border-radius:50% 46% 52% 48% / 48% 52% 46% 54%; transform:rotate(-2deg); }
+.hand { font:12pt/1 var(--hand); color:var(--pen);
+        display:inline-block; transform:rotate(-1.6deg); }

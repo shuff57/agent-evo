@@ -1,4 +1,5 @@
 _workspace/
+__pycache__/
 evolution/plugin/node_modules/
 graphify-out/
 skills/.bundled_manifest
