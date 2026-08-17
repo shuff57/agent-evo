@@ -1,5 +1,5 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["UGC ads, SMM, phone calls handled by AI"]},
+  "spinnerVerbs": {"mode":"replace","verbs":["Comprehensive software tools to scale your Amazon, Walmart, and TikTok Shop sales."]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",
@@ -29,24 +29,6 @@
   },
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Bash|Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Users/shuff/AppData/Local/Programs/Python/Python313/Scripts/graphify.exe\" hook-guard search"
-          }
-        ]
-      },
-      {
-        "matcher": "Read|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Users/shuff/AppData/Local/Programs/Python/Python313/Scripts/graphify.exe\" hook-guard read"
-          }
-        ]
-      },
       {
         "matcher": "Edit|Write|NotebookEdit",
         "hooks": [

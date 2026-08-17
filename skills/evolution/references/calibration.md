@@ -16,7 +16,7 @@ never edits it. Humans may edit freely.
 | signal_flag_threshold | 0.20 | 0.15 - 0.50 | Per-signal rate (rephrase/correction/switch) that triggers divergence classification |
 | min_sessions_for_flag | 2 | 2 - 5 | Sessions with consistent signal required before classification |
 | min_entries_for_run | 2 | 2 - 5 | summary.jsonl entries required before any mutation proposed |
-| min_sessions_post_mutation | 2 | 1 - 4 | Sessions required before a PENDING mutation can be reconciled |
+| min_sessions_post_mutation | 2 | 1 - 4 | **Domain-relevant** sessions required before a PENDING mutation can be reconciled — a session only counts toward this window if it actually exercised the mutation's target domain/skill/agent. Raw elapsed session count does NOT by itself satisfy this: if N non-relevant sessions have passed and zero relevant ones, the window has not started, not closed. (See heuristic #4's relevance-gap sub-reason, which is the correct label while true, and heuristic #3's "no sessions logged" for when summary.jsonl itself hasn't grown — both are "window not yet open," not "window closed uninformatively.") |
 | confidence_high_sessions | 5 | 4 - 5 | Sessions (of last 5) with same-type signal for HIGH confidence |
 | confidence_medium_sessions | 2 | 2 - 4 | Sessions (of last 5) with same-type signal for MEDIUM confidence |
 
@@ -77,31 +77,51 @@ to add an 8th, evolver-meta must prune the least-validated one.
    keep reconciliation output proportional to new information. (added
    2026-07-03)
 
-5. A summary.jsonl row carrying `"skeleton":true` (Stop-hook fallback
-   autolog) must be treated as equivalent to heuristic #3's "no sessions
-   logged" for reconciliation purposes regardless of row-count growth —
-   skeleton rows hardcode rephrase_count/correction_count/skill_loads to
-   0/empty and cannot produce a genuine VALIDATED or MISSED signal; do
-   not let their mere presence count as the session-post-mutation window
-   advancing. Track the skeleton streak (consecutive skeleton-only rows
-   since the last non-skeleton entry). When that streak spans >= 5 evolve
-   passes since the last non-skeleton session, this is a structural
-   metrics-capture gap, not a threshold problem — lowering
-   min_sessions_post_mutation cannot fix it, because zero real sessions
-   means zero reconcilable data at any window length. In that state the
-   evolver must (a) reconcile with a single compact one-line note per
-   pass citing streak length and the last full session's id/date
-   (mirroring heuristic #4's proportionality rule) instead of a full
-   restatement, and (b) surface an explicit human-facing flag in its
-   report giving the count of mutations now stuck behind the gap (e.g.
-   "N mutations across M passes cannot be reconciled — no full
-   session-reflection since <date>; check whether session-reflector /
-   the Stop-hook capture path is firing") so the growing backlog doesn't
-   get silently re-logged pass after pass. (added 2026-07-27; evidence:
-   pass77-83 applied 18 mutations across 7 evolve runs since
-   2026-07-22T22:40:00Z, the last non-skeleton summary.jsonl entry — all
-   18 remain INSUFFICIENT_DATA behind 5 consecutive skeleton-only rows
-   07-23 through 07-27)
+5. [REWRITTEN 2026-08-16, prior topic superseded — original text covered
+   skeleton-session streak-tracking via a literal `skeleton:true` field;
+   that field never appears in summary.jsonl (0/77 rows, confirmed by
+   meta-pass idx71 2026-08-15) and prediction_status.py's is_real_session()
+   fallback has since absorbed the real/skeleton distinction in code, so
+   the prose instruction to track the streak by hand is retired as
+   redundant with the script.] `prediction_status.py`'s scoreability
+   report is NOT evidence of an empty backlog by itself: `collect_pending()`
+   treats status=="PENDING" (exact string match) as its ONLY entry
+   criterion. Field-level audit of the WHOLE `_workspace/_evolution_log.jsonl`
+   history (333 rows; 201 carrying a `predicted_outcome`) found the evolver
+   has NEVER, in this log's entire history, written a mutation-with-prediction
+   row with the literal status "PENDING" that evolver.md's own write
+   template (line 124) names — new mutations are logged directly as
+   "APPLIED" or "MONITORING" instead (most recent example: line 325,
+   2026-08-16, status APPLIED). Of the 201 predicted-outcome rows: 0
+   PENDING, 76 APPLIED, 37 MONITORING (113 total, 56%) sitting outside the
+   script's scan criterion regardless of how much time elapses, and only
+   43 (21%) ever reach a terminal VALIDATED/MISSED/INSUFFICIENT_DATA
+   status. Because the script's report is empty whenever there is no
+   literal PENDING row, "prediction_status.py shows nothing to reconcile"
+   must NEVER be read as "nothing needs reconciling": before accepting a
+   clean run, separately count rows with status in {APPLIED, MONITORING}
+   that carry a predicted_outcome and actual_outcome:null, and apply the
+   SAME session-count window math the script already implements for
+   PENDING to those rows by hand. This is a script-vocabulary drift, not
+   a calibration tunable — flag it to whoever maintains evolver.md /
+   prediction_status.py so the filter widens to
+   status in {PENDING, APPLIED, MONITORING}; apply this heuristic manually
+   every pass until that lands. Distinct from, and unaffected by, the
+   separately-diagnosed and already-fixed write-back gap (evolver.md's
+   2026-08-16 reconciliation-rewrite rule, heuristic #7's lineage): that
+   gap was RECONCILIATION prose not rewriting a row's own status field
+   after the fact; this gap is the INITIAL status string the evolver
+   writes at mutation time never matching what the script scans for, so
+   no amount of window-elapsing or reconciliation discipline fixes it on
+   its own — only widening the script's filter (or having the evolver
+   actually write "PENDING" as its own protocol names) closes it. (added
+   2026-08-16; evidence: Counter over all 333 _evolution_log.jsonl rows /
+   201 predicted-outcome rows — 0 PENDING / 76 APPLIED / 37 MONITORING /
+   21 VALIDATED / 18 INSUFFICIENT_DATA / 4 MISSED / remainder non-mutation
+   proposal statuses PROPOSED_HUMAN_REVIEW, EXTERNALLY_APPLIED,
+   FLAGGED_LOW_CONFIDENCE, SKILL_CREATED, DEFERRED_TO_CREATE_MODE; raised
+   by the calling modify-mode evolver session as an observation it could
+   not act on itself)
 
 6. During reconciliation, an APPLIED bug-fix mutation can land in a
    fourth INSUFFICIENT_DATA shape distinct from heuristics 2-5: the

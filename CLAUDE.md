@@ -24,7 +24,14 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 
 **Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
-**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. When suppressed, say so in one line rather than quietly building it yourself, and fall back to calling `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` directly via Bash, which is never suppressed.
+**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky.
+
+**When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, before writing any of it:**
+
+1. **Say so, in one line.** "Agent routing is suppressed this session, so I'm building this inline." The user cannot see the suppression; if you don't say it, the tier policy has silently stopped existing and nobody knows.
+2. **Then use the fallback**, which is never suppressed: `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` via Bash — or state in the same line why inline is the better call here (genuinely ambiguous, high-stakes, or too small to be worth the round-trip). Either is fine. Silently typing it yourself is not.
+
+This is written as a two-step because the note used to be a sentence of prose and got skipped. Measured 2026-08-17 (`shcode-curriculum-1.4`): routing was suppressed all session, an entire new lesson type — component, lib module, test script, six content conversions — was built inline, and neither step happened. The work was fine; the policy just wasn't in effect and the user only found out at session end.
 
 Size every non-trivial request on two axes before routing — *do I know exactly what "done" looks like*, and *how much breaks if this is wrong*:
 

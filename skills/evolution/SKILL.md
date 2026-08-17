@@ -154,17 +154,25 @@ Before finalizing any proposed edit, verify:
 - The same instruction would work correctly on a low-cost model (e.g., gemini-3-flash)
 - If the edit only works on a high-capability model, flag it for human review instead of applying
 
-### Step 4 — Write Atomically
+### Step 4 — Write, Then Verify
 
 ```
-1. Read target file to string
-2. Apply edit in memory
-3. Write to <target>.tmp
-4. Rename <target>.tmp to <target>
-5. Append log entry to _workspace/_evolution_log.jsonl
+1. Read the target file
+2. Apply the change with the Edit tool (Write for a whole-file rewrite)
+3. Re-read the changed region and confirm the text actually differs
+4. Append log entry to _workspace/_evolution_log.jsonl
 ```
 
-Never write directly to the target file in one step — always use the tmp-then-rename pattern to avoid partial writes.
+Step 3 is the load-bearing one, and it is not optional. A success message from
+the write step is not evidence the file changed — that claim has been false in
+this workspace before (2026-08-16: 11 log rows reported as reconciled were all
+still `PENDING` at the field level). Report counts from the re-read only.
+
+This step used to prescribe writing `<target>.tmp` and renaming it over the
+target. No pass ever did it; every one used `Edit` in place. Corrected in favour
+of practice on 2026-08-17 rather than the reverse, because `Edit` fails loudly
+when `old_string` no longer matches — it catches a target that changed underneath
+you, which a blind tmp-then-rename would silently clobber.
 
 ---
 
@@ -197,7 +205,7 @@ For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 | Model-agnostic | All edits must work on cheap models, not just Claude |
 | LOW confidence | Propose but do not apply — flag for human review |
 | SKILL_EXTERNAL | Flag only — do not mutate |
-| Atomic writes | Always write to .tmp then rename |
+| Verify every write | Edit in place, then re-read and confirm the text changed. The write tool's success message is not evidence — see Step 4 |
 | Log everything | Every mutation (applied or proposed) goes in evolution_log.jsonl |
 
 ---

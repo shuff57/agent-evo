@@ -107,8 +107,8 @@ Templates: `skills/evolution/references/hypothesis-templates.md`
 When confidence is MEDIUM or HIGH and the mutation is within caps:
 
 1. Read the target file
-2. Write the edit to a `.tmp` file alongside the target
-3. Rename `.tmp` to the final filename (atomic write)
+2. Apply the change with the `Edit` tool (or `Write` for a whole-file rewrite)
+3. Re-read the changed region and confirm the text is actually different
 4. Append a log entry to `_workspace/_evolution_log.jsonl`:
 
 ```json
@@ -142,10 +142,22 @@ To reconcile row N:
    never the line number alone — the file grows between passes).
 2. Rewrite that line with `status` set to `VALIDATED` / `MISSED` /
    `INSUFFICIENT_DATA` and `actual_outcome` set to the measured result.
-3. Write the whole file via `.tmp` + rename, as with any other edit.
+3. Write the file with the `Edit`/`Write` tool, as with any other edit.
 4. **Re-read line N and assert the field actually changed.** A success message
    from the write step is not evidence — this exact claim has been false before.
    Report reconciliation counts only from the re-read, never from the write.
+
+**On write mechanics.** Earlier versions of this file and of
+`skills/evolution/SKILL.md` prescribed writing to `<target>.tmp` and renaming it
+over the target, "to avoid partial writes". No pass ever did that — every one
+used the `Edit` tool in place, and the 2026-08-17 pass flagged the mismatch
+itself. Corrected in favour of practice, deliberately: `Edit` fails loudly when
+`old_string` does not match, so it catches a target that changed under you, which
+tmp-then-rename does not. And the failure this ceremony was supposed to prevent
+never happened — the real incident (11 rows reported "reconciled in place,
+atomically" while still `PENDING`) was a *missing verification*, not a torn
+write, and step 4 is what actually guards it. Do not reintroduce the tmp dance;
+if you want more safety, strengthen step 4.
 
 ## Safety Rules
 
