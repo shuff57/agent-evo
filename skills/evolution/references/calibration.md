@@ -77,51 +77,53 @@ to add an 8th, evolver-meta must prune the least-validated one.
    keep reconciliation output proportional to new information. (added
    2026-07-03)
 
-5. [REWRITTEN 2026-08-16, prior topic superseded — original text covered
-   skeleton-session streak-tracking via a literal `skeleton:true` field;
-   that field never appears in summary.jsonl (0/77 rows, confirmed by
-   meta-pass idx71 2026-08-15) and prediction_status.py's is_real_session()
-   fallback has since absorbed the real/skeleton distinction in code, so
-   the prose instruction to track the streak by hand is retired as
-   redundant with the script.] `prediction_status.py`'s scoreability
-   report is NOT evidence of an empty backlog by itself: `collect_pending()`
-   treats status=="PENDING" (exact string match) as its ONLY entry
-   criterion. Field-level audit of the WHOLE `_workspace/_evolution_log.jsonl`
-   history (333 rows; 201 carrying a `predicted_outcome`) found the evolver
-   has NEVER, in this log's entire history, written a mutation-with-prediction
-   row with the literal status "PENDING" that evolver.md's own write
-   template (line 124) names — new mutations are logged directly as
-   "APPLIED" or "MONITORING" instead (most recent example: line 325,
-   2026-08-16, status APPLIED). Of the 201 predicted-outcome rows: 0
-   PENDING, 76 APPLIED, 37 MONITORING (113 total, 56%) sitting outside the
-   script's scan criterion regardless of how much time elapses, and only
-   43 (21%) ever reach a terminal VALIDATED/MISSED/INSUFFICIENT_DATA
-   status. Because the script's report is empty whenever there is no
-   literal PENDING row, "prediction_status.py shows nothing to reconcile"
-   must NEVER be read as "nothing needs reconciling": before accepting a
-   clean run, separately count rows with status in {APPLIED, MONITORING}
-   that carry a predicted_outcome and actual_outcome:null, and apply the
-   SAME session-count window math the script already implements for
-   PENDING to those rows by hand. This is a script-vocabulary drift, not
-   a calibration tunable — flag it to whoever maintains evolver.md /
-   prediction_status.py so the filter widens to
-   status in {PENDING, APPLIED, MONITORING}; apply this heuristic manually
-   every pass until that lands. Distinct from, and unaffected by, the
-   separately-diagnosed and already-fixed write-back gap (evolver.md's
-   2026-08-16 reconciliation-rewrite rule, heuristic #7's lineage): that
-   gap was RECONCILIATION prose not rewriting a row's own status field
-   after the fact; this gap is the INITIAL status string the evolver
-   writes at mutation time never matching what the script scans for, so
-   no amount of window-elapsing or reconciliation discipline fixes it on
-   its own — only widening the script's filter (or having the evolver
-   actually write "PENDING" as its own protocol names) closes it. (added
-   2026-08-16; evidence: Counter over all 333 _evolution_log.jsonl rows /
-   201 predicted-outcome rows — 0 PENDING / 76 APPLIED / 37 MONITORING /
-   21 VALIDATED / 18 INSUFFICIENT_DATA / 4 MISSED / remainder non-mutation
-   proposal statuses PROPOSED_HUMAN_REVIEW, EXTERNALLY_APPLIED,
-   FLAGGED_LOW_CONFIDENCE, SKILL_CREATED, DEFERRED_TO_CREATE_MODE; raised
-   by the calling modify-mode evolver session as an observation it could
-   not act on itself)
+5. [REWRITTEN 2026-08-17, prior topic CLOSED — the 2026-08-16 text below
+   demanded a manual hand-count workaround "until [the script] widens";
+   that landed. `scripts/prediction_status.py`'s `collect_pending()` was
+   rewritten (content-verified 2026-08-17, mtime 2026-08-17T16:16 local)
+   to scan `status in {PENDING, APPLIED, MONITORING}` with
+   `predicted_outcome` set and `actual_outcome is None` — its own
+   docstring cites this heuristic by name. A live run
+   (`python prediction_status.py --workspace <repo>/_workspace`) now
+   surfaces 114 pending items (up from 2 under the old literal-PENDING-only
+   scan): 108 SCOREABLE, 6 NOT YET. Do NOT hand-count APPLIED/MONITORING
+   rows anymore — that was a stand-in for the fix, not a permanent
+   practice, and continuing it now duplicates what the script already
+   does.] **Current guidance:** run `prediction_status.py` and trust its
+   SCOREABLE/NOT YET output directly; a report of "no PENDING predictions"
+   now means the workspace argument was wrong (it takes the `_workspace`
+   dir itself, e.g. `--workspace <repo>/_workspace`, NOT the repo root —
+   passing the repo root silently reads `sessions_total: 0` and prints
+   "no PENDING predictions", which looks identical to a genuinely empty
+   backlog; this tripped up the very meta pass that wrote this entry). A
+   large jump in SCOREABLE count when this fix first lands (2 -> 114 rows,
+   observed 2026-08-17) is the fix working as intended, NOT itself a new
+   "unmeasurable predictions" signal — most of that backlog is freshly
+   *measurable*, not freshly *stuck*; only count rows toward that
+   pathology's 60% bar once they are individually checked against their
+   own window and found still open past it, not merely because the total
+   population became visible. Distinct from, and unaffected by, the
+   separately-diagnosed write-back gap (evolver.md's 2026-08-16
+   reconciliation-rewrite rule): that gap was RECONCILIATION prose not
+   rewriting a row's own status field after a verdict; this was the
+   INITIAL status string never matching what the script scanned for.
+   Both are now fixed by different mechanisms (evolver.md's rule for the
+   former, this script edit for the latter) — if either regresses
+   (a RECONCILIATION-target pass reports a status field that a direct
+   read contradicts, or `collect_pending()`'s scan narrows back to a
+   literal PENDING match), that is fresh stale-heuristic evidence, not a
+   reason to restore the manual-count workaround. (rewritten 2026-08-17;
+   evidence: prediction_status.py collect_pending() source read directly,
+   citing "calibration.md heuristic #5, added 2026-08-16" in its own
+   docstring; live script run showing 114 pending / 108 SCOREABLE / 6 NOT
+   YET against 83 session rows (38 real); evolution-log lines 7/8/9
+   independently content-verified as reconciled to INSUFFICIENT_DATA at
+   2026-08-17T15:30:00Z citing this heuristic's sibling, heuristic 4's
+   relevance-gap sub-reason — three rows the old scan could never have
+   surfaced. Raised by the calling modify-mode evolver session; verified
+   independently by evolver-meta idx80 rather than taken on the session's
+   word, per this file's own precedent for content-verification over
+   reconciliation prose.)
 
 6. During reconciliation, an APPLIED bug-fix mutation can land in a
    fourth INSUFFICIENT_DATA shape distinct from heuristics 2-5: the

@@ -89,13 +89,30 @@ def real_sessions_since(sessions: list[dict], when: datetime) -> list[str]:
     return out
 
 
+SCOREABLE_STATUSES = {"PENDING", "APPLIED", "MONITORING"}
+
+
 def collect_pending(rows: list[dict], source: str) -> list[dict]:
+    """Rows still awaiting a verdict.
+
+    The evolver's own write template names "PENDING" as the initial status,
+    but in practice every mutation in this log's history has been logged
+    directly as APPLIED or MONITORING instead (calibration.md heuristic #5,
+    added 2026-08-16: 0/201 predicted-outcome rows ever carried literal
+    PENDING). Scanning only PENDING made this script's "nothing to
+    reconcile" report silently correct on a technicality while 100+ rows
+    with a predicted_outcome and no actual_outcome sat outside its view.
+    Widened per heuristic #5's explicit request so the report matches what
+    reconciliation is actually supposed to cover.
+    """
     pending = []
     for idx, row in enumerate(rows):
-        if (row.get("status") or "").upper() != "PENDING":
+        if (row.get("status") or "").upper() not in SCOREABLE_STATUSES:
             continue
         if not row.get("predicted_outcome"):
             continue
+        if row.get("actual_outcome") is not None:
+            continue  # already reconciled; status label just wasn't updated
         pending.append(
             {
                 "source": source,
