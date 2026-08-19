@@ -26,12 +26,14 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 
 **Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky.
 
-**When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, before writing any of it:**
+**When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, OR make a coordinated fix touching 3+ files (even a one-line change apiece), before writing any of it:**
 
 1. **Say so, in one line.** "Agent routing is suppressed this session, so I'm building this inline." The user cannot see the suppression; if you don't say it, the tier policy has silently stopped existing and nobody knows.
 2. **Then use the fallback**, which is never suppressed: `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` via Bash — or state in the same line why inline is the better call here (genuinely ambiguous, high-stakes, or too small to be worth the round-trip). Either is fine. Silently typing it yourself is not.
 
 This is written as a two-step because the note used to be a sentence of prose and got skipped. Measured 2026-08-17 (`shcode-curriculum-1.4`): routing was suppressed all session, an entire new lesson type — component, lib module, test script, six content conversions — was built inline, and neither step happened. The work was fine; the policy just wasn't in effect and the user only found out at session end.
+
+The line-count threshold alone has a second, quieter failure mode: work that stays under ~20 new lines in any one file but is still a substantive, multi-file fix reads as "under threshold" and the announcement gets skipped by a technically-defensible judgment call rather than by inattention. Measured 2026-08-18 (shCode, `/module/1` breadcrumb bug): a root-cause fix — 23 `lesson.json` one-line edits plus a ~16-line addition to a prebuild checker — was judged under the per-file line threshold and never announced, even though the diagnosis-plus-coordinated-fix shape is exactly what this policy exists to surface. The 3-file trigger above closes that reading.
 
 Size every non-trivial request on two axes before routing — *do I know exactly what "done" looks like*, and *how much breaks if this is wrong*:
 
