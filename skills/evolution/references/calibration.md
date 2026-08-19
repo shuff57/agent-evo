@@ -33,10 +33,50 @@ Free-text guidance the evolver applies during hypothesis generation.
 Appended by evolver-meta when a failure pattern repeats. Cap: 7 entries —
 to add an 8th, evolver-meta must prune the least-validated one.
 
-1. Every PROPOSED EDIT's `predicted_outcome` must reference a specific
-   metric field in summary.jsonl (e.g. "correction_count for sessions
-   loading skill X drops to 0") — predictions that cannot be reconciled
-   against metrics rot as INSUFFICIENT_DATA forever. (seeded 2026-06-06)
+1. [PRUNED 2026-08-19 — prior heuristic 1 (require every `predicted_outcome`
+   to name a specific summary.jsonl metric field) retired as the
+   least-validated of the 7 slots: across all 357 rows of
+   `_workspace/_evolution_log.jsonl` it was cited exactly once (line 81,
+   2026-06-07, an APPLIED proposal, never a RECONCILIATION), carried zero
+   VALIDATED credit, and was never invoked by any reconciliation pass again
+   — versus 3-32 citations and direct RECONCILIATION/VALIDATED use for
+   every other heuristic (2-7). Its content is not wrong; it is
+   long-absorbed into default practice (every entry read this pass already
+   carries a metric-anchored `predicted_outcome`), so it was the correct
+   prune target per this file's own rule rather than any of 2-7, which are
+   all still being actively cited in reconciliations.]
+   SKILL_WEAK mutations that strengthen a VERIFICATION/CHECK instruction
+   are, with a real sample, this log's highest-miss divergence type:
+   reconciled MISSED=2/VALIDATED=2 (50%) vs INCOMPLETE 20% (n=10),
+   STRUCTURAL 17% (n=6), SKILL_GAP 33% (n=3) — computed directly over all
+   357 rows. Both SKILL_WEAK MISSES targeted a verification step and share
+   a mechanism even though their surface descriptions differ: modify:320
+   (visual-self-check/SKILL.md, 2026-08-16) added a NAMED TRIGGER PHRASE to
+   a skill's description/When-to-use bullet; falsified because "a trigger
+   phrase in a description is inert unless something makes the acting
+   agent consult it mid-task" — the skill never even reached skill_loads
+   in the next relevant session. modify:342 (deck-bookshelf/SKILL.md,
+   2026-08-17) added a "measured, not sampled" check REQUIREMENT that the
+   very next session followed to the letter, yet the prescribed comparison
+   (an aggregate per-deck overflow count) was itself under-specified and
+   let a single 0.3px->63.6px slide hide inside a passing aggregate — 32
+   regressions shipped before a per-item re-check caught it (see
+   `.agents/memory/active/feedback_compare_per_item_not_aggregate.md`).
+   Common failure shape: a SKILL_WEAK fix that asks for "more/better
+   checking" without pinning down BOTH (a) a structural trigger that
+   forces the check to run at the point of use — not a description/
+   trigger-phrase the agent must independently decide to consult — and
+   (b) an exact, per-item (not aggregate) pass/fail computation naming the
+   specific failure shape it must catch, is liable to be satisfied on
+   paper while the targeted defect still ships. Before proposing a
+   SKILL_WEAK edit that adds or strengthens verification, state in the
+   hypothesis which of (a)/(b) the current gap is, and word the fix so the
+   check either runs inside an already-loaded step (not a separately
+   triggered skill/description) or is measured per-item against the actual
+   observed failure shape, not an aggregate proxy for it. (added
+   2026-08-19; evidence: SKILL_WEAK's 50% reconciled miss rate vs 17-33%
+   for STRUCTURAL/SKILL_GAP/INCOMPLETE; modify:320 and modify:342 read in
+   full, both independently confirmed MISSED)
 
 2. Before proposing a mutation to a skill that was NOT present in
    `skill_loads` for any session in the current signal window, the evolver
