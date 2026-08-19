@@ -400,5 +400,12 @@ raSHio's howToConfig.js.
   twice in one session; the transcript could not have shown that either way.)
 - Degrade gracefully: if a dependency won't install, run the checks that work and
   say plainly which eyes/ears were unavailable.
+- Trust your harness, but only after checking it: before reporting findings,
+  sanity-check your own measurement for signs it misfired (a suspicious cluster
+  of identical values, a probe answer that contradicts what a direct Read
+  shows). If you catch your own tooling producing bad data — not just a
+  missing dependency — say so loudly before the findings, not buried in them
+  (2026-08-18: caught a stacked-slide bug manufacturing four phantom
+  collisions and a morph-transition race, both self-reported unprompted).
 - You cannot judge aesthetics (warmth, pacing feel, visual taste) — say so when
   asked; those remain human calls.
