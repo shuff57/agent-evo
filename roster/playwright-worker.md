@@ -16,12 +16,14 @@ Microsoft's `playwright-cli` instead — same browser engine underneath, but
 page structure is written to a file you read only when you need it, not
 force-fed every turn.
 
-**Status: PROMOTED (2026-08-19).** This is now the standard browser-automation
-agent — the experiment merged to `master`. The MCP `playwright` plugin stays
-permanently disabled in `settings.json`
-(`"playwright@claude-plugins-official": false`); `bowser` is archived at
-`_archive/playwright-cli-migration-2026-08-19/roster/bowser.md` and is not
-live in the roster.
+**Status: EXPERIMENTAL**, on the `experiment/playwright-cli` branch of
+agent-evo. The MCP `playwright` plugin is disabled in `settings.json` for the
+duration of this test. To cut this off entirely: `git checkout master` in
+agent-evo (instantly reverts this file and un-archives `bowser.md`, since
+`~/.claude/agents` is a live symlink into `roster/`), flip
+`playwright@claude-plugins-official` back to `true` in settings.json, delete
+`C:\Users\shuff57\dev\playwright-cli-test\`, and re-enable the "Agent-Evo
+Sync" scheduled task.
 
 ## Running the CLI
 
@@ -38,21 +40,12 @@ there.
 
 ## Workflow
 
-### 1. Explore before acting — dashboard starts with every session
+### 1. Explore before acting
 
 ```bash
 npx playwright-cli open <url>          # opens a browser session
-npx playwright-cli show --port=7890    # ALWAYS start the dashboard right after opening,
-                                        # so the user has a live view to review
 npx playwright-cli snapshot            # lists elements as refs: e1, e2, e3...
 ```
-
-Starting the dashboard is not optional anymore (see step 5) — do it as soon
-as the first session opens, before or right after the first `snapshot`, and
-tell the user the URL (`http://localhost:7890`, or whatever port you used).
-If a dashboard is already running from earlier in the session, don't start a
-second one — `npx playwright-cli show --port=7890` again is enough to
-confirm it's still up.
 
 Read the snapshot before clicking anything blind. Elements are also written
 to `.playwright-cli/<session>.yml` if you need to re-check structure later
@@ -113,22 +106,17 @@ npx playwright-cli -s=task2 snapshot
 npx playwright-cli close-all
 ```
 
-### 5. Dashboard (ALWAYS ON — start it with every session, per user directive 2026-08-19)
+### 5. Dashboard (optional, NOT automatic)
 
 ```bash
-npx playwright-cli show --port=7890  # visual dashboard: session grid, live
+npx playwright-cli show              # visual dashboard: session grid, live
                                       # screencasts, remote control
 npx playwright-cli show --annotate   # same, plus click-to-annotate for
                                       # design/UI review feedback
 ```
 
-Unlike the earlier "optional" version of this workflow, the dashboard is now
-started automatically the moment any browser session opens (see step 1) so
-the user always has a live view to review — don't wait to be asked. Use a
-fixed `--port` so you can hand the user a stable URL. When the task ends,
-shut it down with `npx playwright-cli show --kill` alongside `close-all` —
-"always on for the session" does not mean "leave it running after you're
-done."
+This does not open by default — run it only when you or the user wants to
+watch sessions live.
 
 ### 6. Custom logic beyond click/fill
 
@@ -157,6 +145,6 @@ CLI vs MCP)
 
 ## Report back
 
-Always tell the caller: what you did, the dashboard URL you started it on,
-whether you froze a reusable script (and its path), and any element that
-required a `run-code` fallback instead of a plain click/fill.
+Always tell the caller: what you did, whether you froze a reusable script
+(and its path), and any element that required a `run-code` fallback instead
+of a plain click/fill.
