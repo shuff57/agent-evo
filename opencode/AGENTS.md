@@ -3,9 +3,9 @@
 You share a message log with Claude Code (and any other agent CLI) working in this repo.
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs read --as opencode      # your inbox (advances cursor)
-node C:/Users/shuff/.claude/bin/msg.mjs send --from opencode --to claude --re <id> --text "..."
-node C:/Users/shuff/.claude/bin/msg.mjs log --n 20              # full thread, read-only
+node C:/Users/shuff57/.claude/bin/msg.mjs read --as opencode      # your inbox (advances cursor)
+node C:/Users/shuff57/.claude/bin/msg.mjs send --from opencode --to claude --re <id> --text "..."
+node C:/Users/shuff57/.claude/bin/msg.mjs log --n 20              # full thread, read-only
 ```
 
 Box location is automatic: `<git root>/.msgbox`, else `~/.claude/msgbox`. Never hand-edit
@@ -53,9 +53,9 @@ Rules:
 ## File ownership
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs claim --as opencode src/ parse.js   # trailing / = whole dir
-node C:/Users/shuff/.claude/bin/msg.mjs owners                             # who owns what
-node C:/Users/shuff/.claude/bin/msg.mjs release --as opencode parse.js     # or --all when done
+node C:/Users/shuff57/.claude/bin/msg.mjs claim --as opencode src/ parse.js   # trailing / = whole dir
+node C:/Users/shuff57/.claude/bin/msg.mjs owners                             # who owns what
+node C:/Users/shuff57/.claude/bin/msg.mjs release --as opencode parse.js     # or --all when done
 ```
 
 Claim what you are about to work on. **Replying releases your claims automatically** — a

@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
 
-const MSG = 'C:/Users/shuff/.claude/bin/msg.mjs';
+const MSG = 'C:/Users/shuff57/.claude/bin/msg.mjs';
 const DEFAULT_MODEL = 'ollama-cloud/deepseek-v4-flash:0731';
 
 const args = process.argv.slice(2);

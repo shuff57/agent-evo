@@ -1,7 +1,7 @@
 // Blocks writes to files another agent has claimed in the cross-CLI message center.
 import { execFileSync } from "child_process";
 
-const MSG = "C:/Users/shuff/.claude/bin/msg.mjs";
+const MSG = "C:/Users/shuff57/.claude/bin/msg.mjs";
 const WRITERS = new Set(["write", "edit", "patch", "multiedit"]);
 
 export const Ownership = async ({ directory }) => ({

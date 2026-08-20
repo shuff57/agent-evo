@@ -299,9 +299,9 @@ mid-glyph), and the scoping is the part that fails silently. Measured table in b
 `.claude/skills/book-pipeline/SKILL.md`. Deepseek has no image input at all.
 
 ```bash
-MSG="node C:/Users/shuff/.claude/bin/msg.mjs"
+MSG="node C:/Users/shuff57/.claude/bin/msg.mjs"
 $MSG send --from eyes-and-ears --to lens-boxes --topic <target> --text "<one lens brief>"
-opencode run "Run: node C:/Users/shuff/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
+opencode run "Run: node C:/Users/shuff57/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
   --auto -m ollama-cloud/deepseek-v4-flash:0731
 $MSG read --as eyes-and-ears
 ```
@@ -340,7 +340,7 @@ checker.
 > PRINCIPLES to re-establish if the rig is rebuilt.
 >
 > **Machine-dependent path:** the VoxCPM interpreter
-> `C:\Users\shuff\Developer\voxcpm-venv\Scripts\python.exe` is the `shuff`
+> `C:\Users\shuff57\Developer\voxcpm-venv\Scripts\python.exe` is the `shuff`
 > machine's path. `shuff` and `shuff57` are the SAME user on DIFFERENT machines,
 > so this resolves there and is simply absent here — treat it as "not on this
 > box", never as a wrong path to be corrected. Check before assuming either way.

@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node C:/Users/shuff/.claude/bin/msg.mjs guard --as claude --hook"
+            "command": "node C:/Users/shuff57/.claude/bin/msg.mjs guard --as claude --hook"
           }
         ]
       }
