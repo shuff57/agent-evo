@@ -196,9 +196,8 @@ Write to the student the way the teacher would say it out loud on the first day,
 in short lines built out of concrete nouns, with the imperative doing the work:
 "Ask for the missed work when you get back."
 
-The house profile is `~/.claude/skills/humanizer/voice-shuff.md`, and for a
-reference document it governs rhythm and punctuation rather than injecting
-personal reflection. In practice that means no em dashes and no en dashes, with
+For a reference document the voice governs rhythm and punctuation rather than
+injecting personal reflection. In practice that means no em dashes and no en dashes, with
 a colon carrying the reveal and a comma doing the joining, no semicolons, bold
 reserved for structural labels such as policy names rather than for emphasis
 inside a sentence, and specifics preserved exactly as the syllabus stated them.

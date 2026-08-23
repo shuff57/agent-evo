@@ -28,6 +28,10 @@ body {
 h1 { font:400 33pt/.96 var(--serif); margin:0 0 6pt; letter-spacing:-.02em; }
 .sub { display:flex; flex-wrap:wrap; gap:2pt 14pt; margin:0; font-size:8.4pt;
        color:var(--charcoal); border-top:2.8pt solid var(--blood); padding-top:7pt; }
+/* An address never breaks: the cell keeps it whole and the ones after it move
+   over. If the whole byline outgrows the sheet a cell wraps to a second row,
+   which still reads, where half an email on each line does not. */
+.sub span { white-space:nowrap; }
 .sub span:first-child { font-weight:700; color:var(--ink); }
 .sticky { flex:0 0 auto; width:106pt; padding:7pt 9pt 8pt; margin-top:2pt;
           background:var(--hi); transform:rotate(2.4deg); box-shadow:2pt 3pt 6pt -2pt #00000030;
@@ -70,6 +74,20 @@ strong { font-weight:700; color:var(--ink); }
 a { color:var(--pen); text-decoration:none; }
 svg.fig { display:block; width:100%; height:auto; margin:3pt 0 5pt; break-inside:avoid; }
 
+/* ---- the weight bar, coloured in by hand ----
+   .seg is the marker swipe and .frame is the box someone drew round it, so the
+   two take different displacements: the frame wobbles at full scale, the fill
+   only trembles. scaleY keeps the colour just shy of the ruled line, which is
+   what makes it read as filled in rather than printed. .key is 7pt and gets
+   neither, per the rule at the top of whiteboard.defs.html. */
+svg.fig .seg { filter:url(#crayon); opacity:.88; rx:3px; transform-box:fill-box;
+               transform-origin:center; transform:scale(.985,.9) rotate(-.8deg); }
+/* alternate the tilt, or four segments lean the same way and it reads as a
+   skewed print rather than as four passes of a marker */
+svg.fig .seg:nth-of-type(even) { transform:scale(.982,.95) rotate(.9deg); }
+svg.fig .frame { filter:url(#rough); stroke:var(--ink); stroke-width:1.6; }
+svg.fig .key { filter:none; }
+
 table { border-collapse:collapse; width:100%; margin:2pt 0 4pt;
         font-variant-numeric:tabular-nums; }
 th { text-align:left; font:400 6.2pt/1.4 var(--mono); text-transform:uppercase;
@@ -85,10 +103,9 @@ tr:last-child td { border-bottom:0; }
 
 /* ---- hand marks: ==swiped==  ((circled))  ~in hand~ ---- */
 .sub em { font-style:normal; font-weight:400; color:var(--stone); margin-right:4pt; }
-.hi { position:relative; isolation:isolate; padding:0 .16em; color:var(--ink); font-weight:700; }
-.hi::before { content:""; position:absolute; z-index:-1; inset:.02em 0;
-              background:var(--hi); mix-blend-mode:multiply;
-              border-radius:2px 6px 3px 7px; transform:rotate(-.5deg); }
+.hi { padding:0 .16em; color:var(--ink); font-weight:700;
+      background:var(--hi); border-radius:2px 6px 3px 7px;
+      -webkit-box-decoration-break:clone; box-decoration-break:clone; }
 .circ { font:700 12.5pt/1 var(--hand); color:var(--wedgwood); position:relative;
         padding:0 5pt; display:inline-block; margin-right:2pt; }
 .circ::before { content:""; position:absolute; inset:-3pt -2pt; border:1.3pt solid var(--wedgwood);

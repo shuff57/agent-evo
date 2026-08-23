@@ -1,6 +1,5 @@
 /* spec — the technical one. Monospace labels, coded section IDs, hard-ruled
-   compartments, Bodoni masthead over a spec bar. No corner note and no
-   handwriting: the marks are set in the page's own face.
+   compartments, Bodoni masthead over a four-cell spec bar.
 
    Every theme must define the seven tokens diagrams.py paints with:
    --wedgwood (dominant segment) --warm-sand (second) --border-cream (remainder)
@@ -15,6 +14,7 @@
   --sheet:#FCFCFA; --line:#BDC3BE; --hair:#D5D9D4; --block:#F4F5F2;
   --serif:"Bodoni Moda","Bodoni MT","Didot","Playfair Display",Georgia,serif;
   --mono:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  --hand:"Caveat","Segoe Script","Bradley Hand",cursive;
 }
 * { box-sizing:border-box; }
 body {
@@ -29,27 +29,21 @@ body {
 .headline { flex:1; min-width:0; }
 h1 { font:400 30pt/.94 var(--serif); margin:0; letter-spacing:-.02em; }
 /* the sub line's · segments become spec cells */
-/* Cells size to their contents, not to equal fractions. An email is three times
-   the width of "214", so equal columns either overran the next cell or wrapped
-   the address across two lines, and a wrapped address stops looking like an
-   address. flex-shrink:0 keeps it whole; a masthead too wide for the sheet
-   wraps a whole cell onto a second row instead of breaking a value. */
-.sub { display:flex; flex-wrap:wrap; border:.75pt solid var(--line);
-       background:var(--block); margin:9pt 0 0; }
-/* An address never breaks: the cell keeps it whole and the ones after it move
-   over. If the whole byline outgrows the sheet a cell wraps to a second row,
-   which still reads, where half an email on each line does not. */
-.sub span { flex:0 0 auto; white-space:nowrap; padding:7pt 9pt 8pt;
-            border-right:.75pt solid var(--line);
+.sub { display:grid; grid-template-columns:repeat(auto-fit,minmax(96pt,1fr));
+       border:.75pt solid var(--line); background:var(--block); margin:9pt 0 0; }
+.sub > span { padding:7pt 9pt 8pt; border-right:.75pt solid var(--line);
             font-size:10.5pt; font-weight:700; color:var(--ink); line-height:1.25; }
-.sub span:last-child { border-right:0; }
+.sub > span:last-child { border-right:0; }
+/* render.py marks tokens that must not be split (a time range, an address).
+   The rule lives here because the shared base CSS keeps getting rewritten. */
+.sub .nb { white-space:nowrap; padding:0; border:0; }
 .sub em { display:block; font:400 6.4pt/1.5 var(--mono); font-style:normal;
           letter-spacing:.15em; text-transform:uppercase; color:var(--stone);
           margin-bottom:2pt; }
-/* no note and no hand in this theme, on purpose: it is the one a department
-   hands to a district, and a rotated sticky in a cursive face is the first
-   thing that gets asked about. --sticky is accepted and ignored here. */
-.sticky { display:none; }
+.sticky { flex:0 0 auto; width:104pt; padding:7pt 9pt 8pt; margin-top:2pt;
+          background:#FFE580; transform:rotate(2.2deg); box-shadow:2pt 3pt 6pt -2pt #00000030;
+          font:11pt/1.14 var(--hand); color:var(--ink); }
+.sticky b { display:block; font-size:13.5pt; color:var(--wedgwood); margin-bottom:1pt; }
 
 /* ---- compartments ---- */
 .cols { column-count:__COLS__; column-gap:0.3in; counter-reset:sec; }
@@ -88,14 +82,18 @@ tr:last-child td { border-bottom:0; }
         letter-spacing:.07em; text-transform:uppercase; color:var(--stone); }
 @media print { .note { page-break-inside:avoid; } }
 
-/* ---- hand marks: ==swiped==  ((circled))  ~~in hand~~ ----
-   Set in the page's own monospace, square and unrotated. The mark still says
-   "someone flagged this", which is all it is for, without a second face and
-   without a wobble. The cursive versions belong to `annotated` and the two
-   drawn themes. */
-.hi { background:#FFE580; padding:0 .18em; color:var(--ink); font-weight:700;
+/* ---- hand marks: ==swiped==  ((circled))  ~in hand~ ----
+   Restrained here on purpose: this is the technical theme, so the marks read
+   as a correction pass over a spec, not as decoration. */
+/* box-decoration-break, so a swipe that wraps is painted once per line. The
+   absolutely-positioned band this replaced covered the union of both lines,
+   which reads as a filled block rather than a marker stroke. */
+.hi { padding:0 .16em; color:var(--ink); font-weight:700;
+      background:#FFE580; border-radius:2px 6px 3px 7px;
       -webkit-box-decoration-break:clone; box-decoration-break:clone; }
-.circ { border:1pt solid var(--wedgwood); padding:0 4pt; color:var(--wedgwood-deep);
-        font-weight:700;
-        -webkit-box-decoration-break:clone; box-decoration-break:clone; }
-.hand { font-style:italic; color:var(--wedgwood-deep); }
+.circ { font:700 11.5pt/1 var(--hand); color:var(--wedgwood); position:relative;
+        padding:0 5pt; display:inline-block; margin-right:2pt; }
+.circ::before { content:""; position:absolute; inset:-3pt -2pt; border:1.2pt solid var(--wedgwood);
+                border-radius:50% 46% 52% 48% / 48% 52% 46% 54%; transform:rotate(-2deg); }
+.hand { font:11.5pt/1 var(--hand); color:var(--wedgwood-deep);
+        display:inline-block; transform:rotate(-1.6deg); }

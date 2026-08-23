@@ -86,13 +86,23 @@ a { color: var(--wedgwood-deep); text-decoration: none; }
    themes can render it as spec cells. This theme keeps it as running text, so
    the separators have to come back. */
 .sub span + span::before { content: "\\00b7"; margin: 0 6pt; color: var(--ring-warm); }
+.sub span { white-space: nowrap; }   /* an address wraps whole or not at all */
+/* a time range is one token: "8am-12:20pm" split over two lines stops reading
+   as a time, and the ragged cell drags the rest of the byline out of line */
+.sub .nb { white-space: nowrap; }
 .sub em { font-style: normal; color: var(--stone); margin-right: 4pt; }
 .head { display: block; }
 .sticky { display: none; }   /* no hand in this theme; the note has nowhere to go */
 /* The three hand marks, held to this theme's one accent rather than a marker set. */
 .hi { background: #f3e7c0; padding: 0 .18em; border-radius: 2px; color: var(--ink);
-      font-weight: 600; }
-.circ { border: 1px solid var(--wedgwood); border-radius: 10px; padding: 0 5pt;
+      font-weight: 600;
+      -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* A ring is a hand mark and this theme has no hand, so the ring becomes a rule
+   under the words. The pill it replaces broke in half whenever the phrase
+   wrapped — "nothing is" in one open-ended capsule, "rounded" in another — and
+   a circled clause is exactly the kind of long phrase that wraps. An underline
+   is drawn per line, so it survives the break and still reads as ringed. */
+.circ { border-bottom: 1.5px solid var(--wedgwood); padding-bottom: 1px;
         color: var(--wedgwood-deep); font-weight: 600; }
 .hand { font-style: italic; color: var(--wedgwood-deep); }
 @media print { .note { page-break-inside: avoid; } }
@@ -285,14 +295,28 @@ def to_html(md, columns, css=None, defs="", sticky=None):
         # One span per '·' segment: running text in some themes, spec cells in
         # others. A segment written "Label: value" carries its label in an <em>,
         # which grid themes stack above the value and the rest print inline.
-        cells = []
+        cells, items = [], []
+        rng = re.compile(r"\d[\d:]*\s*(?:am|pm)?\s*[-–—]\s*\d[\d:]*\s*(?:am|pm)?", re.I)
+        addr = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
+        room = re.compile(r"[A-Z]{2,4}\s\d{2,4}")
+        def keep(t):
+            h = inline(t)
+            for pat in (rng, addr, room):
+                h = pat.sub(lambda m: '<span class="nb">%s</span>' % m.group(0), h)
+            return h
         for p in re.split(r"\s*[··]\s*", sub):
             p = p.strip()
             if not p:
                 continue
             label, sep, val = p.partition(": ")
-            cells.append("<span><em>%s</em>%s</span>" % (inline(label), inline(val))
-                         if sep else "<span>%s</span>" % inline(p))
+            items.append((label, val) if sep else (None, p))
+        # only the longest value is allowed to wrap: a byline too wide for the
+        # sheet should lose a line break inside one cell, not drop the last cell
+        widest = max(range(len(items)), key=lambda i: len(items[i][1])) if items else -1
+        for i, (label, val) in enumerate(items):
+            cls = ' class="wide"' if i == widest else ''
+            cells.append("<span%s><em>%s</em>%s</span>" % (cls, inline(label), keep(val))
+                         if label is not None else "<span%s>%s</span>" % (cls, keep(val)))
         body.append('<p class="sub">%s</p>' % "".join(cells))
     body.append('</div>')
     if sticky:

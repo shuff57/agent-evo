@@ -208,6 +208,12 @@ of its line into handwriting, and neither the checker nor the renderer would say
 so. Doubling costs one character and removes the failure. GFM reads `~~` as
 strikethrough, which this dialect does not have, so nothing is shadowed.
 
+Each theme translates the three into its own register, and the two without a
+hand translate hardest: `bookshelf` and `spec` set the aside in italic rather
+than script, and `bookshelf` draws the ring as a rule under the words, because
+the bordered pill it used before broke in half whenever the phrase wrapped, and
+a circled clause is long enough that it usually does.
+
 `render.py` warns on an unclosed mark, with a line number, before it writes
 anything. An odd `==` otherwise reaches the handout as a literal `==` and the
 first person to notice is whoever printed thirty copies.
@@ -225,17 +231,24 @@ The line under the title is one `·`-separated list. A segment written
 the value as a spec cell and the rest print inline:
 
 ```markdown
-Instructor: Steven Huff · Contact: shuff@chicousd.org · Periods: 3, 4, 7 · Reply within: 48 hours
+Instructor: R. Calderon · Contact: r.calderon@ridgeview.example.edu · Periods: 2, 4, 6
 ```
 
-Putting contact and reply time here as well as under **Contact** is not
-redundancy worth cutting. It is the masthead, and it is where someone looks
-first.
+Keep it to who, where and when: name, contact, and when the class meets. Reply
+time, office hours and the rest belong under **Contact**, one screen down. Every
+extra segment is width taken from the others, and the first thing a crowded
+byline does is wrap the class times into a second line or push the last cell off
+the row entirely.
 
 #### Themes
 
 `--theme NAME` picks the look. `--list-themes` prints what is installed, and
-`--sticky "Head|body"` adds the corner note the themes place top right.
+`--sticky "Head|body"` adds the corner note, which `annotated` and `markedup`
+place top right. `bookshelf`, `spec` and `whiteboard` accept the flag and ignore
+it, for opposite reasons: the first two carry no hand anywhere else, so one
+rotated cursive note would be the only mark on the page and reads as a mistake,
+while `whiteboard` is already entirely in a hand and a second one is a mark too
+many.
 
 ```bash
 python scripts/render.py <course>-quickref.md --theme annotated \
@@ -246,17 +259,22 @@ python scripts/render.py <course>-quickref.md --theme annotated \
 | Theme | What it is |
 |---|---|
 | `bookshelf` | The default. Parchment, one Wedgwood accent, the house theme below. |
-| `annotated` | Crisp ruled compartments, Bodoni headings over Charter, hand used only as annotation. |
-| `spec` | The technical one. Monospace, coded section IDs, hard-ruled compartments, spec bar. |
-| `markedup` | Hand-drawn frames keeping `spec`'s header bars and coded IDs, in academic serif. |
-| `whiteboard` | Pens and whiteboard markers on white. Drawn frames, cursive heads, checkbox bullets. |
+| `annotated` | Crisp boxed compartments, Bodoni headings over Charter, hand used only as annotation: the corner note, a highlighter, an aside. |
+| `spec` | The technical one. Monospace, coded section IDs, boxed compartments under a filled header bar. No corner note and no handwriting: the marks are set in the page's own face. |
+| `markedup` | Hand-drawn frames keeping `spec`'s header bars and coded IDs, in academic serif. The weight bar is coloured in by hand. |
+| `whiteboard` | Pens and whiteboard markers on white. Drawn frames, cursive heads, checkbox bullets, a hand-coloured weight bar, and no corner note. |
 
 All five hold one letter page for a quick reference of the size step 3 targets.
 Print each after a content change: the hand-drawn themes carry larger type and
 run out of page soonest, and a two-page "one-pager" is the failure to watch for.
 
 Writing another: a theme is `scripts/themes/NAME.css` redefining the token block
-at the top of `spec.css`. `diagrams.py` paints the weight bar from those same
+at the top of `spec.css`. The compartment box, the header bar, the masthead cell
+strip and the ID chip are what a reader recognises a theme by, and `annotated`
+and `spec` deliberately share all four, separating on face and hand instead:
+Charter with a sticky note and cursive asides against monospace with neither.
+That is the closest two themes should sit. A third one built on the same four
+would not read as a third theme, so change one of them as well. `diagrams.py` paints the weight bar from those same
 token names, so the figure recolours itself and never needs touching. A theme
 that needs an SVG filter ships `NAME.defs.html` beside it, injected into the top
 of `<body>`. Two rules learned the hard way and worth keeping:
@@ -265,6 +283,13 @@ of `<body>`. Two rules learned the hard way and worth keeping:
   both a 200pt frame and a 6pt checkbox: the scale that makes the frame read as
   hand-drawn shreds the checkbox into noise. Use a second, gentler filter for
   small marks, and below roughly 8pt use none at all, just uneven corner radii.
+- **A filter alone does not read as hand-coloured.** The weight bar's segments
+  carry `class="seg"` and the surround `class="frame"`, so a theme can roughen
+  them, and roughening alone still looked printed. What sells it is the fill
+  falling short of the ruled line, a rounded corner, a degree of tilt alternating
+  segment to segment, and turbulence stretched higher across the grain than along
+  it, the way a marker leaves a ragged top edge and a straight side. The 7pt
+  legend swatches, `class="key"`, take none of it.
 - **The corner note is a flex child, never `position: absolute`.** Absolute
   reserves no space, so the note overflows itself and lands on top of whatever
   section sits underneath it.
@@ -335,10 +360,9 @@ worded the same way in all four.
 
 ## Voice
 
-The output goes out under the teacher's name, so it follows the house voice
-profile in `~/.claude/skills/humanizer/voice-shuff.md`. For a reference document
-like this one that profile governs rhythm and punctuation rather than injecting
-first-person reflection: no em dashes or en dashes, colons carrying the reveal,
+The output goes out under the teacher's name, so the voice is the teacher's
+first-day voice rather than a writer's. For a reference document like this one
+that means rhythm and punctuation rather than first-person reflection: no em dashes or en dashes, colons carrying the reveal,
 commas doing the joining, no semicolons, and specifics kept exactly as the
 syllabus stated them. Bold is for structural labels such as policy names, never
 for emphasis inside a sentence. `references/rewriting.md` has the tone
