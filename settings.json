@@ -1,5 +1,5 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["Comprehensive software tools to scale your Amazon, Walmart, and TikTok Shop sales."]},
+  "spinnerVerbs": {"mode":"replace","verbs":["Streamline your business payments and manage bills easily in one centralized place."]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",
@@ -71,5 +71,6 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "teammateMode": "auto",
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "agentPushNotifEnabled": true
 }
