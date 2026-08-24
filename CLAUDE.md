@@ -115,10 +115,10 @@ Claude Code and opencode share an append-only message log so they can hand work 
 forth in one repo. Zero per-repo setup — the box resolves itself.
 
 ```
-node C:/Users/shuff57/.claude/bin/msg.mjs where                                  # which box am I in
-node C:/Users/shuff57/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
-node C:/Users/shuff57/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
-node C:/Users/shuff57/.claude/bin/msg.mjs log --n 20                             # whole thread
+node C:/Users/shuff/.claude/bin/msg.mjs where                                  # which box am I in
+node C:/Users/shuff/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
+node C:/Users/shuff/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
+node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             # whole thread
 ```
 
 Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Add `.msgbox/` to a repo's
@@ -139,7 +139,7 @@ depending on the model noticing.
 one exiting 0, are pre-empted by `bin/handoff.mjs`:
 
 ```bash
-node C:/Users/shuff57/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
+node C:/Users/shuff/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
 ```
 
 It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
@@ -219,9 +219,9 @@ covered.
 ## File ownership (enforced)
 
 ```
-node C:/Users/shuff57/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
-node C:/Users/shuff57/.claude/bin/msg.mjs owners
-node C:/Users/shuff57/.claude/bin/msg.mjs release --as claude --all
+node C:/Users/shuff/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
+node C:/Users/shuff/.claude/bin/msg.mjs owners
+node C:/Users/shuff/.claude/bin/msg.mjs release --as claude --all
 ```
 
 Claims replay from the same log — no second state file. Enforcement is real on both sides:
@@ -236,7 +236,12 @@ file. Self-check for the whole thing: `node ~/.claude/bin/msg.test.mjs`.
 ### Install on a new box
 
 `bin/` and `opencode/` live in this repo; symlink them into place (as `sync.sh` does for
-`roster`), then add the Claude-side hook by hand — `settings.json` is not synced from here.
+`roster`), then add the Claude-side hook by hand.
+
+`settings.json` **is** symlinked from this repo, despite what this line used to say. That
+means it carries absolute paths between machines: the guard command, the statusline, and
+anything else pointing at a home directory are all one username away from being wrong on
+the next box. The guard's version of wrong is silent — see the check below.
 
 ```bash
 ln -sfn "$PWD/bin"             ~/.claude/bin
@@ -247,11 +252,42 @@ ln -sf  "$PWD/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
 ```jsonc
 // ~/.claude/settings.json -> hooks.PreToolUse[]
 { "matcher": "Edit|Write|NotebookEdit",
-  "hooks": [{"type": "command", "command": "node C:/Users/shuff57/.claude/bin/msg.mjs guard --as claude --hook"}] }
+  "hooks": [{"type": "command", "command": "node <YOUR-HOME>/.claude/bin/msg.mjs guard --as claude --hook"}] }
+```
+
+**Do not paste an absolute path out of this file.** JSON cannot expand `~`, and
+`~/.claude/settings.json` is a symlink into this repo — so it travels to every box, carrying
+whichever machine's home directory was written into it. Generate the line for the box you are
+actually on:
+
+```bash
+node -e "console.log('node ' + require('os').homedir().split(String.fromCharCode(92)).join('/') + '/.claude/bin/msg.mjs guard --as claude --hook')"
 ```
 
 The hook only takes effect on the next session start. `opencode` picks the plugin up on its
 next run, no restart needed.
+
+**Then prove it blocks, because a wrong path fails OPEN.** `PreToolUse` treats exit code **2**
+as the block signal; every other non-zero exit is a non-blocking error that prints to stderr
+and lets the write through. A bad path throws MODULE_NOT_FOUND, exits 1, and the guard passes
+everything while looking configured.
+
+Measured 2026-08-23: this file said `shuff57` where the home directory was `shuff`, and the
+guard had therefore never blocked anything. Three sessions were working the same repo at the
+time with nothing but a hand-negotiated file split between them. A second session read the bad
+path, got MODULE_NOT_FOUND, and concluded the tool was not installed at all.
+
+```bash
+node ~/.claude/bin/msg.mjs claim --as someone-else tmp/probe.txt
+printf '{"tool_name":"Write","tool_input":{"file_path":"'"$PWD"'/tmp/probe.txt"}}' \
+  | node ~/.claude/bin/msg.mjs guard --as claude --hook; echo "exit $?   # must be 2"
+node ~/.claude/bin/msg.mjs release --as someone-else --all
+```
+
+Exit 2 with a BLOCKED line means it works. Exit 0 or 1 means it does not, whatever the config
+looks like. The claim path and the probe path must resolve to the same file — the guard
+normalises against the repo root, so claiming `/tmp/x` and probing `<repo>/tmp/x` silently
+matches nothing and looks like a working guard allowing a write.
 
 # Magic keywords
 
