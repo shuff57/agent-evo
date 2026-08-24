@@ -1,5 +1,5 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["Streamline your business payments and manage bills easily in one centralized place."]},
+  "spinnerVerbs": {"mode":"replace","verbs":["Secure domain names, reliable web hosting, and powerful digital marketing tools."]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",
