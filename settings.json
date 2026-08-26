@@ -1,5 +1,4 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["Postmark - Make sure your most critical emails get delivered"]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",
@@ -40,7 +39,7 @@
       }
     ]
   },
-  "statusLine": {"type":"command","command":"node \"C:\\\\Users\\\\shuff\\\\.kickbacks\\\\vibe-ads-statusline.mjs\"","padding":0},
+  "statusLine": {"type":"command","command":"ccstatusline","padding":0,"refreshInterval":10},
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": false,
