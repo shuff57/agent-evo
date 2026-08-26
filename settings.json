@@ -1,5 +1,5 @@
 {
-  "spinnerVerbs": {"mode":"replace","verbs":["Secure domain names, reliable web hosting, and powerful digital marketing tools."]},
+  "spinnerVerbs": {"mode":"replace","verbs":["Fluidstack - building 10GW of compute. Join us."]},
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "PYTHONUTF8": "1",
@@ -71,6 +71,7 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
   "teammateMode": "auto",
+  "agentPushNotifEnabled": true,
   "voiceEnabled": true,
-  "agentPushNotifEnabled": true
+  "skipWorkflowUsageWarning": true
 }

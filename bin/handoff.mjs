@@ -20,8 +20,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const MSG = 'C:/Users/shuff57/.claude/bin/msg.mjs';
+// msg.mjs is this file's own sibling. Deriving the path from import.meta.url instead
+// of a home directory is what makes it correct on BOTH boxes: ~/.claude/bin is a symlink
+// into this shared repo, so a hardcoded C:/Users/<name> is always one machine's name and
+// therefore wrong on the other. It was 'shuff57' while running as 'shuff', which made
+// execSync at the claims check throw MODULE_NOT_FOUND and killed every dispatch.
+const MSG = fileURLToPath(new URL('./msg.mjs', import.meta.url)).split(String.fromCharCode(92)).join('/');
 const DEFAULT_MODEL = 'ollama-cloud/deepseek-v4-flash:0731';
 
 const args = process.argv.slice(2);
