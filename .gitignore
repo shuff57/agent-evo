@@ -15,5 +15,7 @@ skills/browser-use/
 skills/mom-question/
 skills/mom-transfer/
 
-# Cross-CLI message center scratch (device-local)
-.msgbox/
+# Cross-CLI message center: the log ships with the repo (same box path on every
+# machine, no username in it); cursors are device-local
+.msgbox/*
+!.msgbox/log.jsonl

@@ -115,14 +115,13 @@ Claude Code and opencode share an append-only message log so they can hand work 
 forth in one repo. Zero per-repo setup — the box resolves itself.
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs where                                  # which box am I in
-node C:/Users/shuff/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
-node C:/Users/shuff/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
-node C:/Users/shuff/.claude/bin/msg.mjs log --n 20                             # whole thread
+node ~/.claude/bin/msg.mjs where                                  # which box am I in
+node ~/.claude/bin/msg.mjs read --as claude                       # inbox, advances cursor
+node ~/.claude/bin/msg.mjs send --from claude --to opencode --re 2 --text "..."
+node ~/.claude/bin/msg.mjs log --n 20                             # whole thread
 ```
 
-Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Add `.msgbox/` to a repo's
-`.gitignore` if the thread shouldn't ship.
+Box = `$MSGBOX` -> `<git root>/.msgbox` -> `~/.claude/msgbox`. The repo box is committed, so the thread ships between machines; the cursor files beside it are device-local. Drop `.msgbox/log.jsonl` from a repo only if the thread shouldn't ship.
 
 **Launch with the command in the prompt. Never with a bare `"Check your inbox."`** The phrase only
 works if the model acts on `AGENTS.md`, and it does so **intermittently**: a dozen handoffs on
@@ -139,7 +138,7 @@ depending on the model noticing.
 one exiting 0, are pre-empted by `bin/handoff.mjs`:
 
 ```bash
-node C:/Users/shuff/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
+node ~/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
 ```
 
 It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
@@ -219,9 +218,9 @@ covered.
 ## File ownership (enforced)
 
 ```
-node C:/Users/shuff/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
-node C:/Users/shuff/.claude/bin/msg.mjs owners
-node C:/Users/shuff/.claude/bin/msg.mjs release --as claude --all
+node ~/.claude/bin/msg.mjs claim --as claude test.js lib/   # trailing / = whole dir
+node ~/.claude/bin/msg.mjs owners
+node ~/.claude/bin/msg.mjs release --as claude --all
 ```
 
 Claims replay from the same log — no second state file. Enforcement is real on both sides:

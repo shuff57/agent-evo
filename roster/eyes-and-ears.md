@@ -299,9 +299,9 @@ mid-glyph), and the scoping is the part that fails silently. Measured table in b
 `.claude/skills/book-pipeline/SKILL.md`. Deepseek has no image input at all.
 
 ```bash
-MSG="node C:/Users/shuff57/.claude/bin/msg.mjs"
+MSG="node ~/.claude/bin/msg.mjs"
 $MSG send --from eyes-and-ears --to lens-boxes --topic <target> --text "<one lens brief>"
-opencode run "Run: node C:/Users/shuff57/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
+opencode run "Run: node ~/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
   --auto -m ollama-cloud/deepseek-v4-flash:0731
 $MSG read --as eyes-and-ears
 ```

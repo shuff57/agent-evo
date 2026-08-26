@@ -30,16 +30,16 @@ exists specifically to close that hole — use it instead of reproducing the fai
 #    this beats burying it in shell quoting, and it's what handoff.mjs expects to read.
 
 # 2. Claim anything the builder must not touch — tests, specs, acceptance gates.
-node C:/Users/shuff57/.claude/bin/msg.mjs claim --as claude <paths...>
+node ~/.claude/bin/msg.mjs claim --as claude <paths...>
 
 # 3. Dispatch. This puts the task straight in the launch prompt (not behind an inbox
 #    read), quotes it so opencode's own flags can't swallow it, refuses to run if the
 #    spec path doesn't resolve, and — the part that matters — treats a clean exit with
 #    no reply as FAILURE, not success.
-node C:/Users/shuff57/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--model <model>]
+node ~/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--model <model>]
 
 # 4. Read the reply.
-node C:/Users/shuff57/.claude/bin/msg.mjs read --as claude
+node ~/.claude/bin/msg.mjs read --as claude
 ```
 
 If a claim from step 2 blocks the dispatch itself (rare — only when the builder's own

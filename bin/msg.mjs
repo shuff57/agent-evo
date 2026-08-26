@@ -12,6 +12,9 @@
 //   node msg.mjs guard --as claude --hook              # same, reading a CC PreToolUse payload on stdin
 //   node msg.mjs where
 // Box: $MSGBOX > <git root>/.msgbox > ~/.claude/msgbox
+// The repo box is committed to git, so the log ships between machines (same path
+// everywhere, no username in it). Cursors stay device-local via .gitignore.
+// The ~/.claude/msgbox fallback exists only for directories that are not a repo.
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

@@ -17,7 +17,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const MSG = "C:/Users/shuff57/.claude/bin/msg.mjs";
+const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, "/");
 // Which mailbox this session watches. A hardcoded "opencode" silently disabled the whole feature
 // for any session addressed under another name: build-section.md fans out review lenses with a
 // distinct `--to lens-<name>` each ("keeps briefs from bleeding together"), so the mid-run
