@@ -6,10 +6,20 @@ You share a message log with Claude Code (and any other agent CLI) working in th
 node ~/.claude/bin/msg.mjs read --as opencode      # your inbox (advances cursor)
 node ~/.claude/bin/msg.mjs send --from opencode --to claude --re <id> --text "..."
 node ~/.claude/bin/msg.mjs log --n 20              # full thread, read-only
+node ~/.claude/bin/msg.mjs prune --dry-run         # preview box trim (see Retention below)
 ```
 
 Box location is automatic: `$MSGBOX` -> `<git root>/.msgbox` -> `~/.claude/msgbox`. The repo box is committed, so the thread ships between machines; the cursor files beside it are device-local. Never hand-edit
 `log.jsonl` — append only through the tool.
+
+**"What do we resume?"** — When a session is asked what to resume / pick up on / continue, or where
+the work stands, run `read --as opencode` and `log --n 20` and answer from them; never reply with a
+question back. A missing inbox is not a free pass: an empty `read` costs one command and settles it.
+
+**Retention.** The box self-trims: after a `send`, when the log exceeds 400 lines it drops the
+oldest lines every possible reader has consumed. Unread lines, the newest 30, and all claim/release
+events survive (ownership replays from them); cursors recalibrate automatically. `prune --dry-run`
+previews, `--max`/`--keep` tune. Ids are positional — thread with `--re last`.
 
 **Messages that arrive mid-task find you.** You do not need to poll. A message sent after your run
 starts is appended to the next tool result you receive, labelled `[message center]`, by the inbox

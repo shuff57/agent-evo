@@ -123,6 +123,18 @@ node ~/.claude/bin/msg.mjs log --n 20                             # whole thread
 
 Box = `$MSGBOX` -> `<git root>/.msgbox` -> `~/.claude/msgbox`. The repo box is committed, so the thread ships between machines; the cursor files beside it are device-local. Drop `.msgbox/log.jsonl` from a repo only if the thread shouldn't ship.
 
+**Retention.** The log is append-only but size-bounded. After every `send`, when the log exceeds
+400 lines it auto-trims from the front: only lines EVERY agent that could need them has already
+read go first. An unread line is never dropped, the newest `--keep` (default 30) lines are never
+dropped, and claim/release events are never dropped — ownership replays from the log, so they are
+state, not history. Cursors recalibrate automatically. Preview with
+`node ~/.claude/bin/msg.mjs prune --dry-run`; tune with `--max N --keep K`. Because ids are
+positional in the file, a prune renumbers everything behind it — thread with `--re last`, never a
+hardcoded id from an older log.
+
+**"What do we resume?"** — When a fresh session is asked what to resume / pick up on / continue,
+`read --as claude` + `log --n 20` are the answer. Never reply with a question back.
+
 **Launch with the command in the prompt. Never with a bare `"Check your inbox."`** The phrase only
 works if the model acts on `AGENTS.md`, and it does so **intermittently**: a dozen handoffs on
 2026-08-10 worked, then three in a row did not — one answering *"I don't have an inbox — I'm a coding

@@ -5,6 +5,7 @@
 //   node msg.mjs read --as opencode [--peek] [--all]
 //   node msg.mjs inbox --as opencode                  # same, for hooks: silent when empty, always exit 0
 //   node msg.mjs log [--n 20]
+//   node msg.mjs prune [--max 400] [--keep 30] [--dry-run]  # trim READ history from the front
 //   node msg.mjs claim --as claude test.js lib/        # dir claim: trailing /
 //   node msg.mjs release --as claude test.js | --all
 //   node msg.mjs owners
@@ -19,7 +20,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const VALUE_FLAGS = new Set(['from', 'to', 'text', 're', 'topic', 'as', 'n', 'path']);
+const VALUE_FLAGS = new Set(['from', 'to', 'text', 're', 'topic', 'as', 'n', 'path', 'max', 'keep']);
 const raw = process.argv.slice(2);
 const cmd = raw[0];
 const opts = {};
@@ -54,6 +55,54 @@ const readLog = () =>
       })
     : [];
 const append = (o) => { fs.appendFileSync(logFile, JSON.stringify({ ts: new Date().toISOString(), ...o }) + '\n'); return readLog().length; };
+
+// Retention is size-triggered, never age-triggered: past tasks stay readable in `log` until the
+// box is full, then the OLDEST lines that every interested agent has already consumed are dropped
+// from the front. `send` auto-prunes when the log exceeds 400 lines. An unread line is never
+// dropped; claim/release events are NEVER dropped - ownership replays from the log, so dropping
+// them would silently disable the guards. Cursors are positional, so they are renumbered with
+// the log (subtracting the number of dropped lines).
+function cursors() {
+  const out = [];
+  for (const f of fs.readdirSync(box)) {
+    const m = f.match(/^cursor-([\w.-]+)$/);
+    if (m) {
+      let val = 0;
+      try { val = Number(fs.readFileSync(path.join(box, f), 'utf8').trim()) || 0; } catch {}
+      out.push({ agent: m[1], file: f, val });
+    }
+  }
+  return out;
+}
+const cursorOf = (agent) => cursors().find((c) => c.agent === agent)?.val ?? 0;
+
+function prune(maxUntil, keep, dryRun = false) {
+  const log = readLog();
+  if (log.length <= maxUntil) return null;
+  const cur = cursors();
+  const droppable = new Set();
+  for (const m of log) {
+    if (m.kind) continue;                       // claims/releases replay as ownership state
+    if (m.to === 'all' ? !cur.every((c) => c.val >= m.id) : cursorOf(m.to) < m.id) continue;
+    droppable.add(m.id);
+  }
+  const target = Math.max(keep, Math.floor(maxUntil * 0.6));
+  let dropCount = 0;
+  for (const m of log) {
+    if (m.id === dropCount + 1 && droppable.has(m.id) && log.length - dropCount > target) dropCount++;
+    else break;
+  }
+  if (dropCount <= 0) return null;
+  if (!dryRun) {
+    const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(Boolean);
+    fs.writeFileSync(logFile, lines.slice(dropCount).join('\n') + (lines.length > dropCount ? '\n' : ''));
+    for (const c of cur) {
+      if (c.val > 0) fs.writeFileSync(path.join(box, c.file), String(Math.max(0, c.val - dropCount)));
+    }
+  }
+  return { dropped: dropCount, len: log.length - dropCount, cursors: cur.filter((c) => c.val > 0).length };
+}
+
 
 // Paths are stored relative to the repo root (or cwd when there is no repo), forward-slashed.
 function norm(p) {
@@ -118,6 +167,14 @@ if (cmd === 'send') {
     }
   }
 
+  // Retention: the log is append-only but not infinite. Trim READ history from the front
+  // once the box gets big enough to cost real context when someone reads it.
+  const plen = readLog().length;
+  if (plen > 400) {
+    const r = prune(400, 30);
+    if (r) console.log(`auto-pruned ${r.dropped} read line(s) from the front; log ${plen} -> ${r.len} (cursors recalibrated)`);
+  }
+
 } else if (cmd === 'read' || cmd === 'inbox') {
   // `read` is for a human or an agent asking on purpose; `inbox` is the same delivery
   // driven by a hook. They MUST share one cursor and one filter, or a message delivered by
@@ -148,6 +205,13 @@ if (cmd === 'send') {
 
 } else if (cmd === 'log') {
   console.log(readLog().slice(-Number(opts.n ?? 20)).map(fmt).join('\n\n') || '(empty)');
+
+} else if (cmd === 'prune') {
+  const dry = !!opts['dry-run'];
+  const r = prune(Number(opts.max ?? 400), Number(opts.keep ?? 30), dry);
+  if (!r) console.log(`prune${dry ? ' (dry-run)' : ''}: nothing to drop (${readLog().length} lines)`);
+  else if (dry) console.log(`prune (dry-run): would drop ${r.dropped} line(s) from the front; ${r.len} would remain; ${r.cursors} cursor(s) would be recalibrated`);
+  else console.log(`prune: dropped ${r.dropped} line(s) from the front; ${r.len} remain; ${r.cursors} cursor(s) recalibrated`);
 
 } else if (cmd === 'claim' || cmd === 'release') {
   const who = need(opts.as, 'need --as <name>');
@@ -238,6 +302,6 @@ if (cmd === 'send') {
 } else if (cmd === 'where') {
   console.log(box);
 } else {
-  console.log('commands: send | read | inbox | log | claim | release | owners | guard | where');
+  console.log('commands: send | read | inbox | log | prune | claim | release | owners | guard | where');
   process.exit(2);
 }
