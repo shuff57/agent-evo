@@ -19,3 +19,5 @@ skills/mom-transfer/
 # machine, no username in it); cursors are device-local
 .msgbox/*
 !.msgbox/log.jsonl
+
+.worktrees/
