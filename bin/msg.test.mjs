@@ -93,5 +93,30 @@ process.env.MSGBOX = '/tmp/explicit-box';
 assert.strictEqual(findBox(process.cwd()), '/tmp/explicit-box', 'plugin honours MSGBOX like msg.mjs does');
 delete process.env.MSGBOX;
 
+// Worktree-aware root resolution: a git worktree's own .git is a FILE ("gitdir: ...")
+// pointing at <main-repo>/.git/worktrees/<name>, not a directory. Resolving root from
+// inside the worktree must land on the main repo, not the worktree dir itself -- else
+// every worktree of one repo gets its own disconnected box.
+const fixtures = fs.mkdtempSync(path.join(os.tmpdir(), 'msgbox-wt-fixture-'));
+const noMsgboxEnv = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'MSGBOX'));
+
+// normal case: .git as a real directory resolves to itself, unchanged behavior
+const fakeNormal = path.join(fixtures, 'fake-normal');
+fs.mkdirSync(path.join(fakeNormal, '.git'), { recursive: true });
+const normalWhere = execFileSync(process.execPath, [msg, 'where'], { cwd: fakeNormal, env: noMsgboxEnv, encoding: 'utf8' }).trim();
+assert.strictEqual(normalWhere, path.join(fakeNormal, '.msgbox'), 'a real .git directory resolves to its own dir, unchanged');
+
+// worktree case: .git as a file resolves through gitdir: to the main repo root
+const fakeMain = path.join(fixtures, 'fake-main');
+const fakeGitdir = path.join(fakeMain, '.git', 'worktrees', 'fake-wt');
+fs.mkdirSync(fakeGitdir, { recursive: true });
+const fakeWorktree = path.join(fixtures, 'fake-worktree');
+fs.mkdirSync(fakeWorktree, { recursive: true });
+fs.writeFileSync(path.join(fakeWorktree, '.git'), `gitdir: ${fakeGitdir}\n`);
+const worktreeWhere = execFileSync(process.execPath, [msg, 'where'], { cwd: fakeWorktree, env: noMsgboxEnv, encoding: 'utf8' }).trim();
+assert.strictEqual(worktreeWhere, path.join(fakeMain, '.msgbox'), 'worktree .git file resolves to the main repo root, not the worktree dir');
+
+fs.rmSync(fixtures, { recursive: true, force: true });
+
 fs.rmSync(box, { recursive: true, force: true });
 console.log('all pass');

@@ -29,6 +29,23 @@ const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, 
 // silently a no-op again. Default preserves the single-session behaviour.
 const ME = process.env.MSGBOX_AS || "opencode";
 
+// A worktree's own `.git` is a FILE ("gitdir: <path>"), not a directory -- pointing at
+// <main-repo>/.git/worktrees/<name>. Resolve through it to the main repo root, mirroring
+// msg.mjs's resolveWorktreeGitdir, so a worktree session shares its box with the main repo.
+function resolveWorktreeGitdir(gitFile) {
+  const contents = fs.readFileSync(gitFile, "utf8");
+  const m = contents.match(/^gitdir:\s*(.+?)\s*$/m);
+  if (!m) return null;
+  const gitdir = path.isAbsolute(m[1]) ? m[1] : path.resolve(path.dirname(gitFile), m[1]);
+  let dir = gitdir;
+  while (true) {
+    if (path.basename(dir) === ".git") return path.dirname(dir);
+    const up = path.dirname(dir);
+    if (up === dir) return null;
+    dir = up;
+  }
+}
+
 // Box resolution is duplicated from msg.mjs ON PURPOSE: it is the one thing needed BEFORE deciding
 // whether to spawn anything, and spawning node on every tool call just to learn the path would cost
 // more than the feature saves. Everything else -- the cursor, the filter, the formatting -- stays in
@@ -38,7 +55,11 @@ export function findBox(directory) {
   if (process.env.MSGBOX) return process.env.MSGBOX;
   let dir = directory || process.cwd();
   while (true) {
-    if (fs.existsSync(path.join(dir, ".git"))) return path.join(dir, ".msgbox");
+    const gitPath = path.join(dir, ".git");
+    if (fs.existsSync(gitPath)) {
+      const root = fs.statSync(gitPath).isFile() ? resolveWorktreeGitdir(gitPath) || dir : dir;
+      return path.join(root, ".msgbox");
+    }
     const up = path.dirname(dir);
     if (up === dir) return path.join(os.homedir(), ".claude", "msgbox");
     dir = up;

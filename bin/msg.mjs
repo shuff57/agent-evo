@@ -34,10 +34,30 @@ for (let i = 1; i < raw.length; i++) {
   } else positional.push(a);
 }
 
+// A worktree's own `.git` is a FILE ("gitdir: <path>"), not a directory -- pointing at
+// <main-repo>/.git/worktrees/<name>. Resolve through it to the main repo root so every
+// worktree of the same repo shares one box, instead of each computing its own.
+function resolveWorktreeGitdir(gitFile) {
+  const contents = fs.readFileSync(gitFile, 'utf8');
+  const m = contents.match(/^gitdir:\s*(.+?)\s*$/m);
+  if (!m) return null;
+  const gitdir = path.isAbsolute(m[1]) ? m[1] : path.resolve(path.dirname(gitFile), m[1]);
+  let dir = gitdir;
+  while (true) {
+    if (path.basename(dir) === '.git') return path.dirname(dir);
+    const up = path.dirname(dir);
+    if (up === dir) return null;
+    dir = up;
+  }
+}
 function findRoot() {
   let dir = process.cwd();
   while (true) {
-    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    const gitPath = path.join(dir, '.git');
+    if (fs.existsSync(gitPath)) {
+      if (fs.statSync(gitPath).isFile()) return resolveWorktreeGitdir(gitPath) || dir;
+      return dir;
+    }
     const up = path.dirname(dir);
     if (up === dir) return null;
     dir = up;
