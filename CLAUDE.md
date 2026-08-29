@@ -314,6 +314,7 @@ A keyword in the user's message → invoke the named skill via the Skill tool be
 | "claude council", "run the council", "convene the council", "council review" | `council` |
 | "gauntlet loop", "gauntlet this", "loop until it beats X" | `gauntlet-loop` |
 | "/bro", "bro", "tldr", "boil it down", "too long" | `bro` |
+| "switching computers", "switch machines", "park this", "pack up", "on the other computer now" | `switch-computers` |
 
 Don't activate on quoted/code-block matches. If a keyword fires but context makes it clearly inappropriate (e.g. user is asking *about* the skill, not invoking it), say so and skip.
 

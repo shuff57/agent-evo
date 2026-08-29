@@ -197,37 +197,59 @@ to add an 8th, evolver-meta must prune the least-validated one.
    recur" ad hoc without calibration backing before this heuristic
    codified it)
 
-7. When reconciling a PENDING mutation whose target is a code-level file
-   outside skills/agents/roster (e.g. `scripts/workflows/*.py`) and whose
-   edit_summary describes a specific diff, do not record a "discrepancy,
-   diff not present" verdict from `git status --porcelain` / `git diff`
-   alone. A clean working tree only means no UNCOMMITTED delta relative to
-   HEAD — it is silent about whether the described change is present IN
-   HEAD, because a fix proposed in one session is routinely committed in a
-   LATER session, after which the tree is clean AND the feature is fully
-   live. Clean status is consistent with three different states (never
-   written, written then reverted, or written then committed) and cannot
-   by itself distinguish them. Before flagging "not present," grep/read the
-   file's CURRENT CONTENT for the described change and check `git log
-   --since <mutation timestamp> -- <file>` / `git show <commit>` for a
-   commit that landed it after the mutation was logged. If content-verified
-   present and attributable to such a commit, reconcile directly to
-   VALIDATED (or MISSED if the content contradicts the prediction) instead
-   of leaving the entry PENDING with a discrepancy flag. This is the same
-   root confusion in both directions: on 2026-08-07 (commit dbaf37a8f) an
-   evolver reported two fixes "already fixed" while they were still only
-   uncommitted working-tree drafts, and a fresh checkout of `desktop`
-   still had both bugs; on 2026-08-10 the reconciliation pass logged at
-   `_workspace/_evolution_log.jsonl` line 300 inverted the same confusion,
-   flagging modify:266, 267, 275, 276, 277, 278, 279 (7 SCOREABLE entries)
-   as diffs "never actually realized on disk" based on a clean
-   `git status`/`git diff` read — but a meta-pass re-verification (reading
-   current file content plus `git log`/`git show`) found all 7 fixes
-   present in HEAD, landed via commits dbaf37a8f (2026-08-07) and
-   4d3d20015 (2026-08-09), both dated after the entries were logged and
-   before the reconciliation pass that called them absent. Two confirmed
-   instances of the same mechanism, opposite directions, each costing a
-   correct applied/not-applied verdict. (added 2026-08-10)
+7. [PRUNED 2026-08-26 — prior heuristic 7 (before flagging a code-level
+   PENDING mutation "diff not present," content-verify the file plus
+   `git log`, don't trust `git status`/`git diff` alone) retired as the
+   least-validated of the 7 slots: across all 377 rows of
+   `_workspace/_evolution_log.jsonl` it was cited only 3 times (lines 301,
+   306, 317, all mid-August RECONCILIATION rows), carried zero VALIDATED
+   co-occurrence, and was not cited once in the most recent ~60 rows even
+   though 20+ code-level PENDING mutations reconciled in that span — versus
+   13-49 citations and live recent use (last cited within the final 15
+   rows) for every other heuristic (1-6). Its content is not wrong; the
+   git-status-vs-content confusion it targeted has not recurred since
+   2026-08-10, and `prediction_status.py` (heuristic 5) now routes
+   reconciliation through the file/session data directly rather than raw
+   git status, so the guidance reads as absorbed into practice rather than
+   needed as standalone prose — the same retirement rationale this file
+   used for the original heuristic 1.]
+   SKILL_GAP is the only divergence type besides SKILL_WEAK to clear the
+   repeat-miss bar (>=2 MISSED): modify:225 and modify:346, both reconciled
+   MISSED, 3 VALIDATED alongside them (40% miss rate). The two misses do
+   NOT share one mechanism — modify:346 (section-author re-collection fix
+   never consulted because the skill was absent from that session's
+   skill_loads) is already heuristic 2's / heuristic 1's trigger-
+   consultation gap, no new guidance needed. modify:225 is a distinct,
+   previously uncovered failure: a MONITORING entry
+   (deterministic-lint-blind-to-visual-defects) recurred past the exact
+   promotion threshold ITS OWN edit_summary had set ("if this recurs in 2
+   more sessions, propose one rule") — modify:225's own actual_outcome text
+   flags this by name as "a reconciliation-pipeline miss" for evolver-meta
+   to fix: the threshold was crossed by 2026-08-18 (deck-18px-type-floor)
+   and again 2026-08-23 (TTS/read-aloud false positives), but no pass
+   converted it to an APPLIED proposal at either crossing — the recurrence
+   surfaced only as prose when the entry was finally reconciled to MISSED,
+   sessions after the bar was met. Rule: during reconciliation, the moment
+   a MONITORING entry's logged recurrence count reaches or exceeds the
+   threshold its own edit_summary stated, that SAME reconciliation pass
+   must either draft an APPLIED mutation proposal for it, or — if still
+   genuinely ownerless across candidate files — explicitly propose
+   FLAGGED_LOW_CONFIDENCE naming one candidate owner for human review.
+   Leaving the crossing noted only in reconciliation prose while the row
+   ages toward MISSED is this failure recurring; a MONITORING entry
+   reconciled to MISSED whose own actual_outcome states its threshold was
+   already crossed one or more passes earlier is the tell. This is not a
+   call to over-promote: the 4 MONITORING entries checked this same pass
+   (lines 230, 245, 246, 363 — css-partial-resync-tool-fragility,
+   negative-grep-read-as-absence, destructive-git-discard-crosses-repos,
+   documented-lesson-not-consulted-mid-task) all remain correctly held
+   below their own stated thresholds and were left at MONITORING, exactly
+   as they should be. (added 2026-08-26; evidence: modify:225's actual_outcome
+   self-flags "a reconciliation-pipeline miss, not evidence the underlying
+   gap doesn't exist... flagged for evolver-meta"; modify:346 read in full
+   and confirmed to be heuristic-1/2 territory, not a new mechanism; the 4
+   currently-open MONITORING rows checked and confirmed still under
+   threshold as of this pass, 2026-08-26)
 
 ## Scoring a prediction: run the count, don't reconstruct it
 

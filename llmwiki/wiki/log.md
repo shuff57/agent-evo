@@ -326,3 +326,387 @@ tags: [log]
 - No new sources, uploads, web clips, or highlights found since prior 2026-08-18 check.
 - Lint passed (9 documents checked, no errors/warnings).
 - No wiki pages changed this run.
+
+## [2026-08-19] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-19] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-19] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-19] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-19] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- No wiki pages changed this run.
+
+## [2026-08-20] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-19 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-20] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-20 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-20 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-21] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-21 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-22] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-23] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-22 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-23] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-23 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-23] check | Routine sync
+- No new sources, uploads, web clips, or highlights found since prior 2026-08-23 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-23 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-24] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-25] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-24 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-25] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-25 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-25] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-25 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-25] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-25 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-25] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-25 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-25 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-26] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-26 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-27] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-27 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-28] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-28 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-29 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-29 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-29 check.
+- Lint passed (9 documents checked, no errors/warnings).
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-29 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.
+
+## [2026-08-29] check | Routine sync
+- No new sources, uploads, web clips, or highlights since prior 2026-08-29 check.
+- Still 3 sources / 6 wiki pages — no drift.
+- No wiki pages changed this run.

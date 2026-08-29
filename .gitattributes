@@ -16,3 +16,10 @@
 *.pdf binary
 *.zip binary
 graphify-out/graph.json merge=graphify
+
+# Cross-CLI message center: an append-only log that two machines both append to.
+# Without union merge, every simultaneous handoff conflicts on the tail line —
+# and sync-agent-evo.ps1 responds to a conflict by aborting the rebase and
+# SKIPPING THE PUSH, so one stray conflict here silently stops all sync.
+# Union keeps both machines' lines. Ids are positional, so thread with `--re last`.
+.msgbox/log.jsonl merge=union
