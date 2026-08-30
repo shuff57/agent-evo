@@ -24,7 +24,10 @@
     "caveman-review": "off",
     "security-audit": "off",
     "grill-with-docs": "off",
-    "officecli": "off"
+    "officecli": "off",
+    "humanizer": "off",
+    "improve-codebase-architecture": "off",
+    "odysseus": "off"
   },
   "hooks": {
     "PreToolUse": [

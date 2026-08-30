@@ -28,7 +28,10 @@ import { fileURLToPath } from 'node:url';
 // therefore wrong on the other. It was 'shuff57' while running as 'shuff', which made
 // execSync at the claims check throw MODULE_NOT_FOUND and killed every dispatch.
 const MSG = fileURLToPath(new URL('./msg.mjs', import.meta.url)).split(String.fromCharCode(92)).join('/');
-const DEFAULT_MODEL = 'ollama-cloud/deepseek-v4-flash:0731';
+// Budget contract default (operator, 2026-08-26). glm-5.3-flash measured reasoning:0 on a
+// trivial packet, where the deepseek -0731 snapshot emitted 2-5x the tokens for the same
+// answer. It also has vision, so the same id serves the eyes-and-ears lenses.
+const DEFAULT_MODEL = 'ollama-cloud/glm-5.3-flash';
 
 const args = process.argv.slice(2);
 const get = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };

@@ -1,6 +1,6 @@
 ---
 name: syllabus-quickref
-description: Rewrites a course syllabus into a one-page plain-English quick reference for students and parents. Strips the district legal boilerplate, policy citations, and compliance language, keeps only what a family acts on (contact, grading weights, late work, absences, supplies, help hours), and renders it as Markdown, a printable HTML one-pager, and .docx in the bookSHelf house theme. Use this skill whenever someone wants a syllabus shortened, simplified, made parent-friendly, or turned into a handout, cheat sheet, one-pager, first-day handout, or back-to-school-night page, and whenever someone says a syllabus is too long, too wordy, full of legalese, or that nobody reads it. It also applies when someone just hands over a syllabus PDF, Word file, or Google Doc and asks to clean it up or pull out the important parts.
+description: 'Rewrites a course syllabus into a one-page plain-English quick reference for students and parents - strips district legal boilerplate and compliance language, keeps only what a family acts on (contact, grading weights, late work, absences, supplies, help hours), and renders Markdown, printable HTML, and .docx in the bookSHelf house theme. Use whenever a syllabus should be shortened, simplified, made parent-friendly, or turned into a handout, cheat sheet, one-pager, or back-to-school-night page - including when someone just hands over a syllabus PDF, Word file, or Google Doc and asks to clean it up.'
 ---
 
 # Syllabus quick reference

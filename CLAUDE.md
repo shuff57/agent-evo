@@ -150,8 +150,15 @@ depending on the model noticing.
 one exiting 0, are pre-empted by `bin/handoff.mjs`:
 
 ```bash
-node ~/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--note "..."]
+node ~/.claude/bin/handoff.mjs --spec /abs/path/to/SPEC.md [--model <id>] [--note "..."]
 ```
+
+Its `DEFAULT_MODEL` is **`ollama-cloud/glm-5.3-flash`** (operator, 2026-08-26; it was
+`ollama-cloud/deepseek-v4-flash:0731`). Pass `--model` explicitly anyway — the flag in
+the command is what makes a run greppable afterwards, and a default is a cross-repo
+setting any session may move. Note `--expect <files>` puts the run in no-box mode: the
+prompt then tells it NOT to touch the message center, so `--expect` and mid-run Q&A are
+mutually exclusive.
 
 It refuses to dispatch if the spec path does not resolve, refuses to dispatch while file claims are
 held (unless `--allow-claims`), puts the task in the prompt rather than behind an inbox read, strips
@@ -246,59 +253,14 @@ file. Self-check for the whole thing: `node ~/.claude/bin/msg.test.mjs`.
 
 ### Install on a new box
 
-`bin/` and `opencode/` live in this repo; symlink them into place (as `sync.sh` does for
-`roster`), then add the Claude-side hook by hand.
+`bin/` and `opencode/` symlink into place from this repo; the Claude-side hook goes in
+by hand. Full procedure — generating the hook path for the box you are actually on, and
+the probe that proves it — is in `~/.claude/skills/msgbox-install/SKILL.md`.
 
-`settings.json` **is** symlinked from this repo, despite what this line used to say. That
-means it carries absolute paths between machines: the guard command, the statusline, and
-anything else pointing at a home directory are all one username away from being wrong on
-the next box. The guard's version of wrong is silent — see the check below.
-
-```bash
-ln -sfn "$PWD/bin"             ~/.claude/bin
-ln -sfn "$PWD/opencode/plugin" ~/.config/opencode/plugin
-ln -sf  "$PWD/opencode/AGENTS.md" ~/.config/opencode/AGENTS.md
-```
-
-```jsonc
-// ~/.claude/settings.json -> hooks.PreToolUse[]
-{ "matcher": "Edit|Write|NotebookEdit",
-  "hooks": [{"type": "command", "command": "node <YOUR-HOME>/.claude/bin/msg.mjs guard --as claude --hook"}] }
-```
-
-**Do not paste an absolute path out of this file.** JSON cannot expand `~`, and
-`~/.claude/settings.json` is a symlink into this repo — so it travels to every box, carrying
-whichever machine's home directory was written into it. Generate the line for the box you are
-actually on:
-
-```bash
-node -e "console.log('node ' + require('os').homedir().split(String.fromCharCode(92)).join('/') + '/.claude/bin/msg.mjs guard --as claude --hook')"
-```
-
-The hook only takes effect on the next session start. `opencode` picks the plugin up on its
-next run, no restart needed.
-
-**Then prove it blocks, because a wrong path fails OPEN.** `PreToolUse` treats exit code **2**
-as the block signal; every other non-zero exit is a non-blocking error that prints to stderr
-and lets the write through. A bad path throws MODULE_NOT_FOUND, exits 1, and the guard passes
-everything while looking configured.
-
-Measured 2026-08-23: this file said `shuff57` where the home directory was `shuff`, and the
-guard had therefore never blocked anything. Three sessions were working the same repo at the
-time with nothing but a hand-negotiated file split between them. A second session read the bad
-path, got MODULE_NOT_FOUND, and concluded the tool was not installed at all.
-
-```bash
-node ~/.claude/bin/msg.mjs claim --as someone-else tmp/probe.txt
-printf '{"tool_name":"Write","tool_input":{"file_path":"'"$PWD"'/tmp/probe.txt"}}' \
-  | node ~/.claude/bin/msg.mjs guard --as claude --hook; echo "exit $?   # must be 2"
-node ~/.claude/bin/msg.mjs release --as someone-else --all
-```
-
-Exit 2 with a BLOCKED line means it works. Exit 0 or 1 means it does not, whatever the config
-looks like. The claim path and the probe path must resolve to the same file — the guard
-normalises against the repo root, so claiming `/tmp/x` and probing `<repo>/tmp/x` silently
-matches nothing and looks like a working guard allowing a write.
+**A wrong hook path fails OPEN.** `PreToolUse` blocks only on exit code **2**; a bad path
+throws MODULE_NOT_FOUND, exits 1, and the guard permits every write while looking fully
+configured. `settings.json` is symlinked from this repo, so it carries one machine's home
+directory to the next. Run that skill's probe after any machine move.
 
 # Magic keywords
 
@@ -357,6 +319,20 @@ When writing `.ps1` scripts (e.g. statusline, hooks) that will be invoked by Cla
 - **`/tmp` resolves differently in node vs Git Bash on Windows.** Node `fs`/`fetch` resolve `/tmp` to `C:\tmp`; Git Bash `curl`/`cat` resolve `/tmp` to the Git Bash mount. When a verification step writes a file from node and reads it from bash (or vice versa), use an explicit absolute path — `os.tmpdir()` in node, `$TEMP` or a repo-local `.tmp/` in bash — never the literal `/tmp`.
 - **Bash builtin/special variables silently shadow your own assignment.** `GROUPS` is a bash builtin array holding the user's group ids — `GROUPS=(a b c)` doesn't error, it just no-ops your intent, and the failure surfaces far away (a later `${GROUPS[0]}`-style expansion pulls a numeric gid instead of your value, producing something like a baffling `fatal: Not a valid object name 197610` out of an unrelated `git` command). Other bash-reserved names to avoid for your own variables: `RANDOM`, `SECONDS`, `LINENO`, `PPID`, `REPLY`, `IFS`, `PATH`, `PS1`-`PS4`, `BASH_*`. Check `declare -p <name>` before reusing a short/common name for a loop or array variable.
 - **An ESM script written to the session scratchpad can't resolve the repo's `node_modules`.** Node's ESM resolver walks up from the *script's own file location*, not the shell's cwd — a `.mjs` file under the scratchpad temp dir throws `ERR_MODULE_NOT_FOUND` for packages (e.g. `playwright`) that are installed in the project repo, even though the shell cwd is the repo root. Fix: `import { createRequire } from 'module'; const require = createRequire(pathToRepoPackageJson);` — pointing `createRequire` at the repo's own `package.json` (not the scratchpad file) re-roots resolution at the repo's `node_modules`. This will recur for any scratchpad-written ESM script that imports a repo dependency; the scratchpad convention itself doesn't account for it.
+- **`SSLKEYLOGFILE` set by antivirus kills Python outright, with no traceback.** Norton
+  sets it to a filter-driver path (`\\.\nllMonFltProxy\...`). Python's default SSL
+  context opens that path as a `FILE*` — the one OpenSSL operation requiring
+  `OPENSSL_Applink` — so the interpreter dies with `OPENSSL_Uplink ... no
+  OPENSSL_Applink` and **no traceback and no partial output**. It is not limited to
+  HTTPS: `urllib.request.urlopen` builds an HTTPSHandler even for a plain
+  `http://localhost` URL, so local-only tooling dies too. The failure reads as a hang,
+  an empty result, or (worst) a test suite that stops mid-run and returns non-zero with
+  no summary line — which looks like "it ran" if you only check the exit code. Measured
+  2026-08-26 on bookSHelf, where it had silently disabled `pytest`, the repo's only push
+  gate. `Remove-Item Env:SSLKEYLOGFILE` / `unset SSLKEYLOGFILE` before any python, or
+  set it empty in the harness env. `http.client` is unaffected for plain HTTP; `curl`
+  is unaffected entirely (it ships its own OpenSSL), which is why a curl probe can pass
+  while the equivalent python crashes.
 - **Piping a backgrounded process through `tail`/`head` buffers until the pipe closes.** Checking on a long dispatch with `... | tail -n 20` or `| head -c 500` reads back 0 bytes every time until the underlying process exits — the pipe doesn't flush interim output, so it looks like the run has produced nothing right up until it's already over. Measured 2026-08-16 polling a `handoff.mjs` dispatch. Read the target file/log directly (no pipe) to see interim progress, or poll a sentinel the run itself writes.
 
 # Coding conduct

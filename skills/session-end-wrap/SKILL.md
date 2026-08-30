@@ -1,16 +1,6 @@
 ---
 name: session-end-wrap
-description: >
-  End-of-session wrap-up orchestrator (project-agnostic). The user manually
-  runs this skill to invoke memory-hygiene, session-reflector, the
-  user-global evolver (modify-mode), and any project-local create-mode
-  evolver in sequence — prune active memory, capture session learnings,
-  propose surgical edits to existing agents/skills, and propose new
-  agents/skills/teams where a capability gap was hit. Failures isolate
-  (one phase failing does not block the next). This skill is NEVER
-  auto-invoked by hooks; the Stop-hook nudge only reminds the user to type
-  `/session-end-wrap` themselves.
-  Triggers: "end session", "wrap up", "session done", "/session-end", "consolidate session".
+description: 'End-of-session wrap-up orchestrator (project-agnostic). Runs memory-hygiene, session-reflector, the user-global evolver (modify-mode), and any project-local create-mode evolver in sequence; failures isolate, so one phase failing does not block the next. NEVER auto-invoked by hooks - the Stop-hook nudge only reminds the user to type it. Triggers: "end session", "wrap up", "session done", "/session-end", "consolidate session".'
 license: MIT
 ---
 
