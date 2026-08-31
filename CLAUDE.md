@@ -123,6 +123,10 @@ node ~/.claude/bin/msg.mjs log --n 20                             # whole thread
 
 Box = `$MSGBOX` -> `<git root>/.msgbox` -> `~/.claude/msgbox`. The repo box is committed, so the thread ships between machines; the cursor files beside it are device-local. Drop `.msgbox/log.jsonl` from a repo only if the thread shouldn't ship.
 
+**Future plans live in `.msgbox/FUTURE.md`** — one per project, beside the log, so a parked
+idea travels with the repo instead of dying in a session transcript. Newest first; each entry
+records what was decided and what is still open. It is a plain file, not a `msg.mjs` feature.
+
 **Retention.** The log is append-only but size-bounded. After every `send`, when the log exceeds
 400 lines it auto-trims from the front: only lines EVERY agent that could need them has already
 read go first. An unread line is never dropped, the newest `--keep` (default 30) lines are never
