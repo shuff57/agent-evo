@@ -196,6 +196,17 @@ cadence and make sure it doesn't speed up in weird places or slow down."*
    same measured deviation. Report the number, name the beat, and say which you
    think it is.
 
+5. **A non-zero DOM count is not full coverage.** These storyboards mount a
+   shared vendor splash (`kg-splash.js`) as a SIBLING of `.world`, and draw
+   the character mark on `<canvas>`. A DOM sweep scoped to `.world`, or any
+   selector-based check, reports a healthy, non-zero element count while
+   seeing neither — a different shape from the zero-denominator false-clean
+   in Rules below, where the count itself is the tell. Here the count is
+   genuinely non-zero; it is simply the wrong population. Before clearing a
+   storyboard cut on DOM measurement alone, name what it paints outside
+   `.world` and via `<canvas>`, and check those by direct frame Read.
+   Confirmed 2026-08-30, Intro Stats §1.1's 9:16 cut.
+
 **Read the storyboard.** Unlike a screencast, the source of every frame is one
 readable HTML file with named beats (`<div class="beat" data-hold data-cam>`)
 and named pieces. Any claim about intent — "this is deliberate", "that is a
