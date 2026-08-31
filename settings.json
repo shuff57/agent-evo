@@ -27,7 +27,8 @@
     "officecli": "off",
     "humanizer": "off",
     "improve-codebase-architecture": "off",
-    "odysseus": "off"
+    "odysseus": "off",
+    "switch-computers": "on"
   },
   "hooks": {
     "PreToolUse": [
@@ -42,7 +43,12 @@
       }
     ]
   },
-  "statusLine": {"type":"command","command":"ccstatusline","padding":0,"refreshInterval":10},
+  "statusLine": {
+    "type": "command",
+    "command": "ccstatusline",
+    "padding": 0,
+    "refreshInterval": 10
+  },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": false,

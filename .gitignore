@@ -21,3 +21,8 @@ skills/mom-transfer/
 !.msgbox/log.jsonl
 
 .worktrees/
+
+# /skill-doctor writes these beside the file it rewrites; they are backups,
+# not source, and `git add -A` during a machine-switch park swept one into
+# history on 2026-08-30.
+*.doctor-bak
