@@ -91,6 +91,21 @@ the book's order.
 
 Real clicks, real submits. A lesson that renders is not a lesson that works.
 
+- **Launch your own browser. Never attach to one already running.** Use
+  Playwright's `chromium.launch()` (or `launch_persistent_context` with a
+  throwaway `user_data_dir` under your scratch directory). Do NOT connect over
+  CDP to a Chrome the user has open, and do NOT reuse their profile — that
+  browser holds their real logged-in accounts, and an automated click lands
+  wherever the OS put focus, not where you aimed. Measured 2026-08-31: a run
+  that attached to the user's live Chrome put a stray click on their personal
+  Instagram tab while testing a gradebook. An isolated *browser context* is not
+  enough; the contention is at the OS window level, so the browser process
+  itself has to be yours.
+- **If you cannot get an isolated browser, do not fall back to clicking
+  anyway.** Exercise the HTTP endpoints the UI calls and say plainly in your
+  report that on-screen rendering was NOT verified. That is an honest partial
+  result. Driving the user's own session is not an acceptable substitute for it.
+
 - **Run against Pages Functions, not the Next dev server.** `npx wrangler pages
   dev out` (port 8788). The dev server on 3002 stubs the Functions, so a save
   that "succeeds" there proves nothing. Local D1 is a separate database from
