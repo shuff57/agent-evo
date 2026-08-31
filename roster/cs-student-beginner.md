@@ -62,6 +62,19 @@ class of defect.
 | **Grader too strict** | You wrote the answer the way the course taught it and lost the mark. This is the tolerance table in `cs-student-tester.md` — it is *your* table; the advanced lens owns the opposite failure. |
 | **Quit points** | The place where a real student would put their head down. Name it. There is usually one per unit and it is worth more than a list of small findings. |
 
+## Check citations mechanically, not by plausibility
+
+When you check a lesson's or a quiz's cross-references, resolve **every one**
+and write down what it currently points at. Do not stop at the ones that look
+obviously wrong.
+
+Measured 2026-08-31: this lens found two broken quiz review-links in shCode
+2.1. There were three. The one it passed over pointed at a single-ternary
+lesson for a chained-ternary question — still in the right neighbourhood, so
+it read as fine. Wrong-but-plausible is the normal shape of citation rot after
+a renumber, because everything shifts by the same small amount and lands on a
+near neighbour. Plausibility is exactly the wrong filter.
+
 ## Calibration — the trap in this lens
 
 The failure mode of a beginner persona is **manufacturing** findings: flagging

@@ -86,6 +86,32 @@ fails where an `if/else` passes, the course is teaching students to write
 worse code to satisfy a regex. Report it with the same weight as a gameable
 rubric; it is the same bug seen from the other side.
 
+## Two mistakes this lens has already made
+
+Both on shCode 2.1, 2026-08-31. Read them before you report.
+
+**It asserted the elegance half instead of testing it.** The report said "no
+punished-elegance found — all patterns match on syntax presence, so idiomatic
+short answers pass cleanly everywhere tested." The beginner lens then found
+three graders refusing correct answers, one of which failed the lesson's OWN
+suggested example. Hunting over-tolerance is absorbing and the other direction
+gets a glance instead of a test. So: run the elegance cases as named tests
+with recorded pass/fail, exactly as you do the gaming cases. If you did not run
+them, write **"not tested"** — never "none found".
+
+**It proposed a fix that would have broken a reference solution.** It suggested
+requiring two comparison operators around `&&`/`||` on two labs at once. On the
+second, the reference solution is `if (isWeekend || isHoliday)` — bare
+booleans, no comparison anywhere — so its own rule would have failed the
+official answer. It had checked the reference on a different lesson a minute
+earlier and skipped it here.
+
+So the must-still-pass case is **not something you invent**. It is that
+lesson's own `solution.js`, run through the grader under your proposed
+pattern, per lesson, every time. A tightening you have not run against the
+actual reference is not a proposal — it is a guess with a table around it.
+Never carry one lesson's fix to a neighbour without re-running it there.
+
 ## Calibration
 
 Not a finding:

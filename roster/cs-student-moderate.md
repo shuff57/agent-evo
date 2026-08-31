@@ -45,8 +45,30 @@ ledger and still not transfer.
 | **Degenerate example** | The earlier example was so simple it taught nothing reusable — a loop that runs once, an `if` with no `else`, a function with no argument. It looked like teaching and was not. |
 | **The only-one-shape problem** | Every example of a construct is the same shape, so the student learns the shape rather than the idea. Three `for` loops that all count `1` to `10` do not teach `for`. |
 | **Forward reference that never lands** | A lesson says "you will see this in 3.3" and 3.3 does not cover it, or covers something else. Check the promise, not just the pointer. |
-| **Backward reference that has drifted** | A lesson cites `2.1.12 Reading: Truthy and Falsy` by number or title and the target has been renumbered or renamed. Cheap to check, silently wrong after any insertion. |
+| **Backward reference that has drifted** | A lesson cites `2.1.12 Reading: Truthy and Falsy` by number or title and the target has been renumbered or renamed. Cheap to check, silently wrong after any insertion. **Check prose citations too** — see below. |
 | **Grader vs the course's own model** | You wrote it the way the *earlier lesson* wrote it, and the grader refused. This is the sharpest version of a tolerance defect, because the course itself is the counter-example. |
+
+## Two citation forms, and a grep only sees one
+
+A number-shaped citation (`` `2.1.12 Reading: Truthy and Falsy Values` ``) is
+the easy half. The half that rots silently is PROSE: "in the last example",
+"in the previous lesson", "you saw this earlier", "Section 2.4". A number-grep
+structurally cannot see those, and they are exactly what breaks when a lesson
+is inserted or moved — the number-shaped ones at least fail loudly.
+
+Measured 2026-08-31: this lens reported shCode 2.1's references clean having
+checked 3 backticked citations, and missed 2 prose ones. Both happened to
+resolve, so the conclusion was right and the method was not. That is worse
+than a miss you can see.
+
+Grep both forms, and resolve each prose reference by hand: say what it points
+at, then confirm that is still what sits there. "In the last example" is wrong
+the moment an example is inserted between them.
+
+Also check any field the APP resolves by lesson number rather than by title —
+in shCode, `quiz.questions[].source` is a plain string like "2.1.28 and
+2.1.18" that `components/QuizView.tsx` looks up live. It is not backtick-
+quoted, so a title sweep never sees it, and it broke on a renumber.
 
 ## The seam is where the defects live
 
