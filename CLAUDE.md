@@ -24,6 +24,8 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 
 **Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
+**Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>20 new lines in one call, or writes touching 3+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
+
 **Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky.
 
 **When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, OR make a coordinated fix touching 3+ files (even a one-line change apiece), before writing any of it:**
@@ -69,6 +71,7 @@ Two axes the table above does not capture, both of which decided real outcomes:
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
 - **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-code-engineer`, fanned out in parallel.**
 - **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`code-engineer` (sonnet). Skip ollama entirely.**
+- **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4-flash:0731` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
 
 ### Build-from-scratch loop
 
@@ -272,6 +275,7 @@ A keyword in the user's message → invoke the named skill via the Skill tool be
 
 | Trigger | Skill |
 |---|---|
+| "$fable" | `fable` |
 | "write a commit", "/commit" | `caveman-commit` |
 | "deep interview", "interview me" | `deep-interview` |
 | "ultrawork", "ulw" | `ultrawork` |
