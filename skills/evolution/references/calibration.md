@@ -78,6 +78,38 @@ to add an 8th, evolver-meta must prune the least-validated one.
    for STRUCTURAL/SKILL_GAP/INCOMPLETE; modify:320 and modify:342 read in
    full, both independently confirmed MISSED)
 
+   SCOPE BROADENED 2026-09-03: this (a)/(b) test is not SKILL_WEAK-specific
+   -- the identical failure mechanism ("a documented pointer to the right
+   check/tool survives on paper but an agent bypasses it anyway because
+   nothing forces consultation at the point of use") now also accounts for
+   both of STRUCTURAL's 2 reconciled MISSES, clearing this table's
+   repeat-miss bar (>=2 MISSED) for a second divergence_type: (1)
+   ~/.claude/agents/code-engineer.md (target 2026-07-22T23:10:00Z) added a
+   prose "confirm the exit code directly, don't trust a piped/truncated
+   read" bullet; reconciled MISSED 2026-09-03 after
+   2026-08-30-toc-prose-restore-and-publish's own notes reported verbatim
+   "a piped exit code masked a red suite" -- the exact shape, 5+ weeks
+   later, with the bullet present and readable the whole time. (2)
+   .claude/skills/deck-bookshelf/SKILL.md (target 2026-08-18T03:14:03Z)
+   replaced a hand-rolled overflow check with a prose pointer to the
+   existing scripts/workflows/visual_check.py; reconciled MISSED
+   2026-08-19 after the very next deck-bookshelf session's
+   manual_repetitions logged "hand-rolled a getBoundingClientRect overflow
+   harness twice despite book-pipeline SKILL.md forbidding it." Both are
+   case (a) failures under this heuristic's own vocabulary -- a pointer,
+   not a forcing function. Going forward: before proposing ANY mutation
+   (regardless of divergence_type label) whose fix is "point the agent at
+   the correct existing check/tool/step via prose," apply this heuristic's
+   (a)/(b) test, not just for SKILL_WEAK. If a future prose-pointer-only
+   fix of any divergence_type reconciles MISSED with this same
+   present-but-bypassed mechanism without this heuristic having been cited
+   in its hypothesis, that is evidence the broadened scope itself isn't
+   being consulted and a future meta pass should consider a dedicated
+   STRUCTURAL-only heuristic instead of this cross-reference. (evidence:
+   both rows read in full 2026-09-03; STRUCTURAL's absolute MISSED count
+   independently confirmed at 2 of 25 reconciled STRUCTURAL rows via
+   direct scan of the current 405-row _workspace/_evolution_log.jsonl)
+
 2. Before proposing a mutation to a skill that was NOT present in
    `skill_loads` for any session in the current signal window, the evolver
    must note this in the hypothesis and downgrade confidence by one level
