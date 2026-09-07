@@ -71,11 +71,21 @@ undo. So a click must never be speculative, and `.checked = true` is *worse* tha
 no handler, saves nothing, and leaves the box looking ticked — a silent no-op that reads as success.
 Click the element for real.
 
-**Check whether it was already submitted.** The banner reads `Attendance submitted at
-<date> <time>`. If it is there, the teacher already took attendance by hand, and ticking a box
-amends a filed record rather than creating one — which usually means the human already decided
-that student was present. The exact string matters: matching `Attendance for today` (which is what
-it looks like it should say) reports "not submitted" for a period that was.
+**Check whether it was already submitted.** If the banner is there, the teacher already took
+attendance by hand, and ticking a box amends a filed record rather than creating one — which
+usually means the human already decided that student was present.
+
+Aeries writes that banner **two different ways**, both seen on the same page minutes apart:
+
+| Render path | String |
+|---|---|
+| initial page load | `Attendance submitted at 08/25/2026 11:51 AM` |
+| period-change postback | `Attendance for today was submitted at 8/25/2026 11:51 AM.` |
+
+Match both — `/Attendance (?:for today )?(?:was )?submitted at/i`. Matching only one reports "not
+yet submitted" for a period that was, which silently disarms the `--amend` guard. A blank banner
+right after switching periods is the tell that the regex is too narrow, not that the period is
+unfiled.
 
 **"Last Access" on the roster is not enough.** It is only the *most recent* login. A student who
 worked through the period and logged in again at lunch shows a post-class time and reads as absent.
