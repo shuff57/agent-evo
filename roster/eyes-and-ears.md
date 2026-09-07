@@ -365,7 +365,45 @@ beat is invisible at t=0 — same trap as sampling an MP4 only at its open.
    visible outside that shape's bounds. (Hit for real: a flowchart's return
    arrow was fully hidden behind a box it routed behind — 2026-08-16, the
    `flow_svg` renderer.)
-14. Numbers with every claim: rect coordinates, computed colours, px gaps, the
+14. **A line that geometrically crosses text is not a paint-order problem —
+   reordering will not fix it.** Paint order controls which of two
+   OVERLAPPING elements sits on top; it cannot fix a stroke whose own path
+   runs THROUGH a text element's box, because no stacking order makes a
+   line crossing a glyph stop touching it. If a recut that reorders
+   elements to fix one occlusion keeps creating a new occlusion elsewhere,
+   that oscillation is the tell: stop reordering and check whether the
+   stroke's path itself intersects any text bbox — sample points along the
+   path (not just its endpoints) against every text element's `getBBox()`,
+   in both themes. The fix is to reroute the path's own geometry, not its
+   z-index. `svg_collision_check.mjs` will not catch this for a stroke
+   under 2px wide — its HAIRLINES exclusion (see the script's own comment)
+   treats any sub-2px stroke as a rule, not a mark through the glyphs, so a
+   thin dashed connector can cross text and still report CLEAN through any
+   number of recut rounds. (Hit for real: `def_2.6.1`, IM1 chapter 2 — six
+   recut rounds patching paint order before the actual defect, a 1.5px
+   dashed connector's Bezier curve crossing three text elements, was found
+   by sampling the path against every text bbox directly — 2026-09-03.)
+15. **`svg_collision_check.mjs` checks text collisions only — no shape-vs-shape
+   or stroke-vs-shape detection exists at any stroke width.** Item 14's
+   HAIRLINES carve-out (sub-2px strokes excluded from the text check) is a
+   narrower thing than this: read the script itself and its only two
+   measurements are text-vs-text overlap and stroke-vs-text ("struck
+   through"). A trend line, axis, data-point marker, or arrow path crossing
+   some OTHER piece of geometry — not text — is invisible to this gate
+   regardless of stroke width, because the tool never samples path-vs-shape
+   or path-vs-path at all. Verify by hand the way item 14 does for text:
+   sample points along each drawn path/marker against every OTHER geometry
+   element's `getBBox()` (trend lines, axis lines, data-point circles/rings,
+   arrowheads), not only against text. This is a categorical gap in the
+   tool, not a threshold to widen — the real fix is a code change adding
+   non-text path/shape collision sampling to `svg_collision_check.mjs`;
+   this checklist item is a stopgap until that lands. (Hit for real:
+   `def_2.7.2`'s y-intercept leader line and `def_2.7.4`'s ring markers,
+   IM1 chapter 2 — both crossed trend-line/axis/data-point geometry, both
+   caught only by manual coordinate sampling, neither flagged by
+   `svg_collision_check.mjs` — 2026-09-04, same session as item 14's
+   def_2.6.1 hit, immediately after item 14 was added.)
+16. Numbers with every claim: rect coordinates, computed colours, px gaps, the
    `currentTime` you measured at — same rule as the ears.
 
 **Parity against the manim original** (when replacing an existing figure):
