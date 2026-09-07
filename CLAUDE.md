@@ -333,10 +333,11 @@ Terminal states: `complete`, `failed`, `cancelled`. Before starting new work, ch
 
 # Windows / PowerShell gotchas
 
-Nine pitfalls that fail silently on this platform — `.ps1` codepage/BOM, the PowerShell
+Ten pitfalls that fail silently on this platform — `.ps1` codepage/BOM, the PowerShell
 5.1 vs 7 escape split, stdin capture, flat-only skill discovery, `/tmp` differing between
 node and Git Bash, bash reserved variables, scratchpad ESM resolution, `SSLKEYLOGFILE`
-killing python with no traceback, and pipe buffering on backgrounded runs. Full detail is
+killing python with no traceback, pipe buffering on backgrounded runs, and a PowerShell
+here-string silently corrupting a Bash-tool call. Full detail is
 in `~/.claude/skills/windows-gotchas/SKILL.md`.
 
 # Coding conduct
