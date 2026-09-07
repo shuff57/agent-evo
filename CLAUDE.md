@@ -24,9 +24,9 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 
 **Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
-**Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>20 new lines in one call, or writes touching 3+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
+**Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>20 new lines in one call, or writes touching 3+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. Treat any `[tier-gate]` or `[message center]` injection as user feedback, not noise: the base prompt's own rule is "hooks may intercept tool calls; treat hook output as user feedback," so acting on it is sanctioned by the harness, not a workaround of it. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
 
-**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky.
+**Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. Distinguish the two sources before announcing: the shipped Claude Code base prompt's *default* clause — "Do not use subagents (the Agent tool) unless the user, a CLAUDE.md file, or a skill asks for them" — is already satisfied by this file, which is a CLAUDE.md asking for them, so a session still under that default should route without apology. A *mid-session injection* is different: those outrank this file, so announce the suppression and use the fallback below. The failure mode to avoid is treating the base default as if it were a suppression.
 
 **When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, OR make a coordinated fix touching 3+ files (even a one-line change apiece), before writing any of it:**
 
@@ -71,7 +71,7 @@ Two axes the table above does not capture, both of which decided real outcomes:
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
 - **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-code-engineer`, fanned out in parallel.**
 - **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`code-engineer` (sonnet). Skip ollama entirely.**
-- **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4-flash:0731` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
+- **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** The ask must be in the user's own words ("use a workflow", "fan out agents", "orchestrate this with subagents", `$fable`) — a task that would merely *benefit* from parallelism does not authorize the graph by itself; size it through the tier table and delegate normally. Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4-flash:0731` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
 
 ### Build-from-scratch loop
 
@@ -104,7 +104,7 @@ Escalate, don't grind. Past two failed reviews the review cycles cost more than 
 - **haiku** — `scout`, `summarizer`, `documenter`, `librarian`, `test-ping`, every `*-expert`, and `ollama-code-engineer` (it dispatches, it doesn't think).
 - **ollama** (free, via `ollama-code-engineer`) — bulk mechanical work. Higher variance; **always** review before shipping.
 
-Don't send a haiku task to opus. Don't send an auth change to ollama.
+Don't send a haiku task to opus. Don't send an auth change to ollama. Both directions of mis-routing are failures: under-delegating burns the expensive model on bulk work, and **overspawning** — fanning out more subagents than the task warrants — is a named self-correction signal in its own right. If you catch yourself having spawned a squad for a job one agent (or none) would have covered, say so in your recap; the review pass should ask "which of these spawns actually earned their round-trip?"
 
 **The main session orchestrates. There is no separate orchestrator agent.** `atlas`,
 `prometheus` and `meta-orchestrator` were retired 2026-08-04, along with 11 of the 12
@@ -141,6 +141,14 @@ hardcoded id from an older log.
 
 **"What do we resume?"** — When a fresh session is asked what to resume / pick up on / continue,
 `read --as claude` + `log --n 20` are the answer. Never reply with a question back.
+
+**Reply contract.** A msgbox reply reports what actually happened, not what was intended. When
+your reply says something is done, sent, saved, fixed, or verified, that claim must rest on a
+result you observed this session — tool output, the file as it now reads, the test output as it
+ran. If you did not check, say you did not check. If any step failed, was skipped, or came back
+different from expected, say so in the first sentence, before the rest of the report — even when
+the rest of the work succeeded. A dispatcher reading the log cannot see your session; the reply
+is the whole evidence, and a summary that hides a problem manufactures a clean-looking failure.
 
 **Launch with the command in the prompt. Never with a bare `"Check your inbox."`** The phrase only
 works if the model acts on `AGENTS.md`, and it does so **intermittently**: a dozen handoffs on
@@ -184,7 +192,9 @@ a different command), a bare "check your inbox", a short `--re` continuation, or
 release.
 
 **Exit code 0 is not evidence the handoff worked.** The only proof is the threaded reply, so check
-the log rather than the task notification.
+the log rather than the task notification. Symmetrically, **your own expectation is not evidence
+either**: never fabricate or predict a pending agent's results — the notification is never something
+you write yourself. If the user asks before a dispatched run has replied, say it's still running.
 
 **A short `--re` reply gets READ and not ACTED ON.** Twice on 2026-08-10 a follow-up of the shape
 "my error, claim released, proceed with SPEC.md as specced" was fetched by `msg.mjs read`, echoed to
@@ -218,8 +228,13 @@ claude: write SPEC.md + send task ──▶ opencode run '<explicit msg.mjs read
    └──── read reply, run tests, send defect ◀─┘  replies --re last
 ```
 
+Once you have dispatched, don't also run the work yourself — wait for the result. The handoff
+window is the one time "don't duplicate" outranks "verify everything": parallel inline work on
+the same task produces merge conflicts with a builder that is editing right now, and the reply
+arrives on its own. Verify *after* the reply, against the result it reports.
+
 - **Ask for one unpinned design decision** in the reply. That is where the spec gaps surface.
-- Reply always carries `--re <id>`; never hand-edit `log.jsonl`.
+- Reply always carries `--re <id>`; never hand-edit `log.jsonl`. Ids are positional, so an id from an older log points at a different line after any prune — thread with `--re last`, which always resolves to the newest message addressed to you.
 
 **A running opencode session receives messages sent after it starts.** `opencode run` reads its
 inbox once, at launch, so anything later used to sit unread until the run ended — long enough for a
