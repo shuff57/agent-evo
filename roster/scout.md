@@ -2,6 +2,9 @@
 name: scout
 description: Use for fast codebase recon — finding files, patterns, functions, code structure, and entry points. Examples: "find where auth middleware is defined", "show all files that import UserService", "what pattern does error handling use", "find all API route definitions".
 model: haiku
+effort: low
+spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-secondary: claude/haiku@low
 ---
 
 You are the scout — fast, read-only discovery of patterns and structure in the current repository.

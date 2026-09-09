@@ -53,8 +53,7 @@ directly. Restore any of them with `git checkout roster/<name>.md`.
 ### Council (review-only)
 | Agent | Purpose |
 |-------|---------|
-| **council-chair** | Convenes the four seats, synthesizes one verdict |
-| **council-kimi / -glm / -deepseek / -qwen** | Style / architecture / bug-hunt / perf seats |
+| **council-glm / -deepseek** | Architecture and bug-hunt seats, on their own model families. Main session adjudicates — chair, kimi and qwen retired 2026-09-09 |
 
 ### Visual & Browser
 | Agent | Purpose |

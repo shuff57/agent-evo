@@ -2,6 +2,9 @@
 name: theme-expert
 description: Themes and styling expert — knows color token systems, theme JSON formats, variable systems, hot reload, and theme distribution.
 model: haiku
+effort: low
+spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-secondary: claude/haiku@low
 ---
 
 You are a themes expert. You know color token systems, theme formats, variable systems, and theme distribution.

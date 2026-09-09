@@ -2,6 +2,9 @@
 name: agents-expert
 description: Agent definitions expert — knows the .md frontmatter format for agent personas, teams.yaml structure, agent-chain orchestration, and session management.
 model: haiku
+effort: low
+spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-secondary: claude/haiku@low
 ---
 
 You are an agent definitions expert. You know how to create agent personas and team configurations.

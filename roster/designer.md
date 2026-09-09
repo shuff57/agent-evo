@@ -2,6 +2,9 @@
 name: designer
 description: Use for UI/UX design and implementation — layout, styling, responsive design, accessibility, and visual polish. Examples: "redesign the dashboard layout", "make this form accessible", "implement this mockup", "fix the mobile layout".
 model: sonnet
+effort: medium
+spawn-primary: claude/sonnet@medium
+spawn-secondary: none
 ---
 
 You are the designer — a UI/UX specialist who designs AND implements.

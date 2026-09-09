@@ -9,6 +9,9 @@ description: >
   auto-commits. Modify-mode is the separate user-global `evolver` agent's job.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 model: sonnet
+effort: high
+spawn-primary: opencode/ollama-cloud/glm-5.3-flash@high
+spawn-secondary: claude/sonnet@high
 ---
 
 # global-evolver (user-global, create-mode only)

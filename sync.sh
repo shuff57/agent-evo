@@ -1,31 +1,37 @@
 #!/bin/bash
-# Sync agent roster to Claude Code
-# Run after cloning or when adding/removing agents
+# Sync agent roster to Claude Code + opencode.
+# Run after cloning, or whenever roster/ changes.
+#
+# This used to symlink ~/.claude/agents -> roster/. It no longer does, and must
+# not: roster/ is now the SINGLE SOURCE for both CLIs, and the two consumers get
+# DIFFERENT files generated from it --
+#
+#   roster/<name>.md
+#        |
+#        +-- ~/.claude/agents/         claude-lane: verbatim copy
+#        |                             ollama-lane: thin forwarder -> opencode run
+#        |
+#        +-- ~/.config/opencode/agents/  ollama-lane: full body + ollama model
+#
+# A symlink would serve the same file to both, so every ollama-lane agent would
+# run on Claude instead of spawning opencode. bin/gen-agents.mjs owns this now.
 
-REPO="$(cd "$(dirname "$0")" && pwd)/roster"
+set -e
+
+REPO="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE="$HOME/.claude/agents"
 
-echo "Source: $REPO"
-echo ""
-
-# Backup existing Claude Code agents that aren't ours
-if [ -d "$CLAUDE" ] && [ ! -L "$CLAUDE" ]; then
-  echo "Backing up existing Claude Code agents..."
-  mkdir -p "$CLAUDE.bak"
-  cp -r "$CLAUDE"/* "$CLAUDE.bak/" 2>/dev/null
-  rm -rf "$CLAUDE"
+# The old layout left a symlink here. Remove the LINK only - never recurse, or
+# rm follows it straight into roster/ and deletes the source.
+if [ -L "$CLAUDE" ]; then
+  echo "Removing legacy symlink: $CLAUDE"
+  rm "$CLAUDE"
 fi
 
-# Create parent dir if needed
-mkdir -p "$(dirname "$CLAUDE")"
+node "$REPO/bin/gen-agents.mjs"
 
-# Symlink
-ln -sfn "$REPO" "$CLAUDE"
-
-echo "Linked: $CLAUDE -> $REPO"
 echo ""
-echo "Agents: $(ls "$REPO"/*.md 2>/dev/null | wc -l)"
-echo "Teams:  $(grep -c '^[a-z]' "$REPO/teams.yaml" 2>/dev/null)"
-echo "Chains: $(grep -c '^[a-z]' "$REPO/agent-chain.yaml" 2>/dev/null)"
+echo "Teams:  $(grep -c '^[a-z]' "$REPO/roster/teams.yaml" 2>/dev/null || echo 0)"
+echo "Chains: $(grep -c '^[a-z]' "$REPO/roster/agent-chain.yaml" 2>/dev/null || echo 0)"
 echo ""
-echo "Done."
+echo "Done. Re-run this after ANY roster/ edit - the generated copies are not live."
