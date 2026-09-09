@@ -1,5 +1,5 @@
 ---
-description: Thin forwarding wrapper that runs a spec on a cheap-tier builder and returns stdout verbatim. Proactively use when a task exceeds inline scope (20+ lines or 3+ files) and should go to a cheaper model.
+description: Thin forwarding wrapper that runs a spec on a cheap-tier builder and returns stdout verbatim. Proactively use when a task exceeds inline scope (10+ lines or 2+ files) and should go to a cheaper model.
 mode: subagent
 model: ollama-cloud/glm-5.3-flash
 permission:

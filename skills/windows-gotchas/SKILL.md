@@ -1,6 +1,6 @@
 ---
 name: windows-gotchas
-description: Windows and PowerShell pitfalls that silently corrupt Claude Code scripts, hooks, and verification steps. Use when writing or debugging a .ps1 script, a hook, or a statusline; when node and Git Bash exchange files; when python dies with no traceback; when constructing a multi-line string (e.g. a commit message) for the Bash tool; and whenever something "runs fine but produces nothing" on Windows. Covers .ps1 ANSI codepage/BOM, the PowerShell 5.1 vs 7 escape split, stdin capture, flat-only skill discovery, /tmp differing between node and Git Bash, bash reserved variables shadowing assignments, scratchpad ESM failing to resolve repo node_modules, SSLKEYLOGFILE set by antivirus killing python outright, pipes buffering a backgrounded process until exit, and a PowerShell here-string silently corrupting a Bash-tool call instead of erroring.
+description: Windows and PowerShell pitfalls that silently corrupt Claude Code scripts, hooks, and verification steps. Use when writing or debugging a .ps1 script, a hook, or a statusline; when node and Git Bash exchange files; when python dies with no traceback; when constructing a multi-line string (e.g. a commit message) for the Bash tool; when a script dies with MODULE_NOT_FOUND on a path that looks plausible; and whenever something "runs fine but produces nothing" on Windows. Covers .ps1 ANSI codepage/BOM, the PowerShell 5.1 vs 7 escape split, stdin capture, flat-only skill discovery, /tmp differing between node and Git Bash, bash reserved variables shadowing assignments, scratchpad ESM failing to resolve repo node_modules, SSLKEYLOGFILE set by antivirus killing python outright, pipes buffering a backgrounded process until exit, a PowerShell here-string silently corrupting a Bash-tool call instead of erroring, and a script hardcoding one user's home directory breaking on any other box.
 ---
 
 # Windows / PowerShell gotchas
@@ -28,5 +28,19 @@ When writing `.ps1` scripts (e.g. statusline, hooks) that will be invoked by Cla
   set it empty in the harness env. `http.client` is unaffected for plain HTTP; `curl`
   is unaffected entirely (it ships its own OpenSSL), which is why a curl probe can pass
   while the equivalent python crashes.
+- **A script hardcoding one user's absolute home directory (e.g.
+  `C:/Users/<name>/...`) dies with `MODULE_NOT_FOUND` on any other box**, on a
+  path that looks entirely plausible — it reads as "the script is broken,"
+  not "the script is pinned to a different username." Writing the fix into
+  the one file that hit it does not propagate to siblings: `bin/handoff.mjs`
+  documented this exact failure and its fix before `svg_render_png.mjs` was
+  ever written, then `svg_render_png.mjs` hit the identical bug and was fixed
+  2026-09-06 — while `scene_preview.mjs` and `build_shorts_sheet.mjs` still
+  carried it afterward. Derive the path instead of hardcoding it:
+  `const require = createRequire(fileURLToPath(new URL('../../package.json',
+  import.meta.url)));` (ESM) or `__dirname` (CJS) — never a literal home
+  directory. When a script dies with `MODULE_NOT_FOUND` on a plausible-looking
+  path, grep the file for the hardcoded username before debugging anything
+  else.
 - **Piping a backgrounded process through `tail`/`head` buffers until the pipe closes.** Checking on a long dispatch with `... | tail -n 20` or `| head -c 500` reads back 0 bytes every time until the underlying process exits — the pipe doesn't flush interim output, so it looks like the run has produced nothing right up until it's already over. Measured 2026-08-16 polling a `handoff.mjs` dispatch. Read the target file/log directly (no pipe) to see interim progress, or poll a sentinel the run itself writes.
 - **A PowerShell here-string (`@'...'@`) fed to the Bash tool corrupts silently instead of erroring.** The Bash tool runs Git Bash/POSIX `sh`, which has no `@'...'@` syntax — it reads the `@'` and `'@` delimiter lines as ordinary text, not as string fencing. Passed as a multi-line `git commit -m` body, this commits the delimiter lines themselves as stray `@` lines in the message, and the command still **exits 0** — nothing signals the corruption, so it reads as a clean commit until `git log` is actually read. Recovery is `git commit --amend -F <fixed-message-file>` (a second `--amend -F` is needed if the first fix attempt is typed with the same here-string syntax by mistake). Measured 2026-09-02 on bookSHelf. Use a bash heredoc (`<<'EOF' ... EOF`, per the Bash tool's own instructions) or a single quoted `-m "..."` string for the Bash tool; `@'...'@` is for the PowerShell tool only, never Bash.

@@ -1,7 +1,7 @@
 // Makes the tier-routing policy in CLAUDE.md mechanical instead of prose.
 //
-// The policy says: any session writing more than ~20 lines of new code, or making a
-// coordinated fix touching 3+ files, should be delegated to a cheaper-tier builder
+// The policy says: any session writing more than ~10 lines of new code, or making a
+// coordinated fix touching 2+ files, should be delegated to a cheaper-tier builder
 // rather than typed inline. That rule lives in a markdown file the model must
 // *choose* to obey, and it was measured skipped twice (2026-08-17: an entire new
 // lesson type built inline, never announced; 2026-08-18: 23 one-line edits across
@@ -25,8 +25,8 @@ import os from "os";
 import path from "path";
 
 const WRITERS = new Set(["write", "edit", "patch", "multiedit"]);
-const LINE_THRESHOLD = 20; // CLAUDE.md: "more than ~20 lines of new code"
-const FILE_THRESHOLD = 3; // CLAUDE.md: "coordinated fix touching 3+ files"
+const LINE_THRESHOLD = 10; // CLAUDE.md: "more than ~10 lines of new code"
+const FILE_THRESHOLD = 2; // CLAUDE.md: "coordinated fix touching 2+ files"
 const MARKER = "[tier-gate]";
 
 function stateDir() {
@@ -65,6 +65,155 @@ function filePathOf(args) {
   return args?.filePath ?? args?.path ?? args?.file_path ?? null;
 }
 
+// Detect write-shaped Bash commands so the gate fires on Bash-first editing
+// (python -c, sed -i, cat > f <<EOF) the same way it does on write/edit.
+// Total: any error returns a non-write. Duplicated in hooks/tier-gate.js.
+function heredocLines(raw) {
+  const arr = raw.split("\n");
+  let total = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const m = arr[i].match(/<<-?\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/);
+    if (!m) continue;
+    const delim = m[1] ?? m[2] ?? m[3];
+    let j = i + 1;
+    while (j < arr.length && arr[j].trim() !== delim) j++;
+    total += j - (i + 1);
+  }
+  return total;
+}
+
+function maskHeredocBodies(text) {
+  const arr = text.split("\n");
+  const out = arr.slice();
+  for (let i = 0; i < arr.length; i++) {
+    const m = arr[i].match(/<<-?\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/);
+    if (!m) continue;
+    const delim = m[1] ?? m[2] ?? m[3];
+    let j = i + 1;
+    while (j < arr.length && arr[j].trim() !== delim) j++;
+    for (let k = i + 1; k < j; k++) out[k] = "\u0000".repeat(out[k].length);
+  }
+  return out.join("\n");
+}
+
+function findRedirects(text) {
+  const files = [];
+  const re = />+/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const before = text[m.index - 1];
+    const after = text[m.index + m[0].length];
+    if (before === "&") continue; // fd-dup: 2>&1, &>
+    if (after === "&") continue; // >&
+    const rest = text.slice(m.index + m[0].length);
+    const tok = rest.match(/^\s*([^\s;&|]+)/);
+    if (tok) {
+      const t = tok[1];
+      if (["/dev/null", "/dev/stdout", "/dev/stderr"].includes(t)) continue;
+      files.push(t);
+    }
+  }
+  return files;
+}
+
+function lastNonFlag(text) {
+  const args = text.trim().split(/\s+/);
+  for (let i = args.length - 1; i >= 0; i--) {
+    if (args[i] && !args[i].startsWith("-")) return args[i];
+  }
+  return null;
+}
+
+export function bashWrite(command) {
+  try {
+    if (typeof command !== "string") return { isWrite: false, files: [], lines: 0 };
+    const raw = command;
+
+    // Step C — heredoc line counting on the raw text.
+    const lines = heredocLines(raw);
+
+    // Step A — mask heredoc bodies first (so their operators never count), then
+    // quoted regions, producing the operator-scan text.
+    const scanText = maskHeredocBodies(raw).replace(
+      /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g,
+      (m) => "\u0000".repeat(m.length)
+    );
+
+    const files = [];
+    let isWrite = false;
+
+    // Output redirect: `>` / `>>` not an fd-dup.
+    const redirectFiles = findRedirects(scanText);
+    if (redirectFiles.length) {
+      isWrite = true;
+      files.push(...redirectFiles);
+    }
+
+    // Read-only git commands are never a write — unless a redirect above already won.
+    const words = raw.trim().split(/\s+/);
+    const firstWord = (words[0] || "").toLowerCase();
+    if (firstWord === "git") {
+      const sub = (words[1] || "").toLowerCase();
+      if (["status", "log", "diff", "show", "grep", "branch", "rev-parse", "ls-files"].includes(sub) && !isWrite) {
+        return { isWrite: false, files: [], lines: 0 };
+      }
+    }
+
+    // sed -i / sed --in-place
+    if (firstWord === "sed" && /(^|\s)(-i|--in-place)(\s|$)/.test(scanText)) {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // tee
+    if (firstWord === "tee") {
+      isWrite = true;
+      const args = scanText.trim().split(/\s+/).slice(1);
+      for (const a of args) if (a && !a.startsWith("-")) files.push(a);
+    }
+
+    // cp / mv / install
+    if (["cp", "mv", "install"].includes(firstWord)) {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // truncate / dd of= / patch
+    if (firstWord === "dd") {
+      const m = scanText.match(/\bof=(\S+)/);
+      if (m) {
+        isWrite = true;
+        files.push(m[1]);
+      }
+    } else if (firstWord === "truncate" || firstWord === "patch") {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // git apply / git checkout --
+    if (firstWord === "git" && (words[1] === "apply" || (words[1] === "checkout" && words[2] === "--"))) {
+      isWrite = true;
+    }
+
+    // Interpreters: only a write if the RAW command carries a write token.
+    if (["python", "python3", "node", "perl", "ruby"].includes(firstWord)) {
+      if (/open\([^)]*,\s*['"][wax]|\.write\(|writeFileSync|writeFile\(|Set-Content|Out-File|(^|\s)-i(\s|$)/.test(raw)) {
+        isWrite = true;
+      }
+    }
+
+    // Step D — unattributable writes collapse to one sentinel.
+    if (isWrite && files.length === 0) files.push("<bash:unattributed>");
+
+    return { isWrite, files, lines };
+  } catch {
+    return { isWrite: false, files: [], lines: 0 };
+  }
+}
+
 // Lines actually introduced by this call: for `write` the whole file is new
 // (conservative upper bound — re-writing an existing file counts as its size),
 // for edit/patch the joined diff hunks / new content.
@@ -93,13 +242,24 @@ export const TierGate = async ({ directory }) => {
   return {
     "tool.execute.after": async (input, output) => {
       try {
-        if (!WRITERS.has(String(input.tool).toLowerCase())) return;
+        const tool = String(input.tool).toLowerCase();
+        if (!WRITERS.has(tool) && tool !== "bash") return;
         const state = track(input.sessionID);
         if (state.announced) return; // once per session is all the policy asks
 
-        const file = filePathOf(input.args);
-        if (file && !state.files.includes(file)) state.files.push(file);
-        const lines = newLinesOf(String(input.tool).toLowerCase(), input.args);
+        let file = filePathOf(input.args);
+        let lines = newLinesOf(tool, input.args);
+
+        // Bash: only write-shaped commands feed the counters; everything else is
+        // ignored exactly like a read.
+        if (tool === "bash") {
+          const bw = bashWrite(String(input.args?.command ?? ""));
+          if (!bw.isWrite) return;
+          for (const f of bw.files) if (f && !state.files.includes(f)) state.files.push(f);
+          lines = bw.lines;
+        } else if (file && !state.files.includes(file)) {
+          state.files.push(file);
+        }
         // Persist on every write, not just on announcing — otherwise a plugin reload
         // (or a second opencode instance for the same session) forgets the file count
         // and the 3-file line never fires. Caught by the persistence unit test.

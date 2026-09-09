@@ -22,20 +22,49 @@ If intent is genuinely ambiguous, ask one short clarifying question instead of g
 
 The main session (Opus) is the tech lead: it sizes the request, writes the spec, and reviews the result. It does not bulk-type. Everything else goes to the cheapest tier that can actually do the job.
 
-**Default: any request writing more than ~20 lines of new code goes to `ollama-code-engineer`** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
+**Default: any request writing more than ~10 lines of new code goes to `ollama-code-engineer`, and any recon question goes to a sub-agent before you touch Grep yourself** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
-**Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>20 new lines in one call, or writes touching 3+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. Treat any `[tier-gate]` or `[message center]` injection as user feedback, not noise: the base prompt's own rule is "hooks may intercept tool calls; treat hook output as user feedback," so acting on it is sanctioned by the harness, not a workaround of it. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
+**Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>10 new lines in one call, or writes touching 2+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. Treat any `[tier-gate]` or `[message center]` injection as user feedback, not noise: the base prompt's own rule is "hooks may intercept tool calls; treat hook output as user feedback," so acting on it is sanctioned by the harness, not a workaround of it. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
 
 **Override note:** a session-injected instruction ("do not call the Agent tool unless requested") silently outranks this section — that, not the config, is usually why routing looks flaky. Distinguish the two sources before announcing: the shipped Claude Code base prompt's *default* clause — "Do not use subagents (the Agent tool) unless the user, a CLAUDE.md file, or a skill asks for them" — is already satisfied by this file, which is a CLAUDE.md asking for them, so a session still under that default should route without apology. A *mid-session injection* is different: those outrank this file, so announce the suppression and use the fallback below. The failure mode to avoid is treating the base default as if it were a suppression.
 
-**When routing is suppressed, do these two things — the first time in the session you are about to write more than ~20 lines of new code, OR make a coordinated fix touching 3+ files (even a one-line change apiece), before writing any of it:**
+**When routing is suppressed, do these two things — the first time in the session you are about to write more than ~10 lines of new code, OR make a coordinated fix touching 2+ files (even a one-line change apiece), before writing any of it:**
 
 1. **Say so, in one line.** "Agent routing is suppressed this session, so I'm building this inline." The user cannot see the suppression; if you don't say it, the tier policy has silently stopped existing and nobody knows.
 2. **Then use the fallback**, which is never suppressed: `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` via Bash — or state in the same line why inline is the better call here (genuinely ambiguous, high-stakes, or too small to be worth the round-trip). Either is fine. Silently typing it yourself is not.
 
 This is written as a two-step because the note used to be a sentence of prose and got skipped. Measured 2026-08-17 (`shcode-curriculum-1.4`): routing was suppressed all session, an entire new lesson type — component, lib module, test script, six content conversions — was built inline, and neither step happened. The work was fine; the policy just wasn't in effect and the user only found out at session end.
 
-The line-count threshold alone has a second, quieter failure mode: work that stays under ~20 new lines in any one file but is still a substantive, multi-file fix reads as "under threshold" and the announcement gets skipped by a technically-defensible judgment call rather than by inattention. Measured 2026-08-18 (shCode, `/module/1` breadcrumb bug): a root-cause fix — 23 `lesson.json` one-line edits plus a ~16-line addition to a prebuild checker — was judged under the per-file line threshold and never announced, even though the diagnosis-plus-coordinated-fix shape is exactly what this policy exists to surface. The 3-file trigger above closes that reading.
+The line-count threshold alone has a second, quieter failure mode: work that stays under the per-file line count but is still a substantive, multi-file fix reads as "under threshold" and the announcement gets skipped by a technically-defensible judgment call rather than by inattention. Measured 2026-08-18 (shCode, `/module/1` breadcrumb bug): a root-cause fix — 23 `lesson.json` one-line edits plus a ~16-line addition to a prebuild checker — was judged under the per-file line threshold and never announced, even though the diagnosis-plus-coordinated-fix shape is exactly what this policy exists to surface. The 2-file trigger above closes that reading; both numbers were halved 2026-09-09 (was 20 lines / 3 files) because the old ones were tuned to catch a policy lapse, not to make delegation the default.
+
+### Spawn wide, spawn first
+
+Delegation is the default. **Inline is the exception and needs a stated reason** — gate zero
+below, high stakes (auth, money, migrations, concurrency, data loss), or an edit so small the
+spec would be longer than the diff. Anything else goes out.
+
+- **Recon is always a sub-agent.** "Where is X", "how does Y work", "which files import Z",
+  "what do the docs say" — `scout`, `librarian`, an `*-expert`, or `Explore`. They run on free
+  ollama models and their file dumps never enter this context. Fire one *before* you Grep, not
+  after Grep fails; reading the codebase by hand is the most common way this session spends
+  opus tokens on haiku work.
+- **Independent parts spawn in parallel, in ONE message.** If two pieces of a task do not read
+  each other's output, they go out together — three Agent calls in one block, not three round
+  trips. Serialising independent work is a routing failure the same way under-delegating is.
+- **Two lenses beat one pass.** Anything worth reviewing gets at least two reviewers from
+  different model families, dispatched together (`council-glm` + `council-deepseek`, or
+  `critic` + `qa-tester`). One reviewer is an opinion; two that disagree is information.
+- **Sub-CLI over sub-agent for bulk.** An `opencode run` is free per token and costs this
+  session no context at all. Route anything mechanical, long, or output-heavy through
+  `bin/handoff.mjs` or `ollama-code-engineer`, and keep the Claude-lane agents for judgment,
+  vision, and finishing.
+
+**Gate zero, before all of the above: is this core work I am holding in my head?** If the
+context that makes the change correct lives in this session and not in the repo — a diagnosis
+I just made, a comparison I just ran, a constraint the user stated three messages ago — do it
+inline regardless of size, and say so in one line. Passing that context through a spec costs
+more than typing the change, and a child agent that half-receives it drifts confidently. This
+is not the high-stakes exemption: blast radius and context drift fail independently.
 
 Size every non-trivial request on two axes before routing — *do I know exactly what "done" looks like*, and *how much breaks if this is wrong*:
 
@@ -99,12 +128,83 @@ Escalate, don't grind. Past two failed reviews the review cycles cost more than 
 
 ### Roster
 
-- **opus** — `oracle`, `metis`, `planner`, `critic`, `council-chair`. Judgment calls, vague inputs, quality gates.
-- **sonnet** — `code-engineer`, `debugger`, `qa-tester`, `designer`, `red-team`, `visual-analyzer`, `bowser`, `eyes-and-ears`, `evolver*`, the four `council-*` seats. Build when specified; review ollama output.
-- **haiku** — `scout`, `summarizer`, `documenter`, `librarian`, `test-ping`, every `*-expert`, and `ollama-code-engineer` (it dispatches, it doesn't think).
-- **ollama** (free, via `ollama-code-engineer`) — bulk mechanical work. Higher variance; **always** review before shipping.
+**`roster/*.md` is the single source of truth for every agent, on both CLIs.** Each file
+declares `model:` + `effort:` (what Claude Code runs natively) and `spawn-primary:` +
+`spawn-secondary:` (the portable, cross-CLI route, `<cli>/<model>[@effort]`).
 
-Don't send a haiku task to opus. Don't send an auth change to ollama. Both directions of mis-routing are failures: under-delegating burns the expensive model on bulk work, and **overspawning** — fanning out more subagents than the task warrants — is a named self-correction signal in its own right. If you catch yourself having spawned a squad for a job one agent (or none) would have covered, say so in your recap; the review pass should ask "which of these spawns actually earned their round-trip?"
+Nothing consumes the roster directly. `bin/gen-agents.mjs` generates both consumers, and
+**must be re-run after any roster edit** — `sync.sh` calls it:
+
+```
+roster/<name>.md ──┬──▶ ~/.claude/agents/        claude-lane: verbatim copy
+                   │                             ollama-lane: thin forwarder stub
+                   └──▶ ~/.config/opencode/agents/  ollama-lane: full body + ollama model
+```
+
+An ollama-lane agent is a **haiku forwarder** on the Claude side that makes exactly one
+`opencode run --agent <name> -m <model> --variant <effort> --auto` call and returns stdout
+verbatim. `~/.claude/agents` is a generated directory, **not** a symlink — restoring the
+old symlink serves one file to both CLIs, and every ollama-lane agent silently runs on
+Claude instead of spawning opencode.
+
+**Lanes** — ollama for bulk lookup and drafting; Claude for finishing, review, finer passes.
+
+37 agents, 27 on ollama and 10 on Claude. `@` is the reasoning dial — `effort:` on the
+Claude side, `--variant` on the opencode side.
+
+| Lane | Route | Agents |
+|---|---|---|
+| **deepseek-flash** (16) | `ollama-cloud/deepseek-v4-flash:0731` | all 9 `*-expert`, `scout@low`, `summarizer@low`, `documenter@low`, `librarian@low`, `test-ping@low`, `qa-tester@high`, `council-deepseek@high` |
+| **glm-flash** (9) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low` |
+| **glm-5.3** (1) | `ollama-cloud/glm-5.3` | `cs-teacher-tester@medium` |
+| **deepseek-v4-pro** (1) | `ollama-cloud/deepseek-v4-pro` | `red-team@high` |
+| **claude/opus** (4) | judgment | `oracle@max`, `metis@max`, `planner@max`, `critic@high` |
+| **claude/sonnet** (6) | finishing + vision | `code-engineer@high`, `debugger@high`, `designer@medium`, `bowser@medium`, `eyes-and-ears@medium`, `visual-analyzer@medium` |
+
+`cs-student-beginner` is deliberately `@low` — that persona must NOT infer, so capability
+makes it a worse instrument. It is the one agent whose dial is set against capability.
+
+**`--variant` is unverified.** `opencode run --variant bogusvalue` is accepted silently
+(exit 0, no warning), and every ollama-cloud model reports `reasoning: 0` tokens at every
+level, including models that certainly reason. Variant values are written on the assumption
+they work; never claim one was verified.
+
+**The council was retired to two seats 2026-09-09.** `council-chair`, `council-kimi` and
+`council-qwen` are gone — the chair because the main session adjudicates, and kimi/qwen
+because their namesake models are only reachable through a router. What survives is
+`council-glm` and `council-deepseek`, which genuinely run their own model families; the
+main session dispatches both and adjudicates. Restore any of the three with
+`git checkout HEAD -- roster/<name>.md`.
+
+Every ollama-lane agent's `spawn-secondary` is the Anthropic tier it replaced, so a swap is
+reversible by definition. **No routers** — `openrouter`/`omnirouter` are an operator
+decision, not a default.
+
+Three traps, all measured 2026-09-09, all of which exit 0 while doing nothing:
+
+- **`mode: subagent` breaks `--agent`.** opencode warns, silently falls back to the default
+  agent, ignores your prompt, exits 0. Generated opencode defs must be `mode: primary`.
+- **Claude Code caches agent definitions at session start.** Regenerating mid-session does
+  not take effect; a forwarder will keep answering from the old body. Restart to test.
+- **A forwarder can score a tool call without forwarding, so `tool_uses` is not the test.**
+  Measured 2026-09-09 in one fresh session: `test-ping` forwarded correctly (17.9s, a real
+  opencode session), while `scout`, asked to name a file in the repo root, made exactly ONE
+  Bash call — an `ls`, not an `opencode run` — and answered itself. `tool_uses` was 1 and the
+  answer was right, so it passes any count-based check. The two generated bodies are
+  byte-identical apart from the description line, so this is task-dependent rather than a
+  per-agent defect: any trivially-local task invites the shortcut, which hits the recon
+  agents (`scout`, `librarian`, the `*-expert`s) hardest. `tool_uses >= 1` is NECESSARY BUT
+  NOT SUFFICIENT, and reply text proves even less — `test-ping` returns `pong` either way.
+  The only sound discriminator is the opencode log, which no wrapper can fake:
+
+  ```bash
+  grep 'agent=<name> mode=primary' ~/.local/share/opencode/log/opencode.log
+  ```
+
+  Force-pinning `tools: [Bash]` closed the Read/Grep hole but not this one: Bash alone is
+  enough to do recon work, and it is also the tool the wrapper needs in order to spawn.
+
+Don't send a haiku task to opus. Don't send an auth change to ollama. Both directions of mis-routing are failures, but they are **not symmetric in cost**: under-delegating burns opus tokens and this session's context every single time, while one extra free ollama agent costs wall clock and nothing else. Bias toward spawning. **Overspawning** is still a self-correction signal, but it names the wasteful shapes specifically — two agents handed the same brief, a Claude-lane agent doing work an ollama-lane one would have done, or independent agents fired one at a time instead of in a single block. Five agents on five genuinely separate questions is the policy working, not a lapse. The review pass should ask "did any two of these overlap, and did any of them need to be on Claude?"
 
 **The main session orchestrates. There is no separate orchestrator agent.** `atlas`,
 `prometheus` and `meta-orchestrator` were retired 2026-08-04, along with 11 of the 12
@@ -281,8 +381,13 @@ the probe that proves it — is in `~/.claude/skills/msgbox-install/SKILL.md`.
 
 **A wrong hook path fails OPEN.** `PreToolUse` blocks only on exit code **2**; a bad path
 throws MODULE_NOT_FOUND, exits 1, and the guard permits every write while looking fully
-configured. `settings.json` is symlinked from this repo, so it carries one machine's home
-directory to the next. Run that skill's probe after any machine move.
+configured. `settings.json` is symlinked from this repo, so anything absolute written into it
+travels to the next box: every hook command there uses `$HOME` instead, which works because
+the harness runs hooks through a POSIX shell. Do not reintroduce a literal home directory.
+Measured 2026-09-09: the repo copy said `C:/Users/shuff` on a `shuff57` box and had lost its
+tier-gate entry, so running this repo's own `install.sh` would have silently disabled both
+guards. Run that skill's probe after any machine move — and probe with a relative or `C:/`
+path, never a Git-Bash `/c/...` one, which the guard does not normalise and lets through.
 
 # Magic keywords
 
@@ -308,7 +413,7 @@ Don't activate on quoted/code-block matches. If a keyword fires but context make
 After a build + tests are green, on explicit trigger only — **never auto-fire** (each run costs real tokens/minutes). Triggers: "harden it", "stress test", "deep dive", "council review".
 
 - **Verify squad** — is it connected, rendering, and unbroken? Fan out in parallel via the Agent tool: `eyes-and-ears` (does it actually render/play), `bowser` (headless UI/interaction), `qa-tester` (edge cases, untested paths), `red-team` (break it adversarially) — then synthesize through `critic` against the plan. Use for "is everything wired up / rendering correctly / not broken".
-- **Council** — diverse multi-model adversarial review. Invoke `council-chair` (or the `council` skill); it dispatches the 4 seats and synthesizes one verdict. Use for a second-opinion stress test across model families.
+- **Council** — diverse multi-model adversarial review, now two seats and no chair. Dispatch `council-glm` and `council-deepseek` in parallel and adjudicate their verdicts yourself; the main session is the chair. Use for a second-opinion stress test across genuinely different model families.
 
 Run either or both. The **experts team** (skills/config/theme/ui/cli/... experts in `teams.yaml`) is NOT for app code — it only applies when the artifact under test IS Claude Code tooling (a skill, agent, theme, plugin, keybinding).
 

@@ -7,7 +7,7 @@
 // the PreToolUse additionalContext channel; this uses the same delivery.
 //
 // Same contract as the opencode plugin:
-//   - >20 new lines in one write call, OR writes touching 3+ distinct files
+//   - >10 new lines in one write call, OR writes touching 2+ distinct files
 //     in the session -> inject a [tier-gate] notice once per session.
 //   - NUDGE, not a block: exit 0 always. A nudge that throws is worse than
 //     no nudge, and blocking would wall off legit high-stakes inline work.
@@ -33,9 +33,10 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const LINE_THRESHOLD = 20;
-const FILE_THRESHOLD = 3;
+const LINE_THRESHOLD = 10;
+const FILE_THRESHOLD = 2;
 const MARKER = "[tier-gate]";
 const STATE_DIR = path.join(os.tmpdir(), "claude-tier-gate");
 
@@ -74,17 +75,171 @@ function newLinesOf(tool, input) {
   return text.split("\n").length - 1;
 }
 
+// Detect write-shaped Bash commands so the gate fires on Bash-first editing
+// (python -c, sed -i, cat > f <<EOF) the same way it does on Edit|Write.
+// Total: any error returns a non-write. Duplicated in opencode/plugin/tier-gate.js.
+function heredocLines(raw) {
+  const arr = raw.split("\n");
+  let total = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const m = arr[i].match(/<<-?\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/);
+    if (!m) continue;
+    const delim = m[1] ?? m[2] ?? m[3];
+    let j = i + 1;
+    while (j < arr.length && arr[j].trim() !== delim) j++;
+    total += j - (i + 1);
+  }
+  return total;
+}
+
+function maskHeredocBodies(text) {
+  const arr = text.split("\n");
+  const out = arr.slice();
+  for (let i = 0; i < arr.length; i++) {
+    const m = arr[i].match(/<<-?\s*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/);
+    if (!m) continue;
+    const delim = m[1] ?? m[2] ?? m[3];
+    let j = i + 1;
+    while (j < arr.length && arr[j].trim() !== delim) j++;
+    for (let k = i + 1; k < j; k++) out[k] = "\u0000".repeat(out[k].length);
+  }
+  return out.join("\n");
+}
+
+function findRedirects(text) {
+  const files = [];
+  const re = />+/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const before = text[m.index - 1];
+    const after = text[m.index + m[0].length];
+    if (before === "&") continue; // fd-dup: 2>&1, &>
+    if (after === "&") continue; // >&
+    const rest = text.slice(m.index + m[0].length);
+    const tok = rest.match(/^\s*([^\s;&|]+)/);
+    if (tok) {
+      const t = tok[1];
+      if (["/dev/null", "/dev/stdout", "/dev/stderr"].includes(t)) continue;
+      files.push(t);
+    }
+  }
+  return files;
+}
+
+function lastNonFlag(text) {
+  const args = text.trim().split(/\s+/);
+  for (let i = args.length - 1; i >= 0; i--) {
+    if (args[i] && !args[i].startsWith("-")) return args[i];
+  }
+  return null;
+}
+
+export function bashWrite(command) {
+  try {
+    if (typeof command !== "string") return { isWrite: false, files: [], lines: 0 };
+    const raw = command;
+
+    // Step C — heredoc line counting on the raw text.
+    const lines = heredocLines(raw);
+
+    // Step A — mask heredoc bodies first (so their operators never count), then
+    // quoted regions, producing the operator-scan text.
+    const scanText = maskHeredocBodies(raw).replace(
+      /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g,
+      (m) => "\u0000".repeat(m.length)
+    );
+
+    const files = [];
+    let isWrite = false;
+
+    // Output redirect: `>` / `>>` not an fd-dup.
+    const redirectFiles = findRedirects(scanText);
+    if (redirectFiles.length) {
+      isWrite = true;
+      files.push(...redirectFiles);
+    }
+
+    // Read-only git commands are never a write — unless a redirect above already won.
+    const words = raw.trim().split(/\s+/);
+    const firstWord = (words[0] || "").toLowerCase();
+    if (firstWord === "git") {
+      const sub = (words[1] || "").toLowerCase();
+      if (["status", "log", "diff", "show", "grep", "branch", "rev-parse", "ls-files"].includes(sub) && !isWrite) {
+        return { isWrite: false, files: [], lines: 0 };
+      }
+    }
+
+    // sed -i / sed --in-place
+    if (firstWord === "sed" && /(^|\s)(-i|--in-place)(\s|$)/.test(scanText)) {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // tee
+    if (firstWord === "tee") {
+      isWrite = true;
+      const args = scanText.trim().split(/\s+/).slice(1);
+      for (const a of args) if (a && !a.startsWith("-")) files.push(a);
+    }
+
+    // cp / mv / install
+    if (["cp", "mv", "install"].includes(firstWord)) {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // truncate / dd of= / patch
+    if (firstWord === "dd") {
+      const m = scanText.match(/\bof=(\S+)/);
+      if (m) {
+        isWrite = true;
+        files.push(m[1]);
+      }
+    } else if (firstWord === "truncate" || firstWord === "patch") {
+      isWrite = true;
+      const last = lastNonFlag(scanText);
+      if (last) files.push(last);
+    }
+
+    // git apply / git checkout --
+    if (firstWord === "git" && (words[1] === "apply" || (words[1] === "checkout" && words[2] === "--"))) {
+      isWrite = true;
+    }
+
+    // Interpreters: only a write if the RAW command carries a write token.
+    if (["python", "python3", "node", "perl", "ruby"].includes(firstWord)) {
+      if (/open\([^)]*,\s*['"][wax]|\.write\(|writeFileSync|writeFile\(|Set-Content|Out-File|(^|\s)-i(\s|$)/.test(raw)) {
+        isWrite = true;
+      }
+    }
+
+    // Step D — unattributable writes collapse to one sentinel.
+    if (isWrite && files.length === 0) files.push("<bash:unattributed>");
+
+    return { isWrite, files, lines };
+  } catch {
+    return { isWrite: false, files: [], lines: 0 };
+  }
+}
+
 async function readStdin() {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
   return Buffer.concat(chunks).toString("utf8");
 }
 
+// Only run the hook body when executed directly (node hooks/tier-gate.js),
+// not when imported for unit tests — importing must not block on stdin.
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMain) {
 try {
   const raw = await readStdin();
   const payload = JSON.parse(raw);
   const tool = String(payload?.tool_name ?? "");
-  if (!WRITERS.has(tool)) process.exit(0);
+  if (!WRITERS.has(tool) && tool !== "Bash") process.exit(0);
 
   const sessionID = payload?.session_id ?? "unknown-session";
   const cwd = payload?.cwd ?? process.cwd();
@@ -99,9 +254,19 @@ try {
   const state = load(sessionID, cwd);
   if (state.announced) process.exit(0);
 
-  const file = input?.file_path ?? input?.path ?? null;
-  if (file && !state.files.includes(file)) state.files.push(file);
-  const lines = newLinesOf(tool, input);
+  let file = input?.file_path ?? input?.path ?? null;
+  let lines = newLinesOf(tool, input);
+
+  // Bash: only write-shaped commands feed the counters; everything else is
+  // ignored exactly like a Read.
+  if (tool === "Bash") {
+    const bw = bashWrite(String(input?.command ?? ""));
+    if (!bw.isWrite) process.exit(0);
+    for (const f of bw.files) if (f && !state.files.includes(f)) state.files.push(f);
+    lines = bw.lines;
+  } else if (file && !state.files.includes(file)) {
+    state.files.push(file);
+  }
   save(sessionID, cwd, state); // persist every write, so reloads keep the file count
 
   const overLines = lines > LINE_THRESHOLD;
@@ -134,4 +299,5 @@ try {
   process.exit(0);
 } catch {
   process.exit(0); // fail-open always
+}
 }
