@@ -48,10 +48,36 @@ export function findBox(directory) {
 export const Inbox = async ({ directory }) => {
   const logFile = path.join(findBox(directory), "log.jsonl");
   let lastSeenMtime = null;
+  // Activity heartbeat for msgbox-ui: the last time an `activity` event was appended. One
+  // timestamp compare in the common case, so the hook stays nearly free.
+  let lastBeat = 0;
+
+  // Append one telemetry line to <box>/events.jsonl beside log.jsonl. An emitter that throws
+  // would kill the tool call it hooks into, so it is wrapped by the caller's try/catch and
+  // swallows its own I/O errors: a missed event is a blank lane, a thrown one is a dead tool.
+  const emitEvent = (event) => {
+    try {
+      fs.appendFileSync(path.join(findBox(directory), "events.jsonl"), JSON.stringify({ ts: new Date().toISOString(), ...event }) + "\n");
+    } catch { /* telemetry must never break the task */ }
+  };
 
   return {
     "tool.execute.after": async (_input, output) => {
       try {
+        const tool = _input?.tool ?? null;
+        const toolInput = _input?.input ?? {};
+        // Heartbeat BEFORE the mtime short-circuit so every tool call (delivered or not) keeps
+        // the timeline alive; debounce to one line per 5 s.
+        if (Date.now() - lastBeat > 5000) {
+          const file = toolInput?.filePath ?? toolInput?.path ?? toolInput?.file ?? null;
+          emitEvent({ kind: "activity", from: ME, tool, file });
+          lastBeat = Date.now();
+        }
+        // Subagent spawn marker: never debounced — one event per task tool call.
+        if (tool === "task") {
+          emitEvent({ kind: "task", from: ME, agent: toolInput?.subagent_type ?? toolInput?.agent ?? null });
+        }
+
         // The common case is "nothing new", and it has to be nearly free — one stat, no subprocess.
         // Read the mtime BEFORE delivering and store that value: anything appended during the
         // delivery leaves a newer mtime and so still triggers the next time round.

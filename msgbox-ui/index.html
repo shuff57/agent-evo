@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>msgbox timeline</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --dim: #8b949e;
+    --accent: #58a6ff;
+    --spawn: #238636;
+    --running: #d29922;
+    --task: #bc8cff;
+    --claim: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+    font-size: 13px;
+    padding: 16px 20px 40px;
+  }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  header h1 { font-size: 15px; margin: 0; color: var(--accent); }
+  header .meta { color: var(--dim); }
+  select, button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font: inherit;
+    cursor: pointer;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button.active { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+  .panel { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 14px; }
+  .empty { color: var(--dim); padding: 30px 10px; text-align: center; }
+  .lane { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; margin-bottom: 6px; }
+  .lane-label {
+    text-align: right;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-top: 6px;
+  }
+  .lane-body { position: relative; min-height: 34px; padding-bottom: 18px; }
+  .bar {
+    position: relative;
+    height: 14px;
+    min-width: 3px;
+    background: var(--spawn);
+    border-radius: 3px;
+    opacity: 0.85;
+  }
+  .bar.running {
+    background: var(--running);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+  .bar.running .bar-label {
+    position: absolute;
+    left: 6px;
+    top: -1px;
+    font-size: 10px;
+    color: #0d1117;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .tick {
+    position: absolute;
+    top: 4px;
+    width: 2px;
+    height: 6px;
+    background: var(--text);
+    opacity: 0.8;
+  }
+  .task-node {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--task);
+  }
+  .task-node::before { content: "└ "; color: var(--border); }
+  .task-node span { border: 1px solid var(--task); border-radius: 4px; padding: 1px 6px; }
+  .claim-badge {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--claim);
+    border: 1px solid var(--claim);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin: 4px 4px 0 0;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: top;
+  }
+  .claim-badge.released { color: var(--dim); border-color: var(--dim); text-decoration: line-through; }
+  .axis {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--dim);
+    font-size: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+  .axis-scale { position: relative; height: 12px; }
+  .axis-scale span { position: absolute; transform: translateX(-50%); }
+  .tree ul { list-style: none; margin: 0; padding-left: 22px; border-left: 1px solid var(--border); }
+  .tree > ul { padding-left: 0; border-left: none; }
+  .tree li { padding: 3px 0; }
+  .tree .who { color: var(--accent); }
+  .tree .what { color: var(--dim); }
+  .tree .task-tag { color: var(--task); }
+</style>
+</head>
+<body>
+<header>
+  <h1>msgbox timeline</h1>
+  <select id="boxSel"><option value="">loading…</option></select>
+  <span class="meta" id="boxMeta"></span>
+</header>
+<div class="tabs">
+  <button id="tabTimeline" class="active">Timeline</button>
+  <button id="tabTree">Tree</button>
+</div>
+<div id="view" class="panel"><div class="empty">loading…</div></div>
+
+<script>
+"use strict";
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const view = $("view");
+  let boxSel = $("boxSel");
+  let currentTab = "timeline";
+  let boxes = [];
+
+  const esc = (s) => {
+    const t = document.createElement("template");
+    t.textContent = String(s ?? "");
+    return t.innerHTML;
+  };
+  const fmtTs = (iso) => (iso ? iso.replace("T", " ").slice(0, 19) : "?");
+
+  async function fetchJson(url) {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) return null;
+    return r.json();
+  }
+
+  // ---- data merging -------------------------------------------------------
+  // Lanes = every agent name seen in events (from / agent) plus the log's from/to values.
+  function collectLanes(events, log) {
+    const lanes = new Set();
+    for (const e of events) {
+      if (e.from) lanes.add(e.from);
+      if (e.kind === "task" && e.agent) lanes.add(e.agent);
+    }
+    for (const m of log) {
+      if (m.from && m.from !== "?" && m.from !== "all") lanes.add(m.from);
+      if (m.to && m.to !== "all") lanes.add(m.to);
+    }
+    return [...lanes].sort();
+  }
+
+  // Each spawn bar runs to the earliest exit with the same `from` that starts after the spawn;
+  // no exit yet means still running (pulse, extends to now).
+  function collectBars(events, nowMs) {
+    const spawns = events.filter((e) => e.kind === "spawn");
+    const exits = events.filter((e) => e.kind === "exit");
+    return spawns.map((sp) => {
+      const t0 = Date.parse(sp.ts);
+      let exit = null;
+      for (const ex of exits) {
+        if (ex.from !== sp.from) continue;
+        const t = Date.parse(ex.ts);
+        if (t >= t0 && (!exit || t < Date.parse(exit.ts))) exit = ex;
+      }
+      const t1 = exit ? Date.parse(exit.ts) : nowMs;
+      return { spawn: sp, exit, t0, t1, running: !exit };
+    });
+  }
+
+  function parseMs(ts) { const t = Date.parse(ts); return Number.isFinite(t) ? t : null; }
+
+  function collectTasks(events) {
+    return events.filter((e) => e.kind === "task");
+  }
+
+  function logClaims(log) {
+    // Replay claim/release lines in order (same state machine as the server's ownerMap) and
+    // emit one badge per still-known path, flagged when its latest owner released it.
+    const state = new Map(); // path -> { owner, ts, released }
+    for (const m of log) {
+      if (m.kind === "claim") {
+        for (const p of m.paths ?? []) state.set(p, { owner: m.from, path: p, ts: m.ts, released: false });
+      } else if (m.kind === "release") {
+        if (m.all) {
+          for (const s of state.values()) if (s.owner === m.from) s.released = true;
+        } else {
+          for (const p of m.paths ?? []) {
+            const s = state.get(p);
+            if (s && s.owner === m.from) s.released = true;
+          }
+        }
+      }
+    }
+    return [...state.values()];
+  }
+
+  // ---- timeline view ------------------------------------------------------
+  function renderTimeline(events, log) {
+    const lanes = collectLanes(events, log);
+    const nowMs = Date.now();
+    const times = events.map((e) => parseMs(e.ts)).filter(Number.isFinite).concat([nowMs]);
+    const tMin = times.length ? Math.min(...times) : nowMs;
+    const span = Math.max(nowMs - tMin, 1);
+    const bars = collectBars(events, nowMs);
+    const tasks = collectTasks(events);
+    const claims = logClaims(log);
+
+    const pct = (t) => ((t - tMin) / span * 100).toFixed(2) + "%";
+
+    const h = [];
+    h.push(`<div class="axis"><div></div><div class="axis-scale">`);
+    for (let i = 0; i <= 4; i++) {
+      const rel = span * i / 4 / 1000;
+      h.push(`<span style="left:${i * 25}%">${esc(rel >= 90 ? Math.round(rel / 60) + "m" : Math.round(rel) + "s")}</span>`);
+    }
+    h.push(`</div></div>`);
+
+    if (!lanes.length) {
+      view.innerHTML = `<div class="empty">no events yet — dispatch a run via handoff.mjs</div>`;
+      return;
+    }
+
+    for (const lane of lanes) {
+      h.push(`<div class="lane"><div class="lane-label" title="${esc(lane)}">${esc(lane)}</div>`);
+      h.push(`<div class="lane-body">`);
+      for (const bar of bars) {
+        if (bar.spawn.from !== lane) continue;
+        const left = ((bar.t0 - tMin) / span * 100).toFixed(2);
+        const width = Math.max((bar.t1 - bar.t0) / span * 100, 0.5).toFixed(2);
+        const cls = bar.running ? "bar running" : "bar";
+        const tip = `${bar.spawn.model ?? ""} · ${fmtTs(bar.spawn.ts)} → ${bar.exit ? fmtTs(bar.exit.ts) : "running"}`;
+        h.push(`<div class="${cls}" style="margin-left:${left}%;width:${width}%" title="${esc(tip)}">`);
+        if (bar.running) h.push(`<span class="bar-label">running</span>`);
+        // activity ticks along the bar
+        for (const e of events) {
+          if (e.kind !== "activity" || e.from !== lane) continue;
+          const t = parseMs(e.ts);
+          if (t == null || t < bar.t0 || t > bar.t1) continue;
+          const p = ((t - bar.t0) / Math.max(bar.t1 - bar.t0, 1) * 100).toFixed(2);
+          h.push(`<div class="tick" style="left:${p}%" title="${esc((e.tool ?? "?") + (e.file ? " · " + e.file : ""))}"></div>`);
+        }
+        h.push(`</div>`);
+      }
+      // claim / release badges from the log
+      for (const c of claims) {
+        if (c.owner !== lane) continue;
+        h.push(`<span class="claim-badge${c.released ? " released" : ""}" title="${esc((c.released ? "released: " : "claimed: ") + fmtTs(c.ts))}">${esc(c.path)}</span>`);
+      }
+      // task child nodes spawned under this lane
+      for (const t of tasks) {
+        if (t.from !== lane) continue;
+        h.push(`<div class="task-node" title="${esc("task · " + fmtTs(t.ts))}"><span>${esc(t.agent ?? "(unknown agent)")}</span></div>`);
+      }
+      h.push(`</div></div>`);
+    }
+    view.innerHTML = h.join("");
+  }
+
+  // ---- tree view ----------------------------------------------------------
+  // Roots = spawns (parent-less, i.e. handoff dispatches). task events become children;
+  // activity events nest under whichever lane is active at that moment.
+  function renderTree(events) {
+    const spawns = events.filter((e) => e.kind === "spawn");
+    const tasks = events.filter((e) => e.kind === "task");
+    const activities = events.filter((e) => e.kind === "activity");
+    if (!spawns.length && !tasks.length) {
+      view.innerHTML = `<div class="empty">no events yet — dispatch a run via handoff.mjs</div>`;
+      return;
+    }
+    const h = ["<ul>"];
+    for (const sp of spawns) {
+      h.push(`<li><span class="who">${esc(sp.from)}</span> <span class="what">${esc(sp.model ?? "")} · ${esc(fmtTs(sp.ts))}${sp.noBox ? " · no-box" : ""}</span>`);
+      const kids = tasks.filter((t) => t.from === sp.from && Date.parse(t.ts) >= Date.parse(sp.ts));
+      const acts = activities.filter((a) => a.from === sp.from && Date.parse(a.ts) >= Date.parse(sp.ts));
+      if (kids.length || acts.length) {
+        h.push("<ul>");
+        for (const k of kids) h.push(`<li><span class="task-tag">task</span> <span class="who">${esc(k.agent ?? "?")}</span> <span class="what">${esc(fmtTs(k.ts))}</span></li>`);
+        for (const a of acts) h.push(`<li><span class="task-tag">act</span> <span class="what">${esc(a.tool ?? "?")}${a.file ? " → " + esc(a.file) : ""} · ${esc(fmtTs(a.ts))}</span></li>`);
+        h.push("</ul>");
+      }
+      h.push("</li>");
+    }
+    // task events with no matching spawn still belong somewhere visible
+    for (const t of tasks) {
+      if (spawns.some((sp) => t.from === sp.from && Date.parse(t.ts) >= Date.parse(sp.ts))) continue;
+      h.push(`<li><span class="task-tag">task</span> <span class="who">${esc(t.agent ?? "?")}</span> <span class="what">${esc(fmtTs(t.ts))}</span></li>`);
+    }
+    h.push("</ul>");
+    view.innerHTML = h.join("");
+  }
+
+  // ---- refresh loop -------------------------------------------------------
+  async function refresh() {
+    const box = boxSel.value;
+    if (!box) return;
+    const [ev, lg] = await Promise.all([
+      fetchJson(`/api/events?box=${encodeURIComponent(box)}`),
+      fetchJson(`/api/log?box=${encodeURIComponent(box)}`),
+    ]);
+    const events = ev ? ev.events : [];
+    const log = lg ? lg.log : [];
+    $("boxMeta").textContent = `${ev ? ev.box : box} · ${events.length} events`;
+    if (currentTab === "timeline") renderTimeline(events, log);
+    else renderTree(events);
+  }
+
+  async function loadBoxes() {
+    const data = await fetchJson("/api/boxes");
+    if (!data) return;
+    const prev = boxSel.value;
+    boxes = data.boxes;
+    const opts = boxes.map((b) => `<option value="${esc(b.path)}">${esc(b.name)}</option>`).join("");
+    boxSel.innerHTML = opts || `<option value="">(no boxes found)</option>`;
+    const wanted = prev || data.defaultBox;
+    if ([...boxSel.options].some((o) => o.value === wanted)) boxSel.value = wanted;
+    await refresh();
+  }
+
+  function setTab(tab) {
+    currentTab = tab;
+    $("tabTimeline").classList.toggle("active", tab === "timeline");
+    $("tabTree").classList.toggle("active", tab === "tree");
+    refresh();
+  }
+
+  $("tabTimeline").addEventListener("click", () => setTab("timeline"));
+  $("tabTree").addEventListener("click", () => setTab("tree"));
+  boxSel.addEventListener("change", refresh);
+
+  // SSE: server pushes `event: update` (no data) when either file's mtime moves; re-fetch both
+  // endpoints and re-render. EventSource auto-reconnects if the server blips.
+  function startStream() {
+    const connect = () => {
+      const box = boxSel.value;
+      if (!box) { setTimeout(startStream, 2000); return; }
+      const es = new EventSource(`/api/stream?box=${encodeURIComponent(box)}`);
+      es.addEventListener("update", refresh);
+      es.addEventListener("error", () => { es.close(); setTimeout(startStream, 4000); });
+    };
+    connect();
+  }
+
+  loadBoxes().then(startStream);
+  setInterval(loadBoxes, 30000); // notice new/removed boxes
+})();
+</script>
+</body>
+</html>

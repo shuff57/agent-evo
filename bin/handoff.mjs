@@ -18,6 +18,7 @@
 //   node handoff.mjs --spec <path> [--model <id>] [--note "extra line"]
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -30,8 +31,31 @@ import { fileURLToPath } from 'node:url';
 const MSG = fileURLToPath(new URL('./msg.mjs', import.meta.url)).split(String.fromCharCode(92)).join('/');
 // Budget contract default (operator, 2026-08-26). glm-5.3-flash measured reasoning:0 on a
 // trivial packet, where the deepseek -0731 snapshot emitted 2-5x the tokens for the same
-// answer. It also has vision, so the same id serves the eyes-and-ears lenses.
+// answer. It also has vision, so the same id serves the eyes-and-eyes lenses.
 const DEFAULT_MODEL = 'ollama-cloud/glm-5.3-flash';
+
+// Telemetry events go to <box>/events.jsonl beside log.jsonl, consumed by msgbox-ui. The box
+// resolves exactly as inbox.js does (MSGBOX env -> walk up to .git -> ~/.claude/msgbox) so the
+// UI's lanes always point at the same box the run reported into. An emitter that throws is a
+// dead dispatch: telemetry must never break the launch, hence the total try/catch.
+const emit = (event) => {
+  try {
+    let boxdir = process.env.MSGBOX;
+    if (!boxdir) {
+      let dir = process.cwd();
+      while (true) {
+        if (fs.existsSync(path.join(dir, '.git'))) { boxdir = path.join(dir, '.msgbox'); break; }
+        const up = path.dirname(dir);
+        if (up === dir) { boxdir = path.join(os.homedir(), '.claude', 'msgbox'); break; }
+        dir = up;
+      }
+    }
+    fs.mkdirSync(boxdir, { recursive: true });
+    fs.appendFileSync(path.join(boxdir, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n');
+  } catch {
+    // Never let telemetry kill a dispatch. A missed event is a blank lane; a thrown emitter is a dead run.
+  }
+};
 
 const args = process.argv.slice(2);
 const get = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
@@ -39,9 +63,14 @@ const get = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1
 const specArg = get('--spec');
 const model = get('--model') || DEFAULT_MODEL;
 const note = get('--note') || '';
+// Reasoning effort, passed straight through as opencode's `--variant`. CLAUDE.md
+// documents the flag on the agent route (`opencode run --agent X -m Y --variant Z`)
+// and this wrapper had no way to reach it, which left "dispatch at max effort" as
+// a reason to hand-roll the launch -- the one thing this file exists to prevent.
+const variant = get('--variant');
 
 if (!specArg) {
-  console.error('usage: node handoff.mjs --spec <path> [--model <id>] [--note "..."]');
+  console.error('usage: node handoff.mjs --spec <path> [--model <id>] [--variant <effort>] [--note "..."]');
   process.exit(2);
 }
 
@@ -117,10 +146,26 @@ console.log(`spec   ${spec}\nmodel  ${model}\nclaims ${heldClaims ? owners.repla
 // --text` and hit exactly this. Double quotes are safe here because the prompt had `"` `<` `>`
 // stripped above; strip the remaining cmd.exe metacharacters too.
 const shellSafePrompt = `"${prompt.replace(/[&|^%]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
-const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model], {
+emit({ kind: 'spawn', from: 'claude-handoff', model, spec, noBox, variant: variant || null });
+const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
   stdio: 'inherit',
   shell: true,
 });
+
+// One outcome, computed once, then emit + exit — the spec's shape for not duplicating exit logic.
+// ok means "the run did its job" (files appeared or a reply arrived), not merely "exit 0": the
+// reply-count check exists precisely because a clean exit here proves nothing.
+let outcome;
+if (run.status === null) {
+  outcome = { code: 2, ok: false };
+} else if (noBox) {
+  const missing = expect.filter((f) => !fs.existsSync(path.resolve(f)));
+  outcome = { code: missing.length ? 1 : 0, ok: !missing.length };
+} else {
+  const after = countReplies();
+  outcome = { code: after > before ? 0 : 1, ok: after > before };
+}
+emit({ kind: 'exit', from: 'claude-handoff', code: outcome.code, ok: outcome.ok });
 
 if (run.status === null) {
   console.error(`\nFAILED to launch opencode (status null, ${run.error ? run.error.message : 'no error given'}).`);
@@ -129,6 +174,8 @@ if (run.status === null) {
 }
 
 // The check that matters: exit 0 is not evidence. Either the expected files exist, or a reply came.
+// outcome.code/ok were already computed and emitted above — this block only prints, so the
+// messages and exit codes stay byte-identical with the pre-telemetry behavior.
 if (noBox) {
   const missing = expect.filter((f) => !fs.existsSync(path.resolve(f)));
   if (!missing.length) {

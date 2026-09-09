@@ -149,53 +149,29 @@ to add an 8th, evolver-meta must prune the least-validated one.
    keep reconciliation output proportional to new information. (added
    2026-07-03)
 
-5. [REWRITTEN 2026-08-17, prior topic CLOSED — the 2026-08-16 text below
-   demanded a manual hand-count workaround "until [the script] widens";
-   that landed. `scripts/prediction_status.py`'s `collect_pending()` was
-   rewritten (content-verified 2026-08-17, mtime 2026-08-17T16:16 local)
-   to scan `status in {PENDING, APPLIED, MONITORING}` with
-   `predicted_outcome` set and `actual_outcome is None` — its own
-   docstring cites this heuristic by name. A live run
-   (`python prediction_status.py --workspace <repo>/_workspace`) now
-   surfaces 114 pending items (up from 2 under the old literal-PENDING-only
-   scan): 108 SCOREABLE, 6 NOT YET. Do NOT hand-count APPLIED/MONITORING
-   rows anymore — that was a stand-in for the fix, not a permanent
-   practice, and continuing it now duplicates what the script already
-   does.] **Current guidance:** run `prediction_status.py` and trust its
-   SCOREABLE/NOT YET output directly; a report of "no PENDING predictions"
-   now means the workspace argument was wrong (it takes the `_workspace`
-   dir itself, e.g. `--workspace <repo>/_workspace`, NOT the repo root —
-   passing the repo root silently reads `sessions_total: 0` and prints
-   "no PENDING predictions", which looks identical to a genuinely empty
-   backlog; this tripped up the very meta pass that wrote this entry). A
-   large jump in SCOREABLE count when this fix first lands (2 -> 114 rows,
-   observed 2026-08-17) is the fix working as intended, NOT itself a new
-   "unmeasurable predictions" signal — most of that backlog is freshly
-   *measurable*, not freshly *stuck*; only count rows toward that
-   pathology's 60% bar once they are individually checked against their
-   own window and found still open past it, not merely because the total
-   population became visible. Distinct from, and unaffected by, the
-   separately-diagnosed write-back gap (evolver.md's 2026-08-16
-   reconciliation-rewrite rule): that gap was RECONCILIATION prose not
-   rewriting a row's own status field after a verdict; this was the
-   INITIAL status string never matching what the script scanned for.
-   Both are now fixed by different mechanisms (evolver.md's rule for the
-   former, this script edit for the latter) — if either regresses
-   (a RECONCILIATION-target pass reports a status field that a direct
-   read contradicts, or `collect_pending()`'s scan narrows back to a
-   literal PENDING match), that is fresh stale-heuristic evidence, not a
-   reason to restore the manual-count workaround. (rewritten 2026-08-17;
-   evidence: prediction_status.py collect_pending() source read directly,
-   citing "calibration.md heuristic #5, added 2026-08-16" in its own
-   docstring; live script run showing 114 pending / 108 SCOREABLE / 6 NOT
-   YET against 83 session rows (38 real); evolution-log lines 7/8/9
-   independently content-verified as reconciled to INSUFFICIENT_DATA at
-   2026-08-17T15:30:00Z citing this heuristic's sibling, heuristic 4's
-   relevance-gap sub-reason — three rows the old scan could never have
-   surfaced. Raised by the calling modify-mode evolver session; verified
-   independently by evolver-meta idx80 rather than taken on the session's
-   word, per this file's own precedent for content-verification over
-   reconciliation prose.)
+5. [PRUNED 2026-09-08 — prior heuristic 5 (rewritten 2026-08-17: run
+   `prediction_status.py` and trust its SCOREABLE/NOT YET output rather
+   than hand-counting) retired as the least-validated of the 7 slots: a
+   direct grep of the full 432-row `_workspace/_evolution_log.jsonl` for
+   a literal "heuristic 5" citation finds zero hits after its 2026-08-17
+   rewrite (every hit found predates the rewrite and refers to the old,
+   already-superseded content). Its guidance is not stale or wrong — a
+   separate grep for `prediction_status.py` itself finds 24 uses, most
+   recently at row 428 (2026-09-06), so the underlying practice is alive
+   — but its full actionable content is independently and completely
+   duplicated by this file's own standalone "## Scoring a prediction: run
+   the count, don't reconstruct it" section below (added the same day,
+   2026-08-17), so retiring the numbered slot loses nothing: the
+   guidance remains fully documented there. Same retirement rationale
+   this file used for the original heuristics 1 and 7 — absorbed into
+   practice / duplicated elsewhere, not wrong, just no longer earning a
+   scarce numbered slot. No replacement content placed here: a
+   concurrent evolver-meta run (racing this same edit, caught only by
+   this file's own modified-since-read warning) independently reached
+   the identical STRUCTURAL/TOCTOU diagnosis below and wrote it into
+   heuristic 7's slot first; duplicating it here would leave two copies
+   of the same guidance. This slot is retired with no successor content
+   — 6 live numbered slots (1,2,3,4,6,7) remain under the cap of 7.]
 
 6. During reconciliation, an APPLIED bug-fix mutation can land in a
    fourth INSUFFICIENT_DATA shape distinct from heuristics 2-5: the
@@ -229,59 +205,63 @@ to add an 8th, evolver-meta must prune the least-validated one.
    recur" ad hoc without calibration backing before this heuristic
    codified it)
 
-7. [PRUNED 2026-08-26 — prior heuristic 7 (before flagging a code-level
-   PENDING mutation "diff not present," content-verify the file plus
-   `git log`, don't trust `git status`/`git diff` alone) retired as the
-   least-validated of the 7 slots: across all 377 rows of
-   `_workspace/_evolution_log.jsonl` it was cited only 3 times (lines 301,
-   306, 317, all mid-August RECONCILIATION rows), carried zero VALIDATED
-   co-occurrence, and was not cited once in the most recent ~60 rows even
-   though 20+ code-level PENDING mutations reconciled in that span — versus
-   13-49 citations and live recent use (last cited within the final 15
-   rows) for every other heuristic (1-6). Its content is not wrong; the
-   git-status-vs-content confusion it targeted has not recurred since
-   2026-08-10, and `prediction_status.py` (heuristic 5) now routes
-   reconciliation through the file/session data directly rather than raw
-   git status, so the guidance reads as absorbed into practice rather than
-   needed as standalone prose — the same retirement rationale this file
-   used for the original heuristic 1.]
-   SKILL_GAP is the only divergence type besides SKILL_WEAK to clear the
-   repeat-miss bar (>=2 MISSED): modify:225 and modify:346, both reconciled
-   MISSED, 3 VALIDATED alongside them (40% miss rate). The two misses do
-   NOT share one mechanism — modify:346 (section-author re-collection fix
-   never consulted because the skill was absent from that session's
-   skill_loads) is already heuristic 2's / heuristic 1's trigger-
-   consultation gap, no new guidance needed. modify:225 is a distinct,
-   previously uncovered failure: a MONITORING entry
-   (deterministic-lint-blind-to-visual-defects) recurred past the exact
-   promotion threshold ITS OWN edit_summary had set ("if this recurs in 2
-   more sessions, propose one rule") — modify:225's own actual_outcome text
-   flags this by name as "a reconciliation-pipeline miss" for evolver-meta
-   to fix: the threshold was crossed by 2026-08-18 (deck-18px-type-floor)
-   and again 2026-08-23 (TTS/read-aloud false positives), but no pass
-   converted it to an APPLIED proposal at either crossing — the recurrence
-   surfaced only as prose when the entry was finally reconciled to MISSED,
-   sessions after the bar was met. Rule: during reconciliation, the moment
-   a MONITORING entry's logged recurrence count reaches or exceeds the
-   threshold its own edit_summary stated, that SAME reconciliation pass
-   must either draft an APPLIED mutation proposal for it, or — if still
-   genuinely ownerless across candidate files — explicitly propose
-   FLAGGED_LOW_CONFIDENCE naming one candidate owner for human review.
-   Leaving the crossing noted only in reconciliation prose while the row
-   ages toward MISSED is this failure recurring; a MONITORING entry
-   reconciled to MISSED whose own actual_outcome states its threshold was
-   already crossed one or more passes earlier is the tell. This is not a
-   call to over-promote: the 4 MONITORING entries checked this same pass
-   (lines 230, 245, 246, 363 — css-partial-resync-tool-fragility,
-   negative-grep-read-as-absence, destructive-git-discard-crosses-repos,
-   documented-lesson-not-consulted-mid-task) all remain correctly held
-   below their own stated thresholds and were left at MONITORING, exactly
-   as they should be. (added 2026-08-26; evidence: modify:225's actual_outcome
-   self-flags "a reconciliation-pipeline miss, not evidence the underlying
-   gap doesn't exist... flagged for evolver-meta"; modify:346 read in full
-   and confirmed to be heuristic-1/2 territory, not a new mechanism; the 4
-   currently-open MONITORING rows checked and confirmed still under
-   threshold as of this pass, 2026-08-26)
+7. [PRUNED 2026-09-08 — prior heuristic 7 (the 2026-08-26 rule requiring a
+   MONITORING entry that crosses its own self-stated promotion threshold
+   to be converted to an APPLIED or FLAGGED_LOW_CONFIDENCE proposal in the
+   SAME reconciliation pass) retired as the least-validated of the 7
+   slots: cited only 5 times by name in `_workspace/_evolution_log.jsonl`
+   since it was written, versus 19-87 for heuristics 2-6, and its own
+   predicted_outcome sat INSUFFICIENT_DATA across every meta pass that
+   checked it (idx100 through idx118, spanning 2026-08-27 to 2026-09-06)
+   because zero MONITORING entries ever crossed their own stated
+   threshold in that window — the rule was never wrong, it was simply
+   never exercised, so it produced zero VALIDATED credit in two weeks.
+   Its content is not being contradicted or discarded: apply it from
+   memory if a MONITORING entry ever does cross its own threshold, even
+   though it no longer occupies a written slot here. Retired under the
+   same low-citation/zero-validation test this file used for the original
+   heuristic 1 (2026-08-19) and this same slot's prior content
+   (2026-08-26).]
+   STRUCTURAL clears the repeat-miss bar a second time (3rd reconciled
+   MISS): code-engineer.md and deck-bookshelf/SKILL.md were already folded
+   into heuristic 1's 2026-09-03 scope-broadening as case-(a) "pointer not
+   consulted" failures. The 3rd, modify:367 (`.claude/skills/
+   memory-pending-triage/SKILL.md`, applied 2026-08-23, reconciled MISSED
+   2026-09-08), is explicitly a DIFFERENT mechanism, per the reconciling
+   pass's own actual_outcome text: "this is not heuristic 1's
+   pointer-not-consulted failure mode ... it is a TOCTOU race that a
+   pre-write-only check cannot fix by construction." The 2026-08-23
+   mutation added a pre-write re-grep of `active/` immediately before the
+   promotion Write, to stop two concurrent sessions double-promoting the
+   same fact under different filenames. On 2026-09-08 the guard ran, was
+   followed exactly as written, and a peer session still wrote duplicate
+   promotions for 2 of 3 facts by the time this session's writes landed —
+   grep-then-write is not atomic, so a check that only runs before the
+   write narrows the race window but cannot close it, regardless of how
+   faithfully it is consulted or how correctly it is computed. That is
+   the opposite of heuristic 1's (a)/(b) test, which diagnoses a check
+   being skipped or under-specified; here the check was present,
+   consulted, and computed correctly, and still missed, because the
+   target is a shared-mutable-state race and a single pre-write snapshot
+   cannot observe writes that land after it runs. Rule: before proposing,
+   or predicting the success of, a fix for a STRUCTURAL divergence whose
+   target is a directory/file multiple sessions or agents can write
+   concurrently (the class atomic-commit-guard rule 9 and this same
+   memory-pending-triage skill already treat as shared-mutable-state),
+   the hypothesis must state whether the fix is a pre-write check, a
+   post-write reconciliation/verification (re-read the target AFTER
+   writing and repair any collision found — the exact step the 2026-09-08
+   mutation itself now adds to memory-pending-triage/SKILL.md step 3), or
+   both. A pre-write-only fix for this class of target must word its
+   predicted_outcome as narrowing the race window ("reduces collision
+   frequency" / "catches N of M concurrent-write shapes"), never as "does
+   not recur" — a predicted_outcome claiming full closure from a
+   pre-write-only check is asking to be falsified by this same TOCTOU
+   mechanism. (added 2026-09-08; evidence: modify:367 read in full across
+   both its 2026-08-23 hypothesis/edit_summary and its 2026-09-08
+   actual_outcome; the reconciling modify-mode pass's own text
+   independently distinguishes this from heuristic 1 rather than folding
+   it in, which is the finding this entry codifies)
 
 ## Scoring a prediction: run the count, don't reconstruct it
 

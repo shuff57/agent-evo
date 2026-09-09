@@ -68,6 +68,14 @@ function ownerMap(log) {
   return owners;
 }
 
+function readEvents(boxPath) {
+  const eventsFile = path.join(boxPath, 'events.jsonl');
+  if (!fs.existsSync(eventsFile)) return [];
+  return fs.readFileSync(eventsFile, 'utf8').split('\n').filter(Boolean).map((l, i) => {
+    try { return { id: i + 1, ...JSON.parse(l) }; } catch { return { id: i + 1, kind: '?', raw: l }; }
+  });
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
@@ -107,6 +115,55 @@ http.createServer((req, res) => {
     const log = readLog(known.path);
     const owners = [...ownerMap(log)].map(([p, owner]) => ({ path: p, owner }));
     json(200, { box: known.path, host: log[0]?.from ?? '(nobody)', log, owners });
+    return;
+  }
+
+  if (url.pathname === '/api/events') {
+    const want = url.searchParams.get('box');
+    const known = discoverBoxes().find((b) => b.path === want);
+    if (!known) {
+      json(404, { error: 'unknown box' });
+      return;
+    }
+    json(200, { box: known.path, events: readEvents(known.path) });
+    return;
+  }
+
+  // SSE update stream: stat both files of ONE box every 2 s and push `event: update` (no data)
+  // when either mtime moves, so the client re-fetches log + events. One box per connection —
+  // the box param is validated the same way as /api/log.
+  if (url.pathname === '/api/stream') {
+    const want = url.searchParams.get('box');
+    const known = discoverBoxes().find((b) => b.path === want);
+    if (!known) {
+      json(404, { error: 'unknown box' });
+      return;
+    }
+    res.writeHead(200, {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-store',
+      'connection': 'keep-alive',
+    });
+    let lastLog = 0;
+    let lastEvents = 0;
+    const tick = () => {
+      try {
+        const m = (f) => (fs.existsSync(f) ? fs.statSync(f).mtimeMs : 0);
+        const logM = m(path.join(known.path, 'log.jsonl'));
+        const evM = m(path.join(known.path, 'events.jsonl'));
+        if (logM !== lastLog || evM !== lastEvents) {
+          lastLog = logM;
+          lastEvents = evM;
+          res.write('event: update\n\n');
+        }
+      } catch {
+        // A stat failure must not tear down the stream; the next tick retries.
+      }
+    };
+    // First frame on connect: the client needs a baseline, so always emit once.
+    res.write('event: update\n\n');
+    const timer = setInterval(tick, 2000);
+    req.on('close', () => clearInterval(timer));
     return;
   }
 
