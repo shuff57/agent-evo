@@ -29,7 +29,7 @@ what is missing so the user can install/repair it:
 
 ```bash
 browser-harness <<'PY'
-exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+exec(open(__import__("os").path.expanduser("~/.claude/skills/steve/sc.py")).read())
 preflight()
 PY
 ```
@@ -44,7 +44,7 @@ inherits the pre-imported browser-harness helpers:
 
 ```bash
 browser-harness <<'PY'
-exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+exec(open(__import__("os").path.expanduser("~/.claude/skills/steve/sc.py")).read())
 new_tab("https://<district>.safecolleges.com/training/home"); wait_for_load()
 print(assignments())
 PY
@@ -75,7 +75,7 @@ time (this is what makes it self-healing: it always re-derives the real state an
 
 ```bash
 browser-harness <<'PY'
-exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+exec(open(__import__("os").path.expanduser("~/.claude/skills/steve/sc.py")).read())
 import json
 st = state()
 if st["mode"] == "video":
@@ -141,7 +141,7 @@ exists to prevent is exactly that: announcing a handoff and then never issuing i
    DEADLINE=$(( $(date +%s) + 7200 ))   # hard stop after 2h regardless — never spins forever
    while [ "$(date +%s)" -lt "$DEADLINE" ]; do
      OUT=$(browser-harness <<'PY'
-   exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+   exec(open(__import__("os").path.expanduser("~/.claude/skills/steve/sc.py")).read())
    import json
    st = state()
    if st.get("mode") == "video" and not st.get("ended") and st.get("paused"):

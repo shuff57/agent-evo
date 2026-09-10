@@ -4,7 +4,7 @@
 # browser-harness helpers (js, iframe_target, new_tab, current_tab, ...):
 #
 #     browser-harness <<'PY'
-#     exec(open(r"C:\Users\shuff\.claude\skills\steve\sc.py").read())
+#     exec(open(__import__("os").path.expanduser("~/.claude/skills/steve/sc.py")).read())
 #     print(state())
 #     PY
 #
