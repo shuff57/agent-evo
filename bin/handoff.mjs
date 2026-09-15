@@ -104,19 +104,29 @@ if (heldClaims && !allowClaims) {
 const expect = (get('--expect') || '').split(',').map((s) => s.trim()).filter(Boolean);
 const noBox = expect.length > 0;
 
-const countReplies = () => {
-  try {
-    const log = execSync(`node "${MSG}" log --n 400`, { encoding: 'utf8' });
-    return (log.match(/opencode -> claude/g) || []).length;
-  } catch { return 0; }
+// (7) A COUNT of replies cannot tell whose reply it is. The box is shared, so two dispatches
+// running at once (a kernel build and a UI fix, say) both see each other's replies and both
+// report success. Measured 2026-09-15: two brep-rs round dispatches died at their output-token
+// limit having made zero edits and never replying, and handoff printed "OK — reply received"
+// both times -- it had counted a concurrent run's reply. Exit 0 then means nothing, which is the
+// exact failure this wrapper exists to catch.
+//
+// So each dispatch carries a unique tag the run is told to echo in its reply, and success needs
+// THAT tag in the log. An untagged new reply is reported separately rather than counted: it is
+// either a concurrent dispatch's, or this run ignoring the instruction, and the lead has to read
+// the thread either way. Alphanumeric + hyphen so the prompt sanitiser below leaves it intact.
+const tag = `HO-${Date.now().toString(36)}-${process.pid.toString(36)}`;
+const readLog = () => {
+  try { return execSync(`node "${MSG}" log --n 400`, { encoding: 'utf8' }); } catch { return ''; }
 };
+const countReplies = (log = readLog()) => (log.match(/opencode -> claude/g) || []).length;
 const before = countReplies();
 
 // (1)(3) the task goes IN the prompt. No inbox indirection, no short continuation that reads
 // as an acknowledgement. (2) single-quoted, no nested quotes, no angle brackets.
 const reportLine = noBox
   ? 'DO NOT touch the message center: do not read or write .msgbox, do not run msg.mjs. That log is large and reading it will consume your context before you produce anything. Print your report to stdout instead.'
-  : `When finished, report by running: node ${MSG} send --from opencode --to claude --re last --text with your findings.`;
+  : `When finished, report by running: node ${MSG} send --from opencode --to claude --re last --text with your findings. Begin that reply with the tag ${tag} so the dispatcher can tell it apart from a concurrent run's reply.`;
 
 const prompt = [
   `Read this file: ${spec} — that exact absolute path, it exists. Carry it out in full.`,
@@ -162,8 +172,12 @@ if (run.status === null) {
   const missing = expect.filter((f) => !fs.existsSync(path.resolve(f)));
   outcome = { code: missing.length ? 1 : 0, ok: !missing.length };
 } else {
-  const after = countReplies();
-  outcome = { code: after > before ? 0 : 1, ok: after > before };
+  // Read the log ONCE and answer two different questions from it: did THIS dispatch reply
+  // (its tag is present), and did anything else reply meanwhile (the count moved). The second
+  // is not success -- it is the concurrent-dispatch case that made the old check lie.
+  const log = readLog();
+  const tagged = log.includes(tag);
+  outcome = { code: tagged ? 0 : 1, ok: tagged, untagged: countReplies(log) - before };
 }
 emit({ kind: 'exit', from: 'claude-handoff', code: outcome.code, ok: outcome.ok });
 
@@ -187,10 +201,18 @@ if (noBox) {
   process.exit(1);
 }
 
-const after = countReplies();
-if (after > before) {
-  console.log(`\nOK — reply received (${after - before} new). Read it with: node ${MSG} read --as claude`);
+if (outcome.ok) {
+  console.log(`\nOK — tagged reply received (${tag}). Read it with: node ${MSG} read --as claude`);
   process.exit(0);
+}
+
+// A reply arrived, but not this dispatch's. Reported as its own outcome rather than folded into
+// either success or silence: the lead needs to know the box moved for some OTHER reason.
+if (outcome.untagged > 0) {
+  console.error(`\nFAILED — ${outcome.untagged} new reply(ies) in the box, none carrying this dispatch's tag (${tag}).`);
+  console.error('Either a CONCURRENT dispatch replied into the same box, or this run ignored the tag instruction.');
+  console.error(`Read the thread before re-dispatching: node ${MSG} read --as claude`);
+  process.exit(1);
 }
 
 console.error(`\nFAILED — the run exited (code ${run.status}) with NO reply in the message log.`);
