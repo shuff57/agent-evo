@@ -85,7 +85,11 @@ assert.strictEqual(run('inbox', '--as', 'inboxee').out.trim(), '', 'a delivered 
 // msg.mjs about where the box is -- otherwise it watches a file nothing ever writes to and the
 // whole feature silently does nothing.
 const plugin = path.join(import.meta.dirname, '..', 'opencode', 'plugin', 'inbox.js');
-const { findBox } = await import(pathToFileURL(plugin).href);
+// Inbox.findBox, not a named export: opencode calls every exported function as a plugin factory.
+const pluginMod = await import(pathToFileURL(plugin).href);
+const { findBox } = pluginMod.Inbox;
+assert.deepStrictEqual(Object.keys(pluginMod).filter((k) => typeof pluginMod[k] === 'function'), ['Inbox'],
+  'inbox.js exports exactly one function (opencode treats every exported function as a plugin)');
 const whereNoOverride = execFileSync(process.execPath, [msg, 'where'],
   { env: Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'MSGBOX')), encoding: 'utf8' }).trim();
 assert.strictEqual(findBox(process.cwd()), whereNoOverride, 'plugin and msg.mjs agree on the box path');

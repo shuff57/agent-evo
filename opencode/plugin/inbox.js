@@ -34,7 +34,13 @@ const ME = process.env.MSGBOX_AS || "opencode";
 // more than the feature saves. Everything else -- the cursor, the filter, the formatting -- stays in
 // msg.mjs so the two can never disagree about what counts as unread. Keep this in step with
 // `msg.mjs where`; msg.test.mjs asserts they agree.
-export function findBox(directory) {
+//
+// NOT exported by name: opencode calls EVERY exported function in a plugin file as a plugin
+// factory, passing its input object. An exported findBox was invoked as findBox({client, project,
+// directory, ...}), path.join(<object>, ".git") threw "paths[0] ... got object", and the whole
+// plugin failed to load -- 818 times in opencode.log from 2026-08-19 to 2026-09-15, so mid-run
+// delivery silently never worked. Exposed as Inbox.findBox for msg.test.mjs instead.
+function findBox(directory) {
   if (process.env.MSGBOX) return process.env.MSGBOX;
   let dir = directory || process.cwd();
   while (true) {
@@ -101,3 +107,5 @@ export const Inbox = async ({ directory }) => {
     },
   };
 };
+// A property, not a named export: see the note above findBox for why.
+Inbox.findBox = findBox;
