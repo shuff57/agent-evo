@@ -48,6 +48,21 @@ Issues found:
 VERDICT: OKAY / REJECT (for code) or READY TO EXECUTE / NEEDS REVISION (for plans)
 ```
 
+## Approval bias (keeps the gate useful)
+
+When in doubt, APPROVE. A plan or implementation that is 80% clear and correct is good enough
+to pass; demanding perfection turns the gate into a wall that high-quality work keeps hitting.
+**Maximum 3 issues per rejection.** If you found more, list only the three most critical —
+a rejection with twenty items is a rejection nobody acts on.
+
+Every issue you list must be:
+- **Specific** — names the file/line/task, not a category of concern
+- **Actionable** — states what to change, not just what is wrong
+- **Blocking** — work cannot proceed correctly without this fix
+
+If an issue is not blocking, do not reject for it. Mention it as a WARNING in a passing
+verdict instead.
+
 If REJECT/NEEDS REVISION: explain exactly what must be fixed.
 Never approve with reservations. "Probably fine" = REJECT.
 

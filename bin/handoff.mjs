@@ -15,12 +15,20 @@
 // Each is pre-empted below. The important one is the last check: an exit code of 0 proves
 // nothing here, so this refuses to call a run successful unless a reply actually arrived.
 //
-//   node handoff.mjs --spec <path> [--model <id>] [--note "extra line"]
+//   node handoff.mjs --spec <path> [--model <id>] [--note "extra line"] [--detach]
+//
+// (8) A run launched from a parent that dies takes the run down with it. Measured 2026-09-16:
+// a 40-min build dispatched from a Claude Code Bash tool died mid-stream at step 9 when the
+// tool call's process tree was reaped — the session's last message had zero tokens, an empty
+// reasoning part and no finish/error, which reads exactly like "the model produced nothing".
+// --detach spawns opencode in its own process group with stdio ignored, so the run survives a
+// dead parent. The reply still arrives in the message log; success is no longer checked here
+// (the parent is gone), so the caller reads the log for the tag this prints.
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execSync, spawnSync } from 'node:child_process';
+import { execSync, spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 // msg.mjs is this file's own sibling. Deriving the path from import.meta.url instead
@@ -156,10 +164,49 @@ console.log(`spec   ${spec}\nmodel  ${model}\nclaims ${heldClaims ? owners.repla
 // --text` and hit exactly this. Double quotes are safe here because the prompt had `"` `<` `>`
 // stripped above; strip the remaining cmd.exe metacharacters too.
 const shellSafePrompt = `"${prompt.replace(/[&|^%]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
+// (9) Non-interactive environment. An agent driving git can hit an editor/pager prompt that
+// no one can answer, and the run hangs until timeout. Ported from omo-dev non-interactive-env:
+// set the kill-switches on the SPAWN ENV rather than prefixing the command, because the
+// prefix approach needs per-shell syntax (pwsh vs cmd) and this box has both.
+// Never touch anything the caller set explicitly.
+const AGENT_ENV = {
+  GIT_TERMINAL_PROMPT: '0',
+  GCM_INTERACTIVE: 'never',
+  GIT_EDITOR: ':',
+  EDITOR: ':',
+  GIT_SEQUENCE_EDITOR: ':',
+  GIT_MERGE_AUTOEDIT: 'no',
+  GIT_PAGER: 'cat',
+  PAGER: 'cat',
+  npm_config_yes: 'true',
+  PIP_NO_INPUT: '1',
+  DEBIAN_FRONTEND: 'noninteractive',
+};
+const env = { ...process.env };
+for (const [k, v] of Object.entries(AGENT_ENV)) if (env[k] === undefined) env[k] = v;
+
 emit({ kind: 'spawn', from: 'claude-handoff', model, spec, noBox, variant: variant || null });
+
+// --detach: survive a dead parent. `spawn` with detached+stdio ignore releases the run from
+// this process group, so a reaped Bash tool call no longer kills it mid-stream.
+if (args.includes('--detach')) {
+  const child = spawn('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
+    shell: true,
+    detached: true,
+    stdio: 'ignore',
+    env,
+  });
+  child.unref();
+  console.log(`\nDETACHED — pid ${child.pid}. The parent can exit; the run continues.`);
+  console.log(`Watch for its tagged reply (${tag}) in the message log:`);
+  console.log(`  node ${MSG} log --n 20`);
+  process.exit(0);
+}
+
 const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
   stdio: 'inherit',
   shell: true,
+  env,
 });
 
 // One outcome, computed once, then emit + exit — the spec's shape for not duplicating exit logic.

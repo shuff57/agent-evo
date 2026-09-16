@@ -50,6 +50,15 @@ def classify(prompt):
     p = prompt.strip().lower()
     if not p:
         return None
+    # System-injected task-notification text (async subagent completions
+    # delivered as a UserPromptSubmit event) routinely contains substrings
+    # like "missing" or "fix the" describing what a SUBAGENT did/found --
+    # not a human correcting Claude's output. Observed 2026-09-03: 3 false
+    # "correction" events across 2 sessions (45318a17, 2f33c10b), all
+    # <task-notification> snippets, while both sessions' self-reported
+    # summary.jsonl correction_count stayed 0 (the accurate signal).
+    if p.startswith("<task-notification>"):
+        return None
     for m in REPHRASE:
         if p.startswith(m):
             return "rephrase", m

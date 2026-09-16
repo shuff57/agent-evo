@@ -14,6 +14,11 @@ skills/browser-use/
 # them THERE; a change made here is gone on the next launch.
 skills/mom-question/
 skills/mom-transfer/
+# skills/synced/ is a plugin-cache mirror (docx/pptx/xlsx/mcp-builder/skill-creator
+# and friends, several MB) that a sync tool drops in by content hash. It is derived
+# data with a per-run directory name, so tracking it means permanent churn and a
+# repo that grows on every sync. Found untracked at 3.8 MB on 2026-09-16.
+skills/synced/
 
 # Cross-CLI message center: the log ships with the repo (same box path on every
 # machine, no username in it); cursors are device-local
