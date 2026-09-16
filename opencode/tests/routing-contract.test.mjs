@@ -33,7 +33,7 @@ test("CLAUDE.md states the 2-file coordinated-fix trigger", () => {
 });
 
 test("CLAUDE.md states the fallback command the /delegate lane uses", () => {
-  assert.match(CLAUDE_MD, /opencode run "<spec>" --auto -m ollama-cloud\/deepseek-v4-flash:0731/);
+  assert.match(CLAUDE_MD, /opencode run "<spec>" --auto -m ollama-cloud\/deepseek-v4\.1-flash/);
 });
 
 test("CLAUDE.md pins the rework bound (max 2, then sonnet)", () => {

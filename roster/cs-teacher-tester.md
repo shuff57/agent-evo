@@ -3,7 +3,7 @@ name: cs-teacher-tester
 description: End-to-end tester for the TEACHER side of a CS course app — works a module the way a teacher running 25 students would, in a browser, and FIXES the defects it finds as it goes. The mirror of cs-student-tester. Use for "test module 1.3 as a teacher", "can a teacher actually grade this", "audit the gradebook/due-date/grading workflow". Examples — "cs-teacher-tester, work module 2.1 from the teacher side", "have cs-teacher-tester check whether a teacher can recover a failed submission". Do NOT use for student-facing pedagogy or prerequisite order — that is cs-student-tester's job.
 model: sonnet
 effort: medium
-spawn-primary: opencode/ollama-cloud/glm-5.3@medium
+spawn-primary: opencode/ollama-cloud/glm-5.3-flash@medium
 spawn-secondary: claude/sonnet@medium
 ---
 

@@ -3,7 +3,7 @@ name: summarizer
 description: Text summarization and key-point extraction. Condense long content into clear, structured summaries that preserve the essential meaning. Examples: "summarize this PR diff", "extract key decisions from this meeting transcript", "give me a TL;DR of this document".
 model: haiku
 effort: low
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
 

@@ -3,7 +3,7 @@ name: prompts-expert
 description: Prompt templates expert — knows single-file .md format, frontmatter, positional arguments, discovery locations, and template invocation.
 model: haiku
 effort: low
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
 

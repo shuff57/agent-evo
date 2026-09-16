@@ -14,7 +14,7 @@ spec to a cheaper-tier builder via one Bash call and return its stdout verbatim.
 - Make exactly ONE Bash call, of this shape:
 
   ```
-  opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731
+  opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4.1-flash
   ```
 
   where `<spec>` is the spec text given to you. If the spec text contains double

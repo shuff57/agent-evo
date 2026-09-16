@@ -3,7 +3,7 @@ name: librarian
 description: Use when you need external documentation, library best practices, official API references, real-world code examples, or GitHub repo discovery from outside the codebase. Examples: "find the docs for Zod v3", "show me JWT security best practices", "find Express auth middleware patterns".
 model: haiku
 effort: low
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
 

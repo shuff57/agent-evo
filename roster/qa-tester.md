@@ -3,7 +3,7 @@ name: qa-tester
 description: Use for writing tests, building test suites, and systematic quality assurance. Covers unit tests, integration tests, E2E tests, and edge case discovery. Examples: "write tests for the auth module", "add E2E tests for checkout flow", "find untested edge cases".
 model: sonnet
 effort: high
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@high
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@high
 spawn-secondary: claude/sonnet@high
 ---
 

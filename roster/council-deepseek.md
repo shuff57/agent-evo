@@ -3,7 +3,7 @@ name: council-deepseek
 description: Council seat for bug-hunt/correctness/worst-case review. Reviews the artifact directly and returns one focused review to the dispatching session, which adjudicates. Examples — "council-deepseek, hunt bugs in this", "have council-deepseek look at this code".
 model: sonnet
 effort: high
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@high
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@high
 spawn-secondary: claude/sonnet@high
 ---
 

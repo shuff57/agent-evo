@@ -3,7 +3,7 @@ name: ui-expert
 description: UI components expert — knows built-in components, custom components, overlays, keyboard input, widgets, and custom editors.
 model: haiku
 effort: low
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
 

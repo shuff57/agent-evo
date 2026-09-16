@@ -1,6 +1,6 @@
 ---
 name: fable
-description: Orchestrate a non-trivial build as a bounded task graph. Plan and adjudicate in the main session (opus/sonnet), then fan implementation out to cheap workers — ollama-cloud/glm-5.3-flash for normal implementation, ollama-cloud/deepseek-v4-flash:0731 for loops, repeated iteration, and high-throughput mechanical work. Use when the user invokes $fable or asks for graph-style orchestration of a multi-part build.
+description: Orchestrate a non-trivial build as a bounded task graph. Plan and adjudicate in the main session (opus/sonnet), then fan implementation out to cheap workers — ollama-cloud/glm-5.3-flash for normal implementation, ollama-cloud/deepseek-v4.1-flash for loops, repeated iteration, and high-throughput mechanical work. Use when the user invokes $fable or asks for graph-style orchestration of a multi-part build.
 ---
 
 # Fable orchestrator (local adaptation)
@@ -23,7 +23,7 @@ to two callable routes:
 
 Model names are requests, not guesses. Before dispatch, confirm the route is
 callable: `ollama-cloud/glm-5.3-flash` and
-`ollama-cloud/deepseek-v4-flash:0731` (verify against
+`ollama-cloud/deepseek-v4.1-flash` (verify against
 `opencode.json`/`opencode models` if in doubt). If a requested route is
 unavailable, say so and substitute within these two only when low-risk;
 otherwise ask for a replacement. Never invent a third route.
@@ -31,7 +31,7 @@ otherwise ask for a replacement. Never invent a third route.
 Apply this ordered classifier when the user did not explicitly choose a route:
 
 - loop construction, repeated iteration, bulk mechanical work (rename across
-  N files, port tests, fill boilerplate): `deepseek-v4-flash:0731`
+  N files, port tests, fill boilerplate): `deepseek-v4.1-flash`
 - all other implementation: `glm-5.3-flash`
 - planning, research, review, and other work: stays in the main session or
   routes by the CLAUDE.md tier table — never to an ollama worker.
@@ -49,7 +49,7 @@ the whole safety margin. Dispatch shapes:
 
 ```
 opencode run "<spec>" --auto -m ollama-cloud/glm-5.3-flash
-opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731
+opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4.1-flash
 ```
 
 For multi-worker or multi-round work, launch through the message center per

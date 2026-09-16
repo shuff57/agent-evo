@@ -31,7 +31,7 @@ The main session (Opus) is the tech lead: it sizes the request, writes the spec,
 **When routing is suppressed, do these two things — the first time in the session you are about to write more than ~10 lines of new code, OR make a coordinated fix touching 2+ files (even a one-line change apiece), before writing any of it:**
 
 1. **Say so, in one line.** "Agent routing is suppressed this session, so I'm building this inline." The user cannot see the suppression; if you don't say it, the tier policy has silently stopped existing and nobody knows.
-2. **Then use the fallback**, which is never suppressed: `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4-flash:0731` via Bash — or state in the same line why inline is the better call here (genuinely ambiguous, high-stakes, or too small to be worth the round-trip). Either is fine. Silently typing it yourself is not.
+2. **Then use the fallback**, which is never suppressed: `opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4.1-flash` via Bash — or state in the same line why inline is the better call here (genuinely ambiguous, high-stakes, or too small to be worth the round-trip). Either is fine. Silently typing it yourself is not.
 
 This is written as a two-step because the note used to be a sentence of prose and got skipped. Measured 2026-08-17 (`shcode-curriculum-1.4`): routing was suppressed all session, an entire new lesson type — component, lib module, test script, six content conversions — was built inline, and neither step happened. The work was fine; the policy just wasn't in effect and the user only found out at session end.
 
@@ -89,7 +89,7 @@ Two axes the table above does not capture, both of which decided real outcomes:
   `.claude/skills/book-pipeline/SKILL.md`.) Do not route visual work to a free model even
   "scoped to what it can see" — the scoping is what breaks silently. Audio has no choice
   anyway: no ollama-cloud model accepts it.
-- **The text half of a review is deepseek's — `deepseek-v4-flash:0731`.** Box containment,
+- **The text half of a review is deepseek's — `deepseek-v4.1-flash`.** Box containment,
   overflow at any width, horizontal scroll, clipped content, caption pairing, duplicate ids,
   computed colours, console and asset errors, numbering: all DOM numbers, no eyes needed. One
   lens per opencode session, in parallel, over the message center. Deepseek has **no** image
@@ -100,7 +100,7 @@ Two axes the table above does not capture, both of which decided real outcomes:
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
 - **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-code-engineer`, fanned out in parallel.**
 - **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`code-engineer` (sonnet). Skip ollama entirely.**
-- **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** The ask must be in the user's own words ("use a workflow", "fan out agents", "orchestrate this with subagents", `$fable`) — a task that would merely *benefit* from parallelism does not authorize the graph by itself; size it through the tier table and delegate normally. Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4-flash:0731` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
+- **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** The ask must be in the user's own words ("use a workflow", "fan out agents", "orchestrate this with subagents", `$fable`) — a task that would merely *benefit* from parallelism does not authorize the graph by itself; size it through the tier table and delegate normally. Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4.1-flash` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
 
 ### Build-from-scratch loop
 
@@ -154,10 +154,8 @@ Claude side, `--variant` on the opencode side.
 
 | Lane | Route | Agents |
 |---|---|---|
-| **deepseek-flash** (16) | `ollama-cloud/deepseek-v4-flash:0731` | all 9 `*-expert`, `scout@low`, `summarizer@low`, `documenter@low`, `librarian@low`, `test-ping@low`, `qa-tester@high`, `council-deepseek@high` |
-| **glm-flash** (9) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low` |
-| **glm-5.3** (1) | `ollama-cloud/glm-5.3` | `cs-teacher-tester@medium` |
-| **deepseek-v4-pro** (1) | `ollama-cloud/deepseek-v4-pro` | `red-team@high` |
+| **deepseek-flash** (17) | `ollama-cloud/deepseek-v4.1-flash` | all 9 `*-expert`, `scout@low`, `summarizer@low`, `documenter@low`, `librarian@low`, `test-ping@low`, `qa-tester@high`, `council-deepseek@high`, `red-team@high` |
+| **glm-flash** (10) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low`, `cs-teacher-tester@medium` |
 | **claude/opus** (4) | judgment | `oracle@max`, `metis@max`, `planner@max`, `critic@high` |
 | **claude/sonnet** (6) | finishing + vision | `code-engineer@high`, `debugger@high`, `designer@medium`, `bowser@medium`, `eyes-and-ears@medium`, `visual-analyzer@medium` |
 
@@ -295,6 +293,7 @@ release.
 the log rather than the task notification. Symmetrically, **your own expectation is not evidence
 either**: never fabricate or predict a pending agent's results — the notification is never something
 you write yourself. If the user asks before a dispatched run has replied, say it's still running.
+
 
 **A short `--re` reply gets READ and not ACTED ON.** Twice on 2026-08-10 a follow-up of the shape
 "my error, claim released, proceed with SPEC.md as specced" was fetched by `msg.mjs read`, echoed to

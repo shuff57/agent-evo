@@ -443,7 +443,7 @@ finding lands in the log instead of a scrollback:
 
 **Delegate the DOM half only. Every frame and every clip stays with you.** Operator decision
 2026-08-09: vision and audio are Anthropic's, and the text lenses are
-`deepseek-v4-flash:0731`. Do not hand a free model a visual check even scoped to what it
+`deepseek-v4.1-flash`. Do not hand a free model a visual check even scoped to what it
 supposedly sees — ollama vision models have hard, complementary blind spots (`kimi-k2.7-code`
 and `minimax-m3` invert alignment; `qwen3.5:397b` and `mistral-large-3` pass content clipped
 mid-glyph), and the scoping is the part that fails silently. Measured table in bookSHelf
@@ -453,7 +453,7 @@ mid-glyph), and the scoping is the part that fails silently. Measured table in b
 MSG="node ~/.claude/bin/msg.mjs"
 $MSG send --from eyes-and-ears --to lens-boxes --topic <target> --text "<one lens brief>"
 opencode run "Run: node ~/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
-  --auto -m ollama-cloud/deepseek-v4-flash:0731
+  --auto -m ollama-cloud/deepseek-v4.1-flash
 $MSG read --as eyes-and-ears
 ```
 

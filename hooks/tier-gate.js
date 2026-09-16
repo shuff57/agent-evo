@@ -283,7 +283,7 @@ try {
     `${MARKER} Tier policy crossed: ${why}.`,
     "CLAUDE.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
     "Either delegate the remainder (Agent tool with code-engineer / ollama-code-engineer, or the fallback",
-    "`opencode run \"<spec>\" --auto -m ollama-cloud/deepseek-v4-flash:0731` via Bash), or say in your reply",
+    "`opencode run \"<spec>\" --auto -m ollama-cloud/deepseek-v4.1-flash` via Bash), or say in your reply",
     "why inline is the better call here (high-stakes, genuinely ambiguous, or nearly done).",
     "Announcing this is the whole policy — do not silently continue.",
   ].join("\n");

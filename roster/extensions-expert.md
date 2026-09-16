@@ -3,7 +3,7 @@ name: extensions-expert
 description: Extensions and plugins expert — knows how to build custom tools, event handlers, commands, shortcuts, state management, custom rendering, and tool overrides across coding agent platforms.
 model: haiku
 effort: low
-spawn-primary: opencode/ollama-cloud/deepseek-v4-flash:0731@low
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
 

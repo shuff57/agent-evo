@@ -3,7 +3,7 @@ name: red-team
 description: Security and adversarial testing. Find vulnerabilities, edge cases, and failure modes. Examples: "check for injection risks", "find exposed secrets", "test for missing validation".
 model: sonnet
 effort: high
-spawn-primary: opencode/ollama-cloud/deepseek-v4-pro@high
+spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@high
 spawn-secondary: claude/sonnet@high
 ---
 

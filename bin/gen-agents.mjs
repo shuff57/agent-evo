@@ -17,11 +17,16 @@
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync,
          lstatSync, unlinkSync, rmdirSync, cpSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 const HOME = homedir().replace(/\\/g, '/');
-const ROSTER = 'C:/Users/shuff57/Documents/GitHub/agent-evo/roster';
+// Derived from this file's own location, never a hardcoded home directory: a literal
+// `C:/Users/shuff57` here is one machine's name, so a second box — or a Git Bash run,
+// where the path spelling differs — fails with ENOENT scandir roster/. Same lesson as
+// handoff.mjs's MSG constant.
+const ROSTER = join(dirname(fileURLToPath(import.meta.url)), '..', 'roster').replace(/\\/g, '/');
 const CLAUDE_AGENTS = `${HOME}/.claude/agents`;
 const OPENCODE_AGENTS = `${HOME}/.config/opencode/agents`;
 const DRY = process.argv.includes('--dry-run');
@@ -77,7 +82,7 @@ const hasKey = (blocks, key) => blocks.some(([k]) => k === key);
 
 const render = (blocks) => blocks.flatMap(([, ls]) => ls);
 
-// "opencode/ollama-cloud/deepseek-v4-flash:0731@low" -> {cli, model, variant}
+// "opencode/ollama-cloud/deepseek-v4.1-flash@low" -> {cli, model, variant}
 function splitSpawn(spec) {
   const [route, variant] = spec.split('@');
   const slash = route.indexOf('/');
