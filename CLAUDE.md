@@ -296,6 +296,34 @@ the log rather than the task notification. Symmetrically, **your own expectation
 either**: never fabricate or predict a pending agent's results — the notification is never something
 you write yourself. If the user asks before a dispatched run has replied, say it's still running.
 
+**A long run must be detached, and a stalled provider is not a model failure.** Two distinct
+killers, both measured 2026-09-16, both looking identical from the outside ("the model produced
+nothing"):
+
+1. **Parent death.** A dispatch launched synchronously from a Claude Code Bash tool dies with the
+   tool call's process tree. The session's last message then has zero tokens, an empty reasoning
+   part, and no finish or error. Use `--detach` on any run expected to outlive a few minutes:
+   `handoff.mjs` spawns it in its own process group with stdio ignored and prints the tag to watch
+   for. The reply still lands in the message log; success is checked by the tag, not this process.
+2. **Provider header timeout.** opencode hardcodes a 5-minute limit on *response headers* per
+   request. As an ollama-cloud session grows past ~90k input tokens the prefill can exceed that,
+   and the stream dies with `ProviderHeaderTimeoutError` — again leaving a zero-token assistant
+   message with no output. The fix is in `~/.config/opencode/opencode.jsonc`: a provider block
+   setting `headerTimeout`/`chunkTimeout` to 900000 for `ollama-cloud`. When a run returns empty,
+   check `~/.local/share/opencode/log/opencode.log` for that error before blaming the model,
+   the spec, or the context length — output limits were never the cause (glm-5.3-flash allows
+   131k output tokens; the observed deaths were at 0 tokens, not at a limit).
+3. **Reasoning-budget exhaustion (`finish: "length"`).** opencode clamps every model's output
+   budget to a hard 32,000-token ceiling (`min(model.limit.output, 32000)` in the binary), and a
+   reasoning-variant request splits that ceiling into budgets — at `--variant high` the thinking
+   budget is ~16k, at `max` ~32k. Measured 2026-09-16: a `glm-5.3-flash` run burned 123KB of
+   reasoning, hit 32,000 output tokens, and ended `finish: "length"` with **zero deliverable
+   content and no tool calls** — the tokens went entirely to thinking. The failure looks identical
+   to (1) and (2) from outside. Detection: `opencode export <sessionID>` and check the last
+   assistant message's `finish` — `"length"` with `reasoning >> output` means the budget was
+   eaten by thinking. Mitigation: dispatch heavy specs at `--variant low`, or split the spec into
+   smaller units, or run the build on a model without a reasoning variant. Do not simply raise
+   retries — the second attempt burns the same 32k.
 
 **A short `--re` reply gets READ and not ACTED ON.** Twice on 2026-08-10 a follow-up of the shape
 "my error, claim released, proceed with SPEC.md as specced" was fetched by `msg.mjs read`, echoed to
