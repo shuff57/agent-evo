@@ -78,7 +78,35 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python $HOME/.claude/hooks/memory-sync-pull.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python $HOME/.claude/hooks/memory-sync-push.py"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $HOME/Documents/GitHub/agent-evo/hooks/context-monitor.js"
+          }
+        ]
+      },
       {
         "matcher": "Skill",
         "hooks": [
@@ -98,9 +126,9 @@
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": true,
     "superpowers@superpowers-dev": true,
-    "rust-analyzer-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": true,
     "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
@@ -119,6 +147,20 @@
   },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
+  "mcpServers": {
+    "graphify": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "graphify.serve",
+        "graphify-out/graph.json"
+      ],
+      "env": {
+        "PYTHONUTF8": "1"
+      }
+    }
+  },
   "voice": {
     "enabled": true,
     "mode": "hold"
