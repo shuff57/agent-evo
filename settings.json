@@ -104,6 +104,10 @@
           {
             "type": "command",
             "command": "node $HOME/Documents/GitHub/agent-evo/hooks/context-monitor.js"
+          },
+          {
+            "type": "command",
+            "command": "node $HOME/Documents/GitHub/agent-evo/hooks/loop-guard.js"
           }
         ]
       },
