@@ -143,15 +143,48 @@ function forwarderStub(a, spawn) {
   ].join(a.eol);
 }
 
+// Claude `tools:` name -> opencode `permission:` key. Several Claude tools gate
+// on one opencode key (Edit/Write/NotebookEdit all fall under `edit`); if ANY of
+// them appears in tools:, that key is allowed, otherwise denied. Keys with no
+// Claude-side equivalent (task, skill, lsp, question, external_directory,
+// doom_loop) are left unset rather than guessed. Verified against
+// https://opencode.ai/docs/permissions/ 2026-09-17 - allow/ask/deny, and `read`
+// is a real top-level key (confirmed against roster/loom.md's own usage).
+const TOOL_MAP = {
+  read: ['Read'],
+  glob: ['Glob'],
+  grep: ['Grep'],
+  edit: ['Edit', 'Write', 'NotebookEdit'],
+  bash: ['Bash'],
+  webfetch: ['WebFetch'],
+  websearch: ['WebSearch'],
+};
+
+function derivePermission(toolsLines) {
+  const list = toolsLines.join(' ').replace(/^tools:\s*\[/, '').replace(/\]\s*$/, '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  return Object.fromEntries(Object.entries(TOOL_MAP)
+    .map(([key, claudeNames]) => [key, claudeNames.some(n => list.includes(n)) ? 'allow' : 'deny']));
+}
+
 function opencodeDef(a, spawn) {
   // Keep the (possibly multi-line) description verbatim; drop Claude-only keys.
-  // `tools:` is NOT carried: opencode's tools field is an object, not the Claude
-  // comma-string, so passing it through would be a parse error. Tool limits on
-  // the opencode side are expressed with `permission:` and are not translated -
-  // see the tools-restriction warning printed at the end of a run.
+  // `tools:` (Claude's comma-list) is not itself a valid opencode field, so it's
+  // dropped - but its INTENT is real and opencode enforces the same restriction
+  // through `permission:`. If the roster already declares `permission:` explicitly
+  // (e.g. roster/loom.md), that wins untouched; otherwise a `tools:` list is
+  // auto-translated below so the restriction the roster author wrote down is the
+  // restriction the opencode-side agent actually runs with, not silently dropped.
   let blocks = chunk(a.fm);
+  const toolsBlock = blocks.find(([k]) => k === 'tools');
+  const hasPermission = hasKey(blocks, 'permission');
   blocks = dropKeys(blocks, ['name', 'effort', 'spawn-primary', 'spawn-secondary',
                              'tools', 'tier', 'pinned', 'mode', 'model']);
+  if (toolsBlock && !hasPermission) {
+    const perm = derivePermission(toolsBlock[1]);
+    blocks = [...blocks, ['permission',
+      ['permission:', ...Object.entries(perm).map(([k, v]) => `  ${k}: ${v}`)]]];
+  }
   return [
     '---',
     ...render(blocks),
@@ -285,9 +318,12 @@ const orphans = existsSync(OPENCODE_AGENTS)
 for (const o of orphans)
   console.log(`  ORPHAN    ~/.config/opencode/agents/${o} - not generated from roster; may be stale`);
 
-const restricted = ollamaLane.filter(a => hasKey(chunk(a.fm), 'tools')).map(a => a.name);
-if (restricted.length)
-  console.log(`  NOTE: tools: restriction not translated to opencode for: ${restricted.join(', ')}`);
+const translated = ollamaLane.filter(a => {
+  const b = chunk(a.fm);
+  return hasKey(b, 'tools') && !hasKey(b, 'permission');
+}).map(a => a.name);
+if (translated.length)
+  console.log(`  NOTE: tools: auto-translated to opencode permission: for: ${translated.join(', ')}`);
 
 console.log(`\n  wrote ${wroteClaude} claude agent files, ${wroteOpencode} opencode defs`);
 console.log(`  carried ${carried.length} non-agent entries (teams.yaml etc.)`);
