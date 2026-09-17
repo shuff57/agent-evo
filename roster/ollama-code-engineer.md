@@ -4,6 +4,7 @@ description: code-engineer equivalent that runs on an Ollama cloud model inside 
 tools: [Read, Write, Edit, Glob, Grep, Bash]
 model: sonnet
 effort: high
+steps: 25
 spawn-primary: opencode/ollama-cloud/glm-5.3-flash@high
 spawn-secondary: claude/sonnet@high
 ---

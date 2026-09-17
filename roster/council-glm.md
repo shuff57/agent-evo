@@ -3,6 +3,7 @@ name: council-glm
 description: Council seat for reasoning/architecture/tradeoff review. Reviews the artifact directly and returns one focused review to the dispatching session, which adjudicates. Examples — "council-glm, review this design", "have council-glm look at this plan".
 model: sonnet
 effort: high
+steps: 25
 spawn-primary: opencode/ollama-cloud/glm-5.3-flash@high
 spawn-secondary: claude/sonnet@high
 ---

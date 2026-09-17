@@ -3,6 +3,7 @@ name: documenter
 description: Documentation and README generation. Write clear, concise docs that match the project's existing style.
 model: haiku
 effort: low
+steps: 12
 spawn-primary: opencode/ollama-cloud/deepseek-v4.1-flash@low
 spawn-secondary: claude/haiku@low
 ---
