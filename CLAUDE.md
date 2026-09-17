@@ -153,15 +153,17 @@ Claude instead of spawning opencode.
 
 **Lanes** — ollama for bulk lookup and drafting; Claude for finishing, review, finer passes.
 
-37 agents, 27 on ollama and 10 on Claude. `@` is the reasoning dial — `effort:` on the
+38 agents, 32 on ollama and 6 on Claude. `@` is the reasoning dial — `effort:` on the
 Claude side, `--variant` on the opencode side.
 
 | Lane | Route | Agents |
 |---|---|---|
 | **deepseek-flash** (17) | `ollama-cloud/deepseek-v4.1-flash` | all 9 `*-expert`, `scout@low`, `summarizer@low`, `documenter@low`, `librarian@low`, `test-ping@low`, `qa-tester@high`, `council-deepseek@high`, `red-team@high` |
-| **glm-flash** (10) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low`, `cs-teacher-tester@medium` |
-| **claude/opus** (4) | judgment | `oracle@max`, `metis@max`, `planner@max`, `critic@high` |
-| **claude/sonnet** (6) | finishing + vision | `code-engineer@high`, `debugger@high`, `designer@medium`, `bowser@medium`, `eyes-and-ears@medium`, `visual-analyzer@medium` |
+| **glm-flash** (11) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `loom@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low`, `cs-teacher-tester@medium` |
+| **glm-5.3** (3) | `ollama-cloud/glm-5.3` (full, non-flash) | `oracle@max`, `planner@max`, `critic@high` |
+| **kimi** (1) | `ollama-cloud/kimi-k3` | `designer@medium` |
+| **claude/opus** (1) | judgment | `metis@max` |
+| **claude/sonnet** (5) | finishing + vision | `code-engineer@high`, `debugger@high`, `bowser@medium`, `eyes-and-ears@medium`, `visual-analyzer@medium` |
 
 `cs-student-beginner` is deliberately `@low` — that persona must NOT infer, so capability
 makes it a worse instrument. It is the one agent whose dial is set against capability.
