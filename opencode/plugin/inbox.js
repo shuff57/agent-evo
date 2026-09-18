@@ -16,6 +16,20 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
+// The peer registry is the sidecar's device-local list of live peers. This plugin only ever
+// HEARTBEATS an entry that already exists: it never registers, never mints a key, and never
+// creates registry.json. Imported by name and NOT re-exported — opencode calls every exported
+// function in a plugin file as a plugin factory, so a stray export would be invoked as one.
+import {
+  STATUS,
+  defaultRegistryDir,
+  derivePeerId,
+  loadRegistry,
+  registryPath,
+  saveRegistry,
+  setStatus,
+  touchPeer,
+} from "../../bin/peer/registry.mjs";
 
 const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, "/");
 // Which mailbox this session watches. A hardcoded "opencode" silently disabled the whole feature
@@ -52,11 +66,21 @@ function findBox(directory) {
 }
 
 export const Inbox = async ({ directory }) => {
-  const logFile = path.join(findBox(directory), "log.jsonl");
+  const box = findBox(directory);
+  const logFile = path.join(box, "log.jsonl");
+  // The peer registry lives beside the box. `registryFile` is only ever READ unless it already
+  // exists: a missing registry means no sidecar has registered this lane, and creating one here
+  // would fabricate a peer with no key file and no identity.
+  const registryFile = registryPath(defaultRegistryDir(box));
+  const peerId = derivePeerId(`${process.platform}:${os.hostname()}:${ME}`);
   let lastSeenMtime = null;
   // Activity heartbeat for msgbox-ui: the last time an `activity` event was appended. One
   // timestamp compare in the common case, so the hook stays nearly free.
   let lastBeat = 0;
+  // Registry heartbeat debounce, separate from the telemetry one: a registry write is a
+  // read-modify-write of a shared file, so it is held to one write per 5 s regardless of how
+  // many tool calls land in between.
+  let lastRegistryBeat = 0;
 
   // Append one telemetry line to <box>/events.jsonl beside log.jsonl. An emitter that throws
   // would kill the tool call it hooks into, so it is wrapped by the caller's try/catch and
@@ -65,6 +89,21 @@ export const Inbox = async ({ directory }) => {
     try {
       fs.appendFileSync(path.join(findBox(directory), "events.jsonl"), JSON.stringify({ ts: new Date().toISOString(), ...event }) + "\n");
     } catch { /* telemetry must never break the task */ }
+  };
+
+  // Refresh this lane's peer entry so the sidecar sees it as live and busy. Strictly a no-op
+  // unless a sidecar already registered this peer: a missing registry, a missing/foreign entry,
+  // a corrupt file or any I/O failure leaves the filesystem exactly as it was. The whole attempt
+  // is debounced, so a burst of tool calls costs one stat and at most one read-modify-write.
+  const beatRegistry = () => {
+    try {
+      if (Date.now() - lastRegistryBeat <= 5000) return;
+      lastRegistryBeat = Date.now();
+      if (!fs.existsSync(registryFile)) return;
+      const touched = touchPeer(loadRegistry(registryFile), peerId);
+      if (!touched.changed) return;
+      saveRegistry(registryFile, setStatus(touched.registry, peerId, STATUS.BUSY).registry);
+    } catch { /* a missing/corrupt registry or a failed write is a no-op */ }
   };
 
   return {
@@ -83,6 +122,7 @@ export const Inbox = async ({ directory }) => {
         if (tool === "task") {
           emitEvent({ kind: "task", from: ME, agent: toolInput?.subagent_type ?? toolInput?.agent ?? null });
         }
+        beatRegistry();
 
         // The common case is "nothing new", and it has to be nearly free — one stat, no subprocess.
         // Read the mtime BEFORE delivering and store that value: anything appended during the
