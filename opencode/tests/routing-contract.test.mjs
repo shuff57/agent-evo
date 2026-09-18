@@ -406,3 +406,52 @@ test("opencode/plugin/inbox.js keeps exactly one export", () => {
   assert.match(inboxPlugin, /^export const Inbox = /m);
   assert.match(inboxPlugin, /Inbox\.findBox = findBox;/);
 });
+
+// ---------------------------------------------------------------------------
+// 5. tier-gate counts FILES, not path spellings
+// ---------------------------------------------------------------------------
+// Bash hands the hook a cwd-relative path and Write hands it an absolute one, so
+// one file touched by both used to count as two and cross FILE_THRESHOLD on its
+// own. Two costs, and the second is the worse one: the notice is deliberately
+// once per session, so a phantom trigger SPENDS that budget and the genuinely
+// large write later in the session is met with silence. Observed live on a
+// single-file edit, then reduced to the case below.
+import { execFileSync } from "node:child_process";
+
+const TIER_GATE = path.join(ROOT, "hooks", "tier-gate.js");
+
+function feedGate(sessionID, payload) {
+  const body = JSON.stringify({ session_id: sessionID, cwd: ROOT, ...payload });
+  return execFileSync(process.execPath, [TIER_GATE], {
+    input: body,
+    encoding: "utf8",
+    env: { ...process.env, CLAUDE_AGENT_ID: "", CLAUDE_SUBAGENT: "" },
+  });
+}
+
+const bashWriteTo = (file) => ({ tool_name: "Bash", tool_input: { command: `echo hi > ${file}` } });
+const writeTo = (file) => ({ tool_name: "Write", tool_input: { file_path: file, content: "x" } });
+
+function gateSession(name) {
+  const id = `gate-${name}-${process.pid}`;
+  // One state file per session id; clear any leftover so a rerun starts fresh.
+  for (const f of fs.readdirSync(path.join(os.tmpdir(), "claude-tier-gate")).filter((f) => f.startsWith(`${id}-`))) {
+    fs.rmSync(path.join(os.tmpdir(), "claude-tier-gate", f), { force: true });
+  }
+  return id;
+}
+
+test("tier-gate: one file reached by two path spellings is one file", () => {
+  const id = gateSession("same");
+  assert.equal(feedGate(id, bashWriteTo("tmp/one.txt")), "", "a single relative write is under threshold");
+  const out = feedGate(id, writeTo(path.join(ROOT, "tmp", "one.txt")));
+  assert.equal(out, "", "the same file by its absolute name must not read as a second file");
+});
+
+test("tier-gate: two genuinely distinct files still announce", () => {
+  const id = gateSession("distinct");
+  assert.equal(feedGate(id, bashWriteTo("tmp/one.txt")), "");
+  const out = feedGate(id, writeTo(path.join(ROOT, "tmp", "two.txt")));
+  assert.match(out, /\[tier-gate\] Tier policy crossed/, "the counter must still fire on real multi-file work");
+  assert.match(out, /touch 2 files/);
+});

@@ -259,13 +259,25 @@ try {
 
   // Bash: only write-shaped commands feed the counters; everything else is
   // ignored exactly like a Read.
+  // Counted by identity, not by spelling. Bash hands us a cwd-relative path and
+  // Write hands us an absolute one, so one file touched by both used to count as
+  // two and cross FILE_THRESHOLD on its own. The second cost is the worse one:
+  // the notice is once per session, so that phantom spent the budget and the
+  // genuinely large write later in the session was met with silence. The
+  // unattributed sentinel is not a path and must survive unresolved.
+  const identify = (f) => (f === "<bash:unattributed>" ? f : path.resolve(cwd, f));
+  const remember = (f) => {
+    const id = identify(f);
+    if (!state.files.includes(id)) state.files.push(id);
+  };
+
   if (tool === "Bash") {
     const bw = bashWrite(String(input?.command ?? ""));
     if (!bw.isWrite) process.exit(0);
-    for (const f of bw.files) if (f && !state.files.includes(f)) state.files.push(f);
+    for (const f of bw.files) if (f) remember(f);
     lines = bw.lines;
-  } else if (file && !state.files.includes(file)) {
-    state.files.push(file);
+  } else if (file) {
+    remember(file);
   }
   save(sessionID, cwd, state); // persist every write, so reloads keep the file count
 
