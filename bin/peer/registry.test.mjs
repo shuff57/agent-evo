@@ -12,6 +12,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 
 import {
   MANAGED_BY,
@@ -27,6 +29,7 @@ import {
   hashKeyFile,
   ensureKeyFile,
   derivePeerId,
+  peerIdForLane,
   emptyRegistry,
   normalizeRegistry,
   loadRegistry,
@@ -366,4 +369,85 @@ test('isPidAlive: this process is alive, nonsense PIDs are not', () => {
   assert.equal(isPidAlive(-1), false);
   assert.equal(isPidAlive(undefined), false);
   assert.equal(isPidAlive('123'), false);
+});
+
+// ---------------------------------------------------------------------------
+// Cross-process safety — the registry is shared, so these are the tests that
+// matter most. Both were written after a live duplex run: six sidecars started
+// together, all six minted a key and printed ready, and only THREE ended up in
+// the registry. Shutting all six down left two phantom entries for dead
+// processes. Every peer had done its own read-modify-write on one file, so the
+// last writer silently discarded whatever the others had just committed.
+// ---------------------------------------------------------------------------
+
+const WORKER = `
+import { registerPeer, unregisterPeer, withRegistry } from '${path.resolve('bin/peer/registry.mjs')}';
+const [file, action, id] = process.argv.slice(2);
+withRegistry(file, (reg) =>
+  action === 'add' ? registerPeer(reg, { peerId: id, name: id, pid: process.pid }) : unregisterPeer(reg, id));
+`;
+
+function runWorkers(file, action, ids) {
+  const script = path.join(path.dirname(file), `worker-${action}.mjs`);
+  fs.writeFileSync(script, WORKER);
+  const kids = ids.map((id) =>
+    spawn(process.execPath, [script, file, action, id], { stdio: 'ignore' }));
+  return Promise.all(kids.map((k) => once(k, 'exit')));
+}
+
+test('concurrent registrations from separate processes all survive', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'registry-race-'));
+  const file = registryPath(dir);
+  saveRegistry(file, emptyRegistry());
+
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+  await runWorkers(file, 'add', ids);
+
+  assert.deepEqual(Object.keys(loadRegistry(file).peers).sort(), ids,
+    'a lost update here is a peer nobody can address');
+});
+
+test('concurrent unregistrations leave no phantom entries', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'registry-race-'));
+  const file = registryPath(dir);
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+  let reg = emptyRegistry();
+  for (const id of ids) reg = registerPeer(reg, { peerId: id, name: id, pid: process.pid }).registry;
+  saveRegistry(file, reg);
+
+  await runWorkers(file, 'remove', ids);
+
+  assert.deepEqual(Object.keys(loadRegistry(file).peers), [],
+    'a resurrected entry points senders at a socket whose owner is gone');
+});
+
+// ---------------------------------------------------------------------------
+// One lane, one id. The sidecar, the CLI, the handoff wrapper and the opencode
+// plugin each used to build this seed by hand, and the plugin's copy left out
+// the username — so its heartbeat looked for an entry that could never exist
+// and was a silent no-op forever. Its own test passed because it recomputed the
+// plugin's formula instead of the contract.
+// ---------------------------------------------------------------------------
+
+test('peerIdForLane is stable and distinguishes lanes', () => {
+  assert.equal(peerIdForLane('opencode'), peerIdForLane('opencode'));
+  assert.notEqual(peerIdForLane('opencode'), peerIdForLane('claude'));
+  assert.match(peerIdForLane('opencode'), /^[0-9a-f]{16}$/);
+});
+
+test('peerIdForLane includes the OS user, so two users do not collide', () => {
+  const id = platformIdentity();
+  const mine = peerIdForLane('opencode', id);
+  const theirs = peerIdForLane('opencode', { ...id, username: `${id.username}-other` });
+  assert.notEqual(mine, theirs);
+  assert.equal(mine, peerIdForLane('opencode'), 'the default is this process identity');
+});
+
+test('every peer component derives its lane id from peerIdForLane', () => {
+  const root = path.resolve('.');
+  for (const f of ['bin/peer-sidecar.mjs', 'bin/peer.mjs', 'bin/handoff.mjs', 'opencode/plugin/inbox.js']) {
+    const src = fs.readFileSync(path.join(root, f), 'utf8');
+    assert.match(src, /peerIdForLane\(/, `${f} must not hand-roll the seed`);
+    assert.ok(!/derivePeerId\(/.test(src), `${f} calls derivePeerId directly — that is how the seeds drifted`);
+  }
 });

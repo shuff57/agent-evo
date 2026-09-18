@@ -23,7 +23,8 @@
 //
 // API (kept stable for the sidecar):
 //   identity   platformIdentity, sameUser, isSameUser
-//   key files  registryPath, keyPathFor, hashKeyContents, hashKeyFile, ensureKeyFile, derivePeerId
+//   key files  registryPath, keyPathFor, hashKeyContents, hashKeyFile, ensureKeyFile,
+//              derivePeerId, peerIdForLane
 //   lifecycle  emptyRegistry, normalizeRegistry, loadRegistry, saveRegistry, withRegistry, defaultRegistryDir
 //   peers      registerPeer, unregisterPeer, setStatus, touchPeer, cleanupRegistry
 //   queries    listPids, listManagedPeers, isManaged, isBusy, isIdle, isStale, isPidAlive
@@ -136,6 +137,19 @@ export function derivePeerId(seed) {
   return hashKeyContents(String(seed)).slice(0, 16);
 }
 
+/**
+ * The peer id for a lane — the ONE definition, used by the sidecar, the CLI, the handoff
+ * wrapper and the opencode plugin alike. Each of them used to build this seed by hand and
+ * the plugin's copy left out the username, so its heartbeat searched for an id no other
+ * component would ever write and was a silent no-op. Call this; never assemble a seed.
+ *
+ * The username is part of it because two OS users sharing a checkout are two peers, not
+ * one, and a collision there would let one of them address the other's socket.
+ */
+export function peerIdForLane(lane, identity = platformIdentity()) {
+  return derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
+}
+
 // ---------------------------------------------------------------------------
 // Registry lifecycle
 // ---------------------------------------------------------------------------
@@ -180,17 +194,65 @@ export function saveRegistry(file, registry, { now = Date.now() } = {}) {
   return out;
 }
 
+// A directory is the only creation primitive that is atomic on both POSIX and Windows, so
+// it is the lock. A crashed holder would otherwise wedge the registry forever, hence the
+// staleness break; the jitter keeps a herd of sidecars starting together from retrying in
+// lockstep.
+const LOCK_STALE_MS = 10_000;
+const LOCK_TIMEOUT_MS = 5_000;
+
+// Synchronous, because every caller of withRegistry is. Atomics.wait parks the thread
+// instead of spinning on it.
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function acquireLock(file, { timeoutMs = LOCK_TIMEOUT_MS, staleMs = LOCK_STALE_MS } = {}) {
+  const lock = `${file}.lock`;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      fs.mkdirSync(lock);
+      return () => { try { fs.rmSync(lock, { recursive: true, force: true }); } catch { /* already gone */ } };
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+    try {
+      if (Date.now() - fs.statSync(lock).mtimeMs > staleMs) {
+        fs.rmSync(lock, { recursive: true, force: true });
+        continue;
+      }
+    } catch {
+      continue; // the holder released it while we looked; try to take it immediately
+    }
+    if (Date.now() >= deadline) throw new Error(`registry lock held too long: ${lock}`);
+    sleepSync(5 + Math.floor(Math.random() * 15));
+  }
+}
+
 /**
- * Read-modify-write in one call. `fn` receives the loaded registry and returns either a
- * mutator result (`{ registry, ...meta }`) or a bare registry; the saved registry is
- * returned alongside the mutator's metadata.
+ * Read-modify-write under a cross-process lock. `fn` receives the loaded registry and
+ * returns either a mutator result (`{ registry, ...meta }`), a bare registry, or null to
+ * mean "nothing changed, do not write".
+ *
+ * The lock is the whole point. Without it every peer did its own read-modify-write on one
+ * shared file: six sidecars starting together left three registered, and six shutting down
+ * together left two phantom entries for processes that had already exited. Both are lost
+ * updates, and both look like a working registry right up until someone dials a socket.
  */
 export function withRegistry(file, fn, { now = Date.now() } = {}) {
-  const current = loadRegistry(file);
-  const outcome = fn(current);
-  const next = outcome && outcome.registry ? outcome.registry : outcome && outcome.peers ? outcome : current;
-  const saved = saveRegistry(file, next, { now });
-  return { ...(outcome && outcome.registry ? outcome : {}), registry: saved };
+  const release = acquireLock(file);
+  try {
+    const current = loadRegistry(file);
+    const outcome = fn(current);
+    if (outcome === null || outcome === undefined) return { registry: current, written: false };
+    const next = outcome.registry ? outcome.registry : outcome.peers ? outcome : current;
+    const saved = saveRegistry(file, next, { now });
+    return { ...(outcome.registry ? outcome : {}), registry: saved, written: true };
+  } finally {
+    release();
+  }
 }
 
 /** Default registry directory for a message-center box. */
