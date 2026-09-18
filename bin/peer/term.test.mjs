@@ -43,6 +43,7 @@ function makeFake(dir, { reply = 'FAKE-REPLY', sessionID = 'ses_fake1', exit = 0
   fs.writeFileSync(bin, [
     '#!/bin/sh',
     'printf \'%s\\0\' "$@" > "$0.argv"',
+    'printf \'MSGBOX=%s\\nMSGBOX_AS=%s\\n\' "$MSGBOX" "$MSGBOX_AS" > "$0.env"',
     sleep ? `sleep ${sleep}` : '',
     // Stands in for a human hitting Ctrl-C in the pane: kill the subshell that would
     // have recorded the exit code, leaving the outer shell to write the done-file.
@@ -56,6 +57,8 @@ function makeFake(dir, { reply = 'FAKE-REPLY', sessionID = 'ses_fake1', exit = 0
 }
 
 const argvOf = (argvFile) => fs.readFileSync(argvFile, 'utf8').split('\0').slice(0, -1);
+const envOf = (argvFile) => Object.fromEntries(
+  fs.readFileSync(argvFile.replace(/\.argv$/, '.env'), 'utf8').trim().split('\n').map((l) => l.split('=')));
 
 function runTerm(box, args, { fake, expectFail = false } = {}) {
   const env = { ...process.env, MSGBOX: box };
@@ -254,4 +257,21 @@ test('usage: a missing command or lane exits 2', () => {
   assert.equal(runTerm(box, [], { expectFail: true }).code, 2);
   assert.equal(runTerm(box, ['ask', '--text', 'no lane'], { expectFail: true }).code, 2);
   assert.equal(runTerm(box, ['ask', '--as', 'x'], { expectFail: true }).code, 2);
+});
+
+// A tmux pane inherits the tmux SERVER's environment, not the environment of whoever ran
+// `new-session`. So a lane started with a custom MSGBOX wrote its state into box X while
+// the opencode run inside resolved box Y from cwd — and a peer message sent to that lane
+// was appended to X, where the run's inbox plugin was never looking. Mid-run delivery into
+// a watchable lane silently did not work, and nothing reported an error.
+test('ask: the pane inherits the caller\'s box and lane', () => {
+  const box = tmp('term-env-');
+  const lane = freshLane(); lanes.add(lane);
+  const { bin, argvFile } = makeFake(box);
+
+  runTerm(box, ['ask', '--as', lane, '--text', 'x'], { fake: bin });
+
+  const env = envOf(argvFile);
+  assert.equal(env.MSGBOX, box, 'the run resolves the same box the lane writes to');
+  assert.equal(env.MSGBOX_AS, lane, 'so a peer message addressed to the lane reaches it');
 });

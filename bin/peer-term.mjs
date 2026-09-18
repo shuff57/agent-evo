@@ -210,6 +210,12 @@ async function ask(box, a) {
   if (a.model) args.push('-m', a.model);
   if (a.auto) args.push('--auto');
 
+  // A tmux pane inherits the tmux SERVER's environment, not this process's, so the box
+  // and the lane have to travel in the script or the run inside resolves a DIFFERENT box
+  // from the one this lane writes to — and a peer message addressed to the lane lands
+  // where its inbox plugin is not looking, with nothing reporting an error.
+  const env = [`MSGBOX=${shq(box)}`, `MSGBOX_AS=${shq(lane)}`];
+
   // The prompt is the LAST argument and arrives via command substitution, never as part
   // of the command text. `rc` is written inside the group so it captures opencode's
   // status and not tee's; `done` is written after the whole pipeline drains, so seeing it
@@ -219,7 +225,7 @@ async function ask(box, a) {
     `printf '\\n>>> claude -> %s  [%s]\\n' ${shq(lane)} ${shq(a.model)}`,
     `cat ${shq(F.prompt)}`,
     `printf '\\n<<< %s -> claude\\n' ${shq(lane)}`,
-    `{ ${shq(bin)} ${args.map(shq).join(' ')} "$(cat ${shq(F.prompt)})"; printf '%s' "$?" > ${shq(F.rc)}; } ` +
+    `{ ${env.join(' ')} ${shq(bin)} ${args.map(shq).join(' ')} "$(cat ${shq(F.prompt)})"; printf '%s' "$?" > ${shq(F.rc)}; } ` +
       `2> ${shq(F.err)} | tee ${shq(F.out)} | ${shq(process.execPath)} ${shq(SELF)} render`,
     `printf ok > ${shq(F.done)}`,
   ].join('\n') + '\n', { mode: 0o755 });
