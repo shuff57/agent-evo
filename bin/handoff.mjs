@@ -30,6 +30,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { execSync, spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  STATUS,
+  defaultRegistryDir,
+  derivePeerId,
+  loadRegistry,
+  platformIdentity,
+  registryPath,
+  saveRegistry,
+  setStatus,
+} from './peer/registry.mjs';
 
 // msg.mjs is this file's own sibling. Deriving the path from import.meta.url instead
 // of a home directory is what makes it correct on BOTH boxes: ~/.claude/bin is a symlink
@@ -42,26 +52,50 @@ const MSG = fileURLToPath(new URL('./msg.mjs', import.meta.url)).split(String.fr
 // answer. It also has vision, so the same id serves the eyes-and-eyes lenses.
 const DEFAULT_MODEL = 'ollama-cloud/glm-5.3-flash';
 
-// Telemetry events go to <box>/events.jsonl beside log.jsonl, consumed by msgbox-ui. The box
-// resolves exactly as inbox.js does (MSGBOX env -> walk up to .git -> ~/.claude/msgbox) so the
-// UI's lanes always point at the same box the run reported into. An emitter that throws is a
-// dead dispatch: telemetry must never break the launch, hence the total try/catch.
+// Box resolution, shared by telemetry and the peer heartbeat. Same walk as inbox.js and
+// msg.mjs (MSGBOX env -> nearest .git -> ~/.claude/msgbox), kept in one place so the events
+// lane and the peer registry can never point at different boxes.
+const resolveBox = () => {
+  if (process.env.MSGBOX) return process.env.MSGBOX;
+  let dir = process.cwd();
+  while (true) {
+    if (fs.existsSync(path.join(dir, '.git'))) return path.join(dir, '.msgbox');
+    const up = path.dirname(dir);
+    if (up === dir) return path.join(os.homedir(), '.claude', 'msgbox');
+    dir = up;
+  }
+};
+
+// Telemetry events go to <box>/events.jsonl beside log.jsonl, consumed by msgbox-ui. An
+// emitter that throws is a dead dispatch: telemetry must never break the launch, hence the
+// total try/catch.
 const emit = (event) => {
   try {
-    let boxdir = process.env.MSGBOX;
-    if (!boxdir) {
-      let dir = process.cwd();
-      while (true) {
-        if (fs.existsSync(path.join(dir, '.git'))) { boxdir = path.join(dir, '.msgbox'); break; }
-        const up = path.dirname(dir);
-        if (up === dir) { boxdir = path.join(os.homedir(), '.claude', 'msgbox'); break; }
-        dir = up;
-      }
-    }
+    const boxdir = resolveBox();
     fs.mkdirSync(boxdir, { recursive: true });
     fs.appendFileSync(path.join(boxdir, 'events.jsonl'), JSON.stringify({ ts: new Date().toISOString(), ...event }) + '\n');
   } catch {
     // Never let telemetry kill a dispatch. A missed event is a blank lane; a thrown emitter is a dead run.
+  }
+};
+
+// Peer-registry heartbeat. The registry is device-local and only exists on boxes that opted
+// into the bridge, so this is a no-op unless registry.json is already there: it never creates
+// the registry or its directory, and never registers a peer. It only flips the status of an
+// EXISTING managed opencode-lane entry, so a handoff can never invent registry state. Every
+// write is best-effort — a registry that throws must not affect the launch, the reply count or
+// the exit code.
+const OPENCODE_LANE = 'opencode';
+const heartbeat = (status) => {
+  try {
+    const file = registryPath(defaultRegistryDir(resolveBox()));
+    if (!fs.existsSync(file)) return;
+    const id = platformIdentity();
+    const peerId = derivePeerId([id.platform, id.hostname, id.username, OPENCODE_LANE].join(':'));
+    const out = setStatus(loadRegistry(file), peerId, status);
+    if (out.changed) saveRegistry(file, out.registry);
+  } catch {
+    // Fail open: a missing, foreign or unwritable registry is not a dispatch failure.
   }
 };
 
@@ -190,6 +224,10 @@ emit({ kind: 'spawn', from: 'claude-handoff', model, spec, noBox, variant: varia
 // --detach: survive a dead parent. `spawn` with detached+stdio ignore releases the run from
 // this process group, so a reaped Bash tool call no longer kills it mid-stream.
 if (args.includes('--detach')) {
+  // Busy before launch, and deliberately no idle after: the parent exits immediately, so an
+  // idle write here would race the detached run and lie about it. The run's own sidecar (or
+  // the stale window) owns the transition back.
+  heartbeat(STATUS.BUSY);
   const child = spawn('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
     shell: true,
     detached: true,
@@ -203,6 +241,7 @@ if (args.includes('--detach')) {
   process.exit(0);
 }
 
+heartbeat(STATUS.BUSY);
 const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
   stdio: 'inherit',
   shell: true,
@@ -226,6 +265,9 @@ if (run.status === null) {
   const tagged = log.includes(tag);
   outcome = { code: tagged ? 0 : 1, ok: tagged, untagged: countReplies(log) - before };
 }
+// The synchronous run is over, so the lane is idle again regardless of outcome. Best-effort:
+// a registry write must never change the exit code computed above.
+heartbeat(STATUS.IDLE);
 emit({ kind: 'exit', from: 'claude-handoff', code: outcome.code, ok: outcome.ok });
 
 if (run.status === null) {
