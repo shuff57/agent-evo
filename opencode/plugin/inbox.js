@@ -23,12 +23,11 @@ import os from "os";
 import {
   STATUS,
   defaultRegistryDir,
-  derivePeerId,
-  loadRegistry,
+  peerIdForLane,
   registryPath,
-  saveRegistry,
   setStatus,
   touchPeer,
+  withRegistry,
 } from "../../bin/peer/registry.mjs";
 
 const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, "/");
@@ -72,7 +71,7 @@ export const Inbox = async ({ directory }) => {
   // exists: a missing registry means no sidecar has registered this lane, and creating one here
   // would fabricate a peer with no key file and no identity.
   const registryFile = registryPath(defaultRegistryDir(box));
-  const peerId = derivePeerId(`${process.platform}:${os.hostname()}:${ME}`);
+  const peerId = peerIdForLane(ME);
   let lastSeenMtime = null;
   // Activity heartbeat for msgbox-ui: the last time an `activity` event was appended. One
   // timestamp compare in the common case, so the hook stays nearly free.
@@ -100,9 +99,13 @@ export const Inbox = async ({ directory }) => {
       if (Date.now() - lastRegistryBeat <= 5000) return;
       lastRegistryBeat = Date.now();
       if (!fs.existsSync(registryFile)) return;
-      const touched = touchPeer(loadRegistry(registryFile), peerId);
-      if (!touched.changed) return;
-      saveRegistry(registryFile, setStatus(touched.registry, peerId, STATUS.BUSY).registry);
+      // Under the registry's lock, returning null when this lane has no entry so a
+      // no-op stays a no-op. The bare load+save this replaced could clobber a
+      // registration a sidecar had committed between the read and the write.
+      withRegistry(registryFile, (reg) => {
+        const touched = touchPeer(reg, peerId);
+        return touched.changed ? setStatus(touched.registry, peerId, STATUS.BUSY) : null;
+      });
     } catch { /* a missing/corrupt registry or a failed write is a no-op */ }
   };
 

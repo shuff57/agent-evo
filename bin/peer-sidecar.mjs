@@ -26,7 +26,7 @@ import {
   STATUS,
   cleanupRegistry,
   defaultRegistryDir,
-  derivePeerId,
+  peerIdForLane,
   ensureKeyFile,
   isPidAlive,
   keyPathFor,
@@ -81,7 +81,7 @@ const registryDir = defaultRegistryDir(box);
 const registryFile = registryPath(registryDir);
 
 const identity = platformIdentity();
-const peerId = derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
+const peerId = peerIdForLane(lane, identity);
 const keyPath = keyPathFor(registryDir, peerId);
 
 function socketDirFor(boxDir) {

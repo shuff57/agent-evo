@@ -15,7 +15,7 @@ import {
   MANAGED_BY,
   STATUS,
   defaultRegistryDir,
-  derivePeerId,
+  peerIdForLane,
   loadRegistry,
   registryPath,
   registerPeer,
@@ -29,10 +29,12 @@ const PLUGIN = path.join(ROOT, "opencode", "plugin", "inbox.js");
 const mod = await import(pathToFileURL(PLUGIN).href);
 const { Inbox } = mod;
 
-// The plugin derives its peer id from the lane name; the test must register the SAME id or the
-// heartbeat is a legitimate no-op. MSGBOX_AS is read at module load, so the default lane is used.
+// peerIdForLane is the CONTRACT — the same function the sidecar registers under. An earlier
+// version of this line recomputed the plugin's own seed instead, so it passed while the plugin
+// looked for an id no sidecar would ever write and the heartbeat was a permanent no-op.
+// Derive the expectation from the shared definition, never from the code under test.
 const LANE = process.env.MSGBOX_AS || "opencode";
-const PEER_ID = derivePeerId(`${process.platform}:${os.hostname()}:${LANE}`);
+const PEER_ID = peerIdForLane(LANE);
 
 function makeBox() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "inbox-test-"));

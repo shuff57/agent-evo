@@ -33,12 +33,10 @@ import { fileURLToPath } from 'node:url';
 import {
   STATUS,
   defaultRegistryDir,
-  derivePeerId,
-  loadRegistry,
-  platformIdentity,
+  peerIdForLane,
   registryPath,
-  saveRegistry,
   setStatus,
+  withRegistry,
 } from './peer/registry.mjs';
 
 // msg.mjs is this file's own sibling. Deriving the path from import.meta.url instead
@@ -90,10 +88,13 @@ const heartbeat = (status) => {
   try {
     const file = registryPath(defaultRegistryDir(resolveBox()));
     if (!fs.existsSync(file)) return;
-    const id = platformIdentity();
-    const peerId = derivePeerId([id.platform, id.hostname, id.username, OPENCODE_LANE].join(':'));
-    const out = setStatus(loadRegistry(file), peerId, status);
-    if (out.changed) saveRegistry(file, out.registry);
+    // Under the registry's lock, and returning null when nothing changed so a dispatch
+    // never rewrites a file it had no update for. A bare load+setStatus+save here raced
+    // every sidecar heartbeat and could resurrect an entry the sidecar had just removed.
+    withRegistry(file, (reg) => {
+      const out = setStatus(reg, peerIdForLane(OPENCODE_LANE), status);
+      return out.changed ? out : null;
+    });
   } catch {
     // Fail open: a missing, foreign or unwritable registry is not a dispatch failure.
   }

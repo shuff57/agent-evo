@@ -19,7 +19,7 @@ import { PRIORITIES, DEFAULT_PRIORITY, buildAuthFrame, buildMessageFrame, encode
 import {
   STATUS,
   defaultRegistryDir,
-  derivePeerId,
+  peerIdForLane,
   ensureKeyFile,
   keyPathFor,
   listManagedPeers,
@@ -79,7 +79,7 @@ function usage(message) {
 function ensureOwnEntry(box, lane) {
   const registryDir = defaultRegistryDir(box);
   const identity = platformIdentity();
-  const peerId = derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
+  const peerId = peerIdForLane(lane, identity);
   const keyPath = keyPathFor(registryDir, peerId);
   fs.mkdirSync(registryDir, { recursive: true });
   const key = ensureKeyFile(keyPath);
@@ -200,7 +200,7 @@ async function cmdStatus(box, lane, status) {
   const registryDir = defaultRegistryDir(box);
   const registryFile = registryPath(registryDir);
   const out = withRegistry(registryFile, (reg) => {
-    const peerId = derivePeerId(`${platformIdentity().platform}:${platformIdentity().hostname}:${platformIdentity().username}:${lane}`);
+    const peerId = peerIdForLane(lane);
     return setStatus(reg, peerId, status);
   });
   if (!out.changed) console.log('peer not found or status unchanged');
@@ -211,7 +211,7 @@ function cmdWhere() {
   const box = findBox(process.cwd());
   const identity = platformIdentity();
   const lane = process.env.MSGBOX_AS || 'opencode';
-  const peerId = derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
+  const peerId = peerIdForLane(lane, identity);
   console.log(`box: ${box}`);
   console.log(`peer: ${lane} (${peerId})`);
   console.log(`registry: ${registryPath(defaultRegistryDir(box))}`);
