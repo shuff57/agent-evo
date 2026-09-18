@@ -36,12 +36,15 @@ import {
   MANAGED_BY,
   STATUS,
   defaultRegistryDir,
+  emptyRegistry,
   ensureKeyFile,
   hashKeyContents,
   keyPathFor,
+  loadRegistry,
   platformIdentity,
   registryPath,
   registerPeer,
+  saveRegistry,
   withRegistry,
 } from './registry.mjs';
 
@@ -458,4 +461,79 @@ test('PEER_MSGBOX_AS is an optional alias for --as', async () => {
   assert.equal(ready.name, 'opencode');
 
   await stop(s.child);
+});
+// ---------------------------------------------------------------------------
+// Crash and staleness. These two were the last untested failure modes, and they
+// are the ones a running box actually hits: a machine sleeps, a run is killed,
+// a terminal is closed. Written as probes first, then moved here so "we never
+// tested that" cannot come back.
+// ---------------------------------------------------------------------------
+
+test('sweep reaps a peer that went stale by AGE while its PID stayed alive', async () => {
+  const box = tmp('sidecar-aged-');
+  const rt = tmp('sidecar-rt-');
+  const file = registryPath(defaultRegistryDir(box));
+  const aged = Date.now() - 6 * 60 * 1000; // past DEFAULT_STALE_MS
+
+  // pid is THIS process, so it is provably alive: only age can condemn it. That is
+  // the case a liveness check cannot catch — a peer whose PID was recycled, or one
+  // that stopped heartbeating without dying.
+  let reg = registerPeer(emptyRegistry(), { peerId: 'aged', name: 'aged', pid: process.pid }, { now: aged }).registry;
+  reg = registerPeer(reg, { peerId: 'fresh', name: 'fresh', pid: process.pid }).registry;
+  reg.peers.foreign = { peerId: 'foreign', managedBy: 'another-tool', pid: process.pid, updatedAt: new Date(aged).toISOString() };
+  saveRegistry(file, reg);
+
+  const s = startSidecar({ box, runtimeDir: rt, lane: 'probe' });
+  await s.ready;
+  const peers = loadRegistry(file).peers;
+
+  assert.ok(!peers.aged, 'a stale heartbeat is gone even though the PID answers');
+  assert.ok(peers.fresh, 'a live peer is untouched');
+  assert.equal(peers.foreign?.managedBy, 'another-tool', 'age never licenses touching a foreign entry');
+
+  await stop(s.child);
+});
+
+test('a sidecar killed mid-frame is recovered by the next one', async () => {
+  const box = tmp('sidecar-crash-');
+  const rt = tmp('sidecar-rt-');
+  const file = registryPath(defaultRegistryDir(box));
+  const sender = registerSender(box, { peerId: 'sender-1', name: 'opencode' });
+
+  const first = startSidecar({ box, runtimeDir: rt, lane: 'claude' });
+  const r1 = await first.ready;
+  const sock = await connect(r1.socketPath);
+  sendLine(sock, { type: 'auth', token: sender.token });
+  await waitFor(() => loadRegistry(file).peers[r1.peerId]);
+  // A frame cut off mid-JSON with no newline: the worst thing a crashing writer
+  // can leave in the receiver's buffer.
+  sock.write('{"msgV":1,"type":"user","message":{"role":"user","content":"halfway thro');
+
+  first.child.kill('SIGKILL');
+  await once(first.child, 'exit');
+  sock.destroy();
+
+  assert.ok(fs.existsSync(r1.socketPath), 'SIGKILL cannot run cleanup, so the socket is orphaned');
+  assert.ok(loadRegistry(file).peers[r1.peerId], 'and the registry entry is a phantom');
+  assert.deepEqual(readLog(box), [], 'a truncated frame is never half-delivered');
+
+  const second = startSidecar({ box, runtimeDir: rt, lane: 'claude' });
+  const r2 = await second.ready;
+  const back = await waitFor(() => loadRegistry(file).peers[r2.peerId]);
+
+  assert.equal(r2.peerId, r1.peerId, 'a lane keeps its identity across a crash');
+  assert.equal(back.pid, r2.pid, 'the phantom is replaced, not duplicated');
+  assert.equal(r2.socketPath, r1.socketPath, 'the orphaned socket is taken over');
+  assert.ok(loadRegistry(file).peers['sender-1'], 'reaping the corpse must not take the sender with it');
+
+  // Recovery is only real if it relays afterwards.
+  const sock2 = await connect(r2.socketPath);
+  sendLine(sock2, { type: 'auth', token: sender.token });
+  sendLine(sock2, buildMessageFrame({ from: 'uds:/probe', fromName: 'opencode', text: 'AFTER-CRASH' }));
+  const line = await waitFor(() => readLog(box)[0]);
+  assert.equal(line.text, 'AFTER-CRASH');
+  assert.equal(line.from, 'opencode');
+  sock2.destroy();
+
+  await stop(second.child);
 });
