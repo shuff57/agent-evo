@@ -197,7 +197,14 @@ backup_and_link_file() {
 link_all() {
   info "Linking agents, skills, memory, commands, and hooks..."
 
-  backup_and_link "$CLAUDE_DIR/agents" "$INSTALL_DIR/roster" "Claude Code agents"
+  # Agents are GENERATED, never linked — unlike every other line in this block. Each CLI
+  # needs a DIFFERENT file from roster/ (Claude verbatim, ollama a forwarder stub), so one
+  # symlink serves the same file to both and every ollama-lane agent quietly runs on Claude
+  # instead of spawning opencode. This script linked it anyway until now, silently undoing
+  # sync.sh on every fresh install.
+  info "Generating Claude Code agents from roster/..."
+  node "$INSTALL_DIR/bin/gen-agents.mjs" || fail "agent generation failed"
+
   backup_and_link "$CLAUDE_DIR/skills" "$INSTALL_DIR/skills" "Claude Code skills"
   backup_and_link "$CLAUDE_DIR/memory" "$INSTALL_DIR/memory" "Claude Code memory"
 
@@ -468,7 +475,15 @@ verify() {
     ok "$label OK"
   }
 
-  verify_link "$CLAUDE_DIR/agents" "$INSTALL_DIR/roster" "Claude Code agents" "$CLAUDE_DIR/agents/test-ping.md"
+  # Generated, so there is no link to verify — and a symlink here is the defect, not the
+  # success condition.
+  if [ -L "$CLAUDE_DIR/agents" ]; then
+    fail "Claude Code agents is a symlink — ollama-lane agents will run on Claude. Re-run bin/gen-agents.mjs"
+  elif [ -f "$CLAUDE_DIR/agents/test-ping.md" ]; then
+    ok "Claude Code agents OK"
+  else
+    fail "Claude Code agents not generated (cannot reach $CLAUDE_DIR/agents/test-ping.md)"
+  fi
   # Probe a TRACKED skill — browser-use is gitignored, so it is never present in a
   # fresh clone and the old probe failed every clean install.
   verify_link "$CLAUDE_DIR/skills" "$INSTALL_DIR/skills" "Claude Code skills" "$CLAUDE_DIR/skills/caveman"
