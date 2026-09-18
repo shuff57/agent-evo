@@ -150,6 +150,19 @@ export function peerIdForLane(lane, identity = platformIdentity()) {
   return derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
 }
 
+/**
+ * The peer id for a lane bound to ONE box. Two checkouts of the same repo on one
+ * machine are two boxes, and a lane id that ignored that let the second box's
+ * sidecar die on "socket already in use" against the first on every start. The
+ * box path rides in the hostname slot, so the derivation stays in one place.
+ */
+export function peerIdForBoxLane(lane, box, identity = platformIdentity()) {
+  return peerIdForLane(lane, {
+    ...identity,
+    hostname: `${identity.hostname}:${hashKeyContents(box).slice(0, 8)}`,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Registry lifecycle
 // ---------------------------------------------------------------------------
@@ -241,8 +254,11 @@ function acquireLock(file, { timeoutMs = LOCK_TIMEOUT_MS, staleMs = LOCK_STALE_M
  * together left two phantom entries for processes that had already exited. Both are lost
  * updates, and both look like a working registry right up until someone dials a socket.
  */
-export function withRegistry(file, fn, { now = Date.now() } = {}) {
-  const release = acquireLock(file);
+export function withRegistry(file, fn, { now = Date.now(), timeoutMs } = {}) {
+  // timeoutMs forwards to the lock: startup under a boot stampede needs more than
+  // the steady-state default, and an option that is silently dropped here would
+  // make the sidecar's 30s startup budget a lie.
+  const release = acquireLock(file, timeoutMs === undefined ? {} : { timeoutMs });
   try {
     const current = loadRegistry(file);
     const outcome = fn(current);

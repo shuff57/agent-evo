@@ -23,12 +23,16 @@ import os from "os";
 import {
   STATUS,
   defaultRegistryDir,
-  peerIdForLane,
+  isPidAlive,
+  loadRegistry,
+  peerIdForBoxLane,
   registryPath,
   setStatus,
   touchPeer,
   withRegistry,
 } from "../../bin/peer/registry.mjs";
+import { fileURLToPath } from "node:url";
+import { spawn as nodeSpawn } from "node:child_process";
 
 const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, "/");
 // Which mailbox this session watches. A hardcoded "opencode" silently disabled the whole feature
@@ -53,6 +57,20 @@ const ME = process.env.MSGBOX_AS || "opencode";
 // directory, ...}), path.join(<object>, ".git") threw "paths[0] ... got object", and the whole
 // plugin failed to load -- 818 times in opencode.log from 2026-08-19 to 2026-09-15, so mid-run
 // delivery silently never worked. Exposed as Inbox.findBox for msg.test.mjs instead.
+
+// A runtime that can execute a .mjs file, for spawning the sidecar. Checked once
+// per plugin instance: bun, then node. Neither found → no auto-start.
+function resolveRuntime() {
+  for (const bin of [process.env.PEER_RUNTIME, "bun", "node"]) {
+    if (!bin) continue;
+    try {
+      execFileSync("which", [bin], { stdio: "ignore" });
+      return bin;
+    } catch { /* try the next */ }
+  }
+  return null;
+}
+
 function findBox(directory) {
   if (process.env.MSGBOX) return process.env.MSGBOX;
   let dir = directory || process.cwd();
@@ -71,8 +89,11 @@ export const Inbox = async ({ directory }) => {
   // exists: a missing registry means no sidecar has registered this lane, and creating one here
   // would fabricate a peer with no key file and no identity.
   const registryFile = registryPath(defaultRegistryDir(box));
-  const peerId = peerIdForLane(ME);
+  const peerId = peerIdForBoxLane(ME, box);
   let lastSeenMtime = null;
+  // One spawn attempt per plugin instance: a sidecar that fails to start must not be
+  // retried on every tool call for the rest of the session.
+  let sidecarEnsured = false;
   // Activity heartbeat for msgbox-ui: the last time an `activity` event was appended. One
   // timestamp compare in the common case, so the hook stays nearly free.
   let lastBeat = 0;
@@ -109,6 +130,50 @@ export const Inbox = async ({ directory }) => {
     } catch { /* a missing/corrupt registry or a failed write is a no-op */ }
   };
 
+  // The sidecar for this lane may not be running when a session starts — it is a
+  // per-session daemon and nothing starts it automatically today. Spawning one lazily on
+  // the first tool call closes that gap: detached so it survives this tool call, one
+  // attempt per session so a sidecar that fails to start is not retried on every call,
+  // and a no-op when the registry says the lane is already live.
+  const ensureSidecar = () => {
+    try {
+      if (sidecarEnsured) return;
+      if (process.env.PEER_SIDECAR_NO_SPAWN === "1") return; // test/ops kill switch
+      sidecarEnsured = true; // one attempt per session; a failed spawn is not retried
+      if (!fs.existsSync(registryFile)) return; // no registry = bridge not opted into
+
+      const entry = loadRegistry(registryFile).peers[peerId];
+      const alive = entry && isPidAlive(entry.pid) && entry.socketPath && fs.existsSync(entry.socketPath);
+      if (alive) return;
+
+      // The plugin runs from the REPO (import.meta.url = repo path) or from the
+      // INSTALLED copy (~/.config/opencode/plugin/), where ../../bin does not exist.
+      // Find the repo the same way the box was found: the box is <repo>/.msgbox.
+      const sidecarRepo = path.join(box, "..", "bin", "peer-sidecar.mjs");
+      const sidecarLocal = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "peer-sidecar.mjs");
+      const sidecar = fs.existsSync(sidecarRepo) ? sidecarRepo : sidecarLocal;
+      if (!fs.existsSync(sidecar)) return;
+
+      // Detached + stdio ignore: the sidecar must outlive this tool call. MSGBOX is
+      // PINNED to this plugin's own resolved box, not left to inheritance: a stale
+      // MSGBOX in the environment would send the child to a different box than the
+      // one this session watches, and the two would silently disagree forever.
+      // process.execPath is NOT usable here: inside an opencode plugin it is the
+      // opencode binary, so spawning it "runs" the sidecar path as an opencode
+      // message and prints the CLI help. Resolve a real runtime instead.
+      const runtime = resolveRuntime();
+      if (!runtime) return;
+      const child = nodeSpawn(runtime, [sidecar, "--as", ME], {
+        cwd: directory,
+        env: { ...process.env, MSGBOX: box, MSGBOX_AS: ME },
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+    } catch (e) {
+    }
+  };
+
   return {
     "tool.execute.after": async (_input, output) => {
       try {
@@ -125,6 +190,7 @@ export const Inbox = async ({ directory }) => {
         if (tool === "task") {
           emitEvent({ kind: "task", from: ME, agent: toolInput?.subagent_type ?? toolInput?.agent ?? null });
         }
+        ensureSidecar();
         beatRegistry();
 
         // The common case is "nothing new", and it has to be nearly free — one stat, no subprocess.

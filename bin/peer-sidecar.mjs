@@ -26,7 +26,7 @@ import {
   STATUS,
   cleanupRegistry,
   defaultRegistryDir,
-  peerIdForLane,
+  peerIdForBoxLane,
   ensureKeyFile,
   isPidAlive,
   keyPathFor,
@@ -43,6 +43,12 @@ import {
 const UNAUTH_TIMEOUT_MS = 5000;
 const MAX_LINE_BYTES = 1024 * 1024;
 const DEFAULT_HEARTBEAT_MS = 30000;
+// A cold sidecar booting alongside other cold sidecars (several tool calls landing in
+// the same 100ms window is the observed case) competes for the registry lock with
+// processes that are themselves waiting on cold runtime boots. The default 5s lock
+// budget covers steady state, not a boot stampede — and a lock timeout here is FATAL
+// (an unregistered sidecar exits), so startup is the one place that must wait longer.
+const STARTUP_LOCK_TIMEOUT_MS = 30000;
 const PROBE_TIMEOUT_MS = 500;
 
 function parseArgs(argv) {
@@ -81,7 +87,7 @@ const registryDir = defaultRegistryDir(box);
 const registryFile = registryPath(registryDir);
 
 const identity = platformIdentity();
-const peerId = peerIdForLane(lane, identity);
+const peerId = peerIdForBoxLane(lane, box, identity);
 const keyPath = keyPathFor(registryDir, peerId);
 
 function socketDirFor(boxDir) {
@@ -223,7 +229,7 @@ async function main() {
     const key = ensureKeyFile(keyPath);
     if (!key.keyHash) throw new Error(`key file unreadable: ${keyPath}`);
 
-    withRegistry(registryFile, (reg) => cleanupRegistry(reg, { isAlive: isPidAlive }));
+    withRegistry(registryFile, (reg) => cleanupRegistry(reg, { isAlive: isPidAlive }), { timeoutMs: STARTUP_LOCK_TIMEOUT_MS });
 
     await bindSocket();
 
@@ -234,7 +240,7 @@ async function main() {
       socketPath,
       keyHash: key.keyHash,
       status: STATUS.IDLE,
-    }));
+    }), { timeoutMs: STARTUP_LOCK_TIMEOUT_MS });
 
     // `name`, not `lane`: the ready line names the peer exactly as the registry entry
     // does, so a reader never has to know two words for one thing.

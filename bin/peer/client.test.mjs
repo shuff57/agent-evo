@@ -29,7 +29,7 @@ import {
   MANAGED_BY,
   STATUS,
   defaultRegistryDir,
-  derivePeerId,
+  peerIdForBoxLane,
   ensureKeyFile,
   hashKeyContents,
   keyPathFor,
@@ -135,7 +135,8 @@ function registerPeerEntry(box, { peerId, name, pid = process.pid, keyHash }) {
 
 function ensureSenderKey(box, lane) {
   const identity = platformIdentity();
-  const peerId = derivePeerId(`${identity.platform}:${identity.hostname}:${identity.username}:${lane}`);
+  // Box-scoped: must match what the sidecar now registers under.
+  const peerId = peerIdForBoxLane(lane, box);
   const dir = defaultRegistryDir(box);
   const keyPath = keyPathFor(dir, peerId);
   fs.mkdirSync(dir, { recursive: true });

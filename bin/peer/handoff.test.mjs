@@ -30,7 +30,7 @@ import {
   defaultRegistryDir,
   emptyRegistry,
   loadRegistry,
-  peerIdForLane,
+  peerIdForBoxLane,
   registerPeer,
   registryPath,
   saveRegistry,
@@ -38,7 +38,7 @@ import {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const HANDOFF = path.resolve(HERE, '..', 'handoff.mjs');
-const LANE_ID = peerIdForLane('opencode');
+const laneIdFor = (box) => peerIdForBoxLane('opencode', box);
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
@@ -58,7 +58,7 @@ function fakeOpencode(dir, { sleep = 1.5, produces = null, exit = 0 } = {}) {
 function registerLane(box, status = STATUS.IDLE) {
   const file = registryPath(defaultRegistryDir(box));
   saveRegistry(file, registerPeer(emptyRegistry(), {
-    peerId: LANE_ID, name: 'opencode', pid: process.pid, status,
+    peerId: laneIdFor(box), name: 'opencode', pid: process.pid, status,
   }).registry);
   return file;
 }
@@ -75,9 +75,11 @@ function runHandoff(box, binDir, args) {
 
 /** Records every status CHANGE while `fn` runs, so a transition cannot be missed. */
 async function watchStatus(file, fn) {
+  // The box is recoverable from the registry path: <box>/peer/registry.json.
+  const box = path.dirname(path.dirname(file));
   const seen = [];
   const tick = () => {
-    const s = fs.existsSync(file) ? (loadRegistry(file).peers[LANE_ID]?.status ?? 'gone') : 'no-registry';
+    const s = fs.existsSync(file) ? (loadRegistry(file).peers[laneIdFor(box)]?.status ?? 'gone') : 'no-registry';
     if (seen.at(-1) !== s) seen.push(s);
   };
   tick();
@@ -118,7 +120,7 @@ test('a failed dispatch still returns the lane to idle', async () => {
   const [code] = await once(child, 'exit');
 
   assert.notEqual(code, 0, 'a missing expected file is a failed dispatch');
-  assert.equal(loadRegistry(file).peers[LANE_ID].status, STATUS.IDLE,
+  assert.equal(loadRegistry(file).peers[laneIdFor(box)].status, STATUS.IDLE,
     'a stuck busy lane would look like a run that never ended');
 });
 
@@ -132,7 +134,7 @@ test('a detached dispatch leaves the lane busy, deliberately', async () => {
 
   // The parent exits immediately while the run continues, so writing idle here would
   // race the run and lie about it. The stale window owns that transition instead.
-  assert.equal(loadRegistry(file).peers[LANE_ID].status, STATUS.BUSY);
+  assert.equal(loadRegistry(file).peers[laneIdFor(box)].status, STATUS.BUSY);
 });
 
 test('with no registry, a dispatch creates nothing', async () => {
@@ -151,15 +153,15 @@ test('with no registry, a dispatch creates nothing', async () => {
 test('a foreign lane entry is left alone', async () => {
   const box = tmp('handoff-foreign-');
   const file = registryPath(defaultRegistryDir(box));
-  const foreign = { peerId: LANE_ID, name: 'opencode', managedBy: 'another-tool', pid: process.pid, status: STATUS.IDLE };
-  saveRegistry(file, { ...emptyRegistry(), peers: { [LANE_ID]: foreign } });
+  const foreign = { peerId: laneIdFor(box), name: 'opencode', managedBy: 'another-tool', pid: process.pid, status: STATUS.IDLE };
+  saveRegistry(file, { ...emptyRegistry(), peers: { [laneIdFor(box)]: foreign } });
   const produced = path.join(box, 'out.txt');
   const binDir = fakeOpencode(box, { sleep: 0.2, produces: produced });
 
   const { child } = runHandoff(box, binDir, ['--spec', writeSpec(box), '--expect', produced]);
   await once(child, 'exit');
 
-  const after = loadRegistry(file).peers[LANE_ID];
+  const after = loadRegistry(file).peers[laneIdFor(box)];
   assert.equal(after.managedBy, 'another-tool');
   assert.equal(after.status, STATUS.IDLE, 'another tool owns this entry; a dispatch does not get to move it');
 });

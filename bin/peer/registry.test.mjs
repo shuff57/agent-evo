@@ -443,11 +443,14 @@ test('peerIdForLane includes the OS user, so two users do not collide', () => {
   assert.equal(mine, peerIdForLane('opencode'), 'the default is this process identity');
 });
 
-test('every peer component derives its lane id from peerIdForLane', () => {
+test('every peer component derives its lane id through the shared helpers', () => {
   const root = path.resolve('.');
   for (const f of ['bin/peer-sidecar.mjs', 'bin/peer.mjs', 'bin/handoff.mjs', 'opencode/plugin/inbox.js']) {
     const src = fs.readFileSync(path.join(root, f), 'utf8');
-    assert.match(src, /peerIdForLane\(/, `${f} must not hand-roll the seed`);
+    assert.match(src, /peerIdFor(BoxLane|Lane)\(/, `${f} must not hand-roll the seed`);
     assert.ok(!/derivePeerId\(/.test(src), `${f} calls derivePeerId directly — that is how the seeds drifted`);
+    // Lane-only ids shared a socket across boxes: the second box's sidecar died on
+    // "socket already in use" against the first, on every start. Box-scoped only.
+    assert.ok(!/peerIdForLane\(/.test(src), `${f} uses lane-only peerIdForLane — the box scope is the fix`);
   }
 });

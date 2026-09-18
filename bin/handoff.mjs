@@ -33,7 +33,7 @@ import { fileURLToPath } from 'node:url';
 import {
   STATUS,
   defaultRegistryDir,
-  peerIdForLane,
+  peerIdForBoxLane,
   registryPath,
   setStatus,
   withRegistry,
@@ -92,7 +92,7 @@ const heartbeat = (status) => {
     // never rewrites a file it had no update for. A bare load+setStatus+save here raced
     // every sidecar heartbeat and could resurrect an entry the sidecar had just removed.
     withRegistry(file, (reg) => {
-      const out = setStatus(reg, peerIdForLane(OPENCODE_LANE), status);
+      const out = setStatus(reg, peerIdForBoxLane(OPENCODE_LANE, resolveBox()), status);
       return out.changed ? out : null;
     });
   } catch {
