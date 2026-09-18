@@ -305,3 +305,104 @@ test("claude tier-gate hook is wired for the Bash lane too", () => {
   );
   assert.ok(wired, "settings.json must route Bash to tier-gate.js, else bashWrite never runs");
 });
+
+// ---------------------------------------------------------------------------
+// 4. Peer bridge — repo-level wiring + docs contract (hermetic)
+// ---------------------------------------------------------------------------
+// These read the REPO settings.json, never ~/.claude/settings.json. The live file is
+// ORCA-managed and diverges per box, so a contract pinned against it would pass or fail
+// by machine; the repo copy is the source of truth install.sh symlinks into place. The
+// live-settings tests above are deliberately left as they were.
+const REPO_SETTINGS = JSON.parse(fs.readFileSync(path.join(ROOT, "settings.json"), "utf8"));
+
+function postToolUseCommands() {
+  return (REPO_SETTINGS.hooks?.PostToolUse ?? []).flatMap((h) => h.hooks ?? []);
+}
+
+test("repo settings.json wires hooks/peer-inbox.js into PostToolUse", () => {
+  const wired = postToolUseCommands().some(
+    (k) => typeof k.command === "string" && k.command.includes("hooks/peer-inbox.js")
+  );
+  assert.ok(wired, "repo settings.json PostToolUse must invoke hooks/peer-inbox.js");
+});
+
+test("peer-inbox hook is matcher-less, so every tool call can deliver", () => {
+  const entry = (REPO_SETTINGS.hooks?.PostToolUse ?? []).find((h) =>
+    (h.hooks ?? []).some((k) => typeof k.command === "string" && k.command.includes("hooks/peer-inbox.js"))
+  );
+  assert.ok(entry, "peer-inbox entry must exist");
+  assert.equal(entry.matcher, undefined, "a matcher would narrow delivery to some tools only");
+});
+
+test("peer-inbox hook command uses the $HOME-safe repo path", () => {
+  const cmd = postToolUseCommands()
+    .map((k) => k.command)
+    .find((c) => typeof c === "string" && c.includes("hooks/peer-inbox.js"));
+  assert.match(cmd, /^node \$HOME\/Documents\/GitHub\/agent-evo\/hooks\/peer-inbox\.js$/);
+});
+
+test("CLAUDE.md documents the peer bridge section", () => {
+  assert.match(CLAUDE_MD, /^## Peer bridge$/m);
+});
+
+test("CLAUDE.md pins the sidecar usage string", () => {
+  assert.match(CLAUDE_MD, /node bin\/peer-sidecar\.mjs --as opencode \[--heartbeat-ms 30000\]/);
+});
+
+test("CLAUDE.md pins the peer CLI send usage string", () => {
+  assert.match(
+    CLAUDE_MD,
+    /node bin\/peer\.mjs send --to <name\|pid> --text <s> \[--priority now\|next\|later\] \[--from-name <s>\] \[--no-audit\]/
+  );
+});
+
+test("CLAUDE.md states the peer bridge's fail-closed identity and trust boundary", () => {
+  assert.match(CLAUDE_MD, /Identity is fail-closed/);
+  assert.match(CLAUDE_MD, /same OS user and nothing more/);
+});
+
+test("CLAUDE.md states honest priority semantics", () => {
+  assert.match(CLAUDE_MD, /Priority is honest/);
+  assert.match(CLAUDE_MD, /delivery is the next tool/);
+});
+
+test("CLAUDE.md pins the watchable-lane usage string", () => {
+  assert.match(CLAUDE_MD, /^### Watchable lane \(tmux\)$/m);
+  assert.match(
+    CLAUDE_MD,
+    /node bin\/peer-term\.mjs ask --as <lane> --text <s> \[--model ID\] \[--new\] \[--log\] \[--auto\] \[--timeout MS\]/
+  );
+  assert.match(CLAUDE_MD, /tmux attach -t peer-<lane>/);
+});
+
+// The peer suites are `bun test`, not `node --test`: on a box where `node` is a bun shim
+// the latter runs the file with no runner and node:test throws, which reads as a broken
+// suite rather than a wrong command. Doc and headers are pinned together so neither can
+// drift back on its own.
+test("the peer test headers and CLAUDE.md agree on bun test", () => {
+  assert.match(CLAUDE_MD, /Run the peer suites with `bun test`, not `node --test`/);
+  for (const name of ["codec", "registry", "sidecar", "client", "term"]) {
+    const src = fs.readFileSync(path.join(ROOT, "bin", "peer", `${name}.test.mjs`), "utf8").slice(0, 400);
+    assert.match(src, new RegExp(`bun test bin/peer/${name}\\.test\\.mjs`), `${name}.test.mjs header`);
+  }
+});
+
+test("CLAUDE.md no longer parks the Claude inbox hook", () => {
+  assert.ok(!/left off deliberately/.test(CLAUDE_MD), "the stale parked-hook paragraph must be gone");
+  assert.match(CLAUDE_MD, /hooks\/peer-inbox\.js/);
+  assert.match(CLAUDE_MD, /mtime gate/);
+});
+
+// The opencode plugin contract: opencode calls EVERY exported function as a plugin factory,
+// so inbox.js must expose exactly one. Pinned statically here (source-level) rather than by
+// importing the module — msg.test.mjs already exercises the runtime shape, and this file's
+// job is to catch a source edit that adds a second export before it ever runs. The registry
+// import is a separate unit and is not present in inbox.js yet, so it is not pinned here.
+const inboxPlugin = fs.readFileSync(path.join(ROOT, "opencode", "plugin", "inbox.js"), "utf8");
+
+test("opencode/plugin/inbox.js keeps exactly one export", () => {
+  const exports = inboxPlugin.match(/^export\s+/gm) ?? [];
+  assert.equal(exports.length, 1, "a second export is invoked as a plugin factory and breaks loading");
+  assert.match(inboxPlugin, /^export const Inbox = /m);
+  assert.match(inboxPlugin, /Inbox\.findBox = findBox;/);
+});
