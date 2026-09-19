@@ -457,9 +457,9 @@ test("AGENTS.md records why the install is a subset, not the whole skills/ dir",
   assert.match(AGENTS_FLAT, /the skill loader follows them; the team loader does not/);
 });
 
-// chisle is vendored by hand into ~/.config/opencode/plugins/ and is DEVICE-LOCAL, so
-// nothing here asserts against that path - the three live-settings tests deleted on
-// 2026-09-19 are the precedent: a contract pinned to per-box state can only go red for
+// chisle installs into ~/.config/opencode/plugins/, which is DEVICE-LOCAL, so nothing
+// here asserts against that path - the three live-settings tests deleted on 2026-09-19
+// are the precedent: a contract pinned to per-box state can only go red for
 // a reason nobody acts on. What is pinnable is repo-side: the doc points at a measuring
 // script, and that script has to exist. A doc naming a tool that is not there is the
 // dangling-pointer failure this session spent several commits deleting.
@@ -477,7 +477,46 @@ test("AGENTS.md's chisle measurement pointer resolves", () => {
 // script both become redundant - check before assuming they are still needed.
 test("AGENTS.md records why chisle --stats is not the measurement", () => {
   assert.match(AGENTS_FLAT, /`npx chisle --stats` does not work for this install shape/);
-  assert.match(AGENTS_FLAT, /Only the plugin was installed, never chisle's ruleset/);
+  assert.match(AGENTS_FLAT, /It is vendored, and only the plugin — never chisle's ruleset/);
+});
+
+// Vendoring is the whole point of tracking it: the runtime files must be in the repo,
+// sync.sh must install them, and the MIT license must ride along. A vendor dir whose
+// installer step got dropped is an install that silently stops travelling to new boxes.
+const VENDOR = path.join(ROOT, "opencode", "vendor", "chisle");
+
+test("chisle is vendored complete, licensed, and installed by sync.sh", () => {
+  for (const f of [
+    "chisle.js",
+    "chisle-hooks/chisle-compress-output.js",
+    "chisle-hooks/chisle-config.js",
+    // Not decoration: the core is CommonJS and without this pin the config dir's own
+    // module type propagates down and the first require throws.
+    "chisle-hooks/package.json",
+    "LICENSE",   // MIT - vendoring requires carrying it
+    "README.md", // provenance + the update procedure
+  ]) {
+    assert.ok(fs.existsSync(path.join(VENDOR, f)), `opencode/vendor/chisle/${f} missing`);
+  }
+  assert.match(
+    fs.readFileSync(path.join(VENDOR, "chisle-hooks", "package.json"), "utf8"),
+    /"type":\s*"commonjs"/
+  );
+
+  const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
+  assert.match(sync, /OC_PLUGINS="\$HOME\/\.config\/opencode\/plugins"/,
+    "the PLURAL dir is the target - the singular one is a symlink into this repo");
+  assert.match(sync, /\$REPO\/opencode\/vendor\//);
+});
+
+// The upstream version is a fact that goes stale silently. Pinning it in the README
+// means an upgrade that forgets to update the record fails here instead of leaving the
+// next reader guessing which version these bytes came from.
+test("the vendored chisle records its provenance", () => {
+  const readme = fs.readFileSync(path.join(VENDOR, "README.md"), "utf8");
+  assert.match(readme, /\| version \| \d+\.\d+\.\d+ \|/);
+  assert.match(readme, /\| commit \| `[0-9a-f]{40}` \|/);
+  assert.match(readme, /Do not run the real installer/);
 });
 
 // caveman was always-on under CLAUDE.md, briefly installed on 2026-09-19, then cut the

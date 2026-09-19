@@ -98,8 +98,41 @@ if [ "$pruned" -gt 0 ]; then
 fi
 [ -n "$missing" ] && echo "  WARNING: named in SKILLS but not in skills/:$missing"
 
+# Vendored third-party plugins. COPIED into ~/.config/opencode/plugins/ (PLURAL) --
+# three separate reasons, none of them style:
+#
+#   1. plugins/ is a real device-local directory; plugin/ (SINGULAR) is a symlink to
+#      this repo's opencode/plugin/. Both auto-load, proven 2026-09-19 with a throwaway
+#      probe plugin. Copying into the singular one would vendor 45KB of someone else's
+#      code into our own plugin dir for no gain.
+#   2. chisle's entry is ESM requiring a CommonJS core out of chisle-hooks/ by relative
+#      path, so the whole tree has to land together, package.json pin included.
+#   3. a copy is what upstream's own installer does and is therefore the shape that has
+#      actually been tested; symlinking a plugin dir is not something anyone has verified
+#      on this box, and the team loader already proved the two behaviours can differ.
+#
+# Source of truth is opencode/vendor/<name>/ -- editing the installed copy is editing a
+# build artifact. See opencode/vendor/chisle/README.md for provenance and the update
+# procedure (do NOT run `npx chisle`: its installer also appends a ruleset to
+# ~/.config/opencode/AGENTS.md, which is a symlink into this repo).
+OC_PLUGINS="$HOME/.config/opencode/plugins"
+if [ -d "$REPO/opencode/vendor" ]; then
+  mkdir -p "$OC_PLUGINS"
+  for v in "$REPO/opencode/vendor/"*/; do
+    name="$(basename "$v")"
+    n=0
+    # Docs stay in the repo; only runtime files are installed.
+    for f in "$v"*.js "$v"*/; do
+      [ -e "$f" ] || continue
+      case "$f" in */README.md|*/LICENSE) continue ;; esac
+      cp -rf "$f" "$OC_PLUGINS/" && n=$((n + 1))
+    done
+    echo "Vendor: $name -> $OC_PLUGINS/ ($n item(s))"
+  done
+fi
+
 echo ""
 echo "Teams:  $(grep -c '^[a-z]' "$REPO/roster/teams.yaml" 2>/dev/null || echo 0)"
 echo "Chains: $(grep -c '^[a-z]' "$REPO/roster/agent-chain.yaml" 2>/dev/null || echo 0)"
 echo ""
-echo "Done. Re-run this after ANY roster/, omo/teams/ or skills/ edit - the generated copies are not live."
+echo "Done. Re-run this after ANY roster/, omo/teams/, skills/ or opencode/vendor/ edit - the generated copies are not live."

@@ -117,14 +117,24 @@ break `hashline.js`'s exact-byte edits. It layers with `guard-rails` rather than
 fighting it — chisle elides at 8k chars, guard-rails truncates at 200k, both idempotent
 behind their own markers.
 
-**Only the plugin was installed, never chisle's ruleset.** It also ships a YAGNI ladder
-and a prose-compression block that would be appended to `~/.config/opencode/AGENTS.md`
-— which is a symlink to this repo, so its installer writes through it into tracked
-files. That ruleset duplicates ponytail's, rung for rung, so installing both would mean
-two always-on ladders arguing about prose style for no new capability. Three files
-copied by hand (`chisle.js` plus `chisle-hooks/`) buy the input axis for **zero added
-tokens per turn**. Re-do it after an upgrade with `npx chisle --only opencode --dry-run`
-to see the current file list, then copy those three; do not run the real installer.
+**It is vendored, and only the plugin — never chisle's ruleset.** The runtime files live
+in `opencode/vendor/chisle/` (MIT, version and commit pinned in its README) and `sync.sh`
+copies them into `~/.config/opencode/plugins/`, so the install travels with the repo
+instead of being a hand-copy on one box. Do **not** run `npx chisle`: its installer also
+appends a YAGNI ladder and a prose-compression block to `~/.config/opencode/AGENTS.md`,
+which is a symlink into this repo, so it writes through into tracked files — and that
+ladder is ponytail's ladder rung for rung, so running both would mean two always-on prose
+policies arguing for no new capability. Plugin only costs **zero tokens per turn**. The
+update procedure, including why `chisle-hooks/package.json` is load-bearing, is in
+`opencode/vendor/chisle/README.md`.
+
+**`plugins/` (plural) is the install target, and that is not interchangeable with
+`plugin/`.** Both auto-load — proven 2026-09-19 with a throwaway probe plugin rather than
+assumed — but the singular one is a symlink to `opencode/plugin/` in this repo, where our
+own five plugins live. Vendored third-party code goes in the plural one, which is a real
+device-local directory, and `sync.sh` copies rather than symlinks there because a copy is
+the shape upstream's own installer tests and nobody has verified a symlinked plugin dir
+on this box. The team loader already proved two loaders can disagree about symlinks.
 
 **`npx chisle --stats` does not work for this install shape — use
 `bun bin/chisle-savings.mjs`.** In chisle 3.5.0 `recordSavings()` has exactly two
@@ -135,6 +145,19 @@ it, so the saving is recoverable after the fact with no always-on accounting. Th
 script is read-only, on demand, and undercounts on purpose: chisle keeps only the newest
 40 spill files, and an elision whose original has rotated away is reported as an event
 of unknown size rather than estimated.
+
+**One thing deliberately does NOT travel: `~/.config/opencode/opencode.jsonc`.** It is a
+real device-local file, not a symlink from here, and it stays that way — it carries a
+literal `/home/shuff57/...` path to the Meridian plugin and an `apiKey` plus a localhost
+`baseURL`, and this repo's own hard-won rule is that an absolute home directory written
+into a tracked config travels to the next box and is wrong there silently. Tracking it as
+a *project* `opencode.json` would be worse than useless: project config only applies
+inside this repo, and these are global settings. So a new box needs three things added to
+its own copy by hand, and that list is the deliverable rather than the file:
+`"@dietrichgebert/ponytail"` in the `plugin` array, the Meridian plugin at whatever
+absolute path it occupies there, and the `anthropic` provider block pointing at the local
+proxy. Everything else in this repo — agents, skills, team specs, our five plugins, the
+vendored chisle — installs itself with `bash sync.sh`.
 
 The thresholds, the `/delegate` surface and this section are pinned together by
 `opencode/tests/routing-contract.test.mjs`. Edit one, run it, fix the others.
