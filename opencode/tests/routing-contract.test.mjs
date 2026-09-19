@@ -80,6 +80,8 @@ const gate = fs.readFileSync(path.join(ROOT, "opencode", "plugin", "tier-gate.js
 test("tier-gate constants match the AGENTS.md thresholds", () => {
   assert.match(gate, /const LINE_THRESHOLD = 10;/);
   assert.match(gate, /const FILE_THRESHOLD = 2;/);
+  assert.match(gate, /const RECON_THRESHOLD = 25;/);
+  assert.match(AGENTS_FLAT, /25 read\/grep\/glob\/webfetch or non-write bash calls/);
 });
 
 test("tier-gate never blocks — it injects a notice into the tool result", () => {
@@ -87,15 +89,64 @@ test("tier-gate never blocks — it injects a notice into the tool result", () =
   assert.ok(!/"tool\.execute\.before"/.test(gate), "gate must not block writes");
 });
 
-test("tier-gate announces at most once per session", () => {
+test("tier-gate announces at most once per session, on BOTH sides", () => {
   assert.match(gate, /if \(state\.announced\) return;/);
   assert.match(gate, /state\.announced = true;/);
+  assert.match(gate, /if \(state\.reconAnnounced\) return;/);
+  assert.match(gate, /state\.reconAnnounced = true;/);
+});
+
+// The read side exists because the write side structurally could not see the spend:
+// WRITERS contains no read tool, so a session can read all day and never trip it.
+// Delegation ZEROES the counter rather than pausing it - that is the behaviour being
+// asked for, so a session that keeps handing work out must never accumulate toward
+// the notice at all.
+test("tier-gate counts recon and resets the count on delegation", () => {
+  assert.match(gate, /const READERS = new Set\(/);
+  assert.match(gate, /const DELEGATORS = new Set\(\["task", "team_task_create"\]\);/);
+  assert.match(gate, /state\.recon = 0;/);
+  assert.match(gate, /state\.recon \+= 1;/);
+});
+
+// codegraph_explore is the move AGENTS.md recommends FIRST. A gate that fires on the
+// behaviour it wants teaches the opposite of its own lesson, so the exemption is part
+// of the contract, not an oversight to be tidied up later.
+test("codegraph_explore is exempt from the recon counter", () => {
+  const readers = gate.match(/const READERS = new Set\(\[[^\]]*\]\)/)?.[0] ?? "";
+  assert.ok(readers, "READERS set must exist");
+  assert.ok(!/codegraph/.test(readers), "codegraph_explore must stay out of READERS");
+  assert.match(AGENTS_FLAT, /`codegraph_explore` is deliberately exempt/);
+});
+
+test("AGENTS.md pins sonnet as an escalation tier, not a default", () => {
+  assert.match(AGENTS_FLAT, /escalation tier, not a default/);
+});
+
+// Measured 2026-09-19: `unspecified-high` is BOTH the sonnet escalation tier and 2 of
+// review-work's 5 seats, and omo compiles those slot names into dist - so no config can
+// split them. Cheapening it to save on builds silently buys a cheaper review too.
+test("AGENTS.md records the unspecified-high coupling to review-work", () => {
+  assert.match(AGENTS_FLAT, /2 of `review-work`'s 5 seats/);
+  assert.match(AGENTS_FLAT, /compiled into omo's dist/);
 });
 
 // The Claude Code port: same contract, PreToolUse-hook shape. DORMANT since 2026-09-19
 // (this box runs opencode only; nothing loads PreToolUse hooks), but still unit-tested as
 // pure functions below, so its constants must not drift from the doc.
 const claudeGate = fs.readFileSync(path.join(ROOT, "hooks", "tier-gate.js"), "utf8");
+
+// The read side went into the LIVE plugin only. That asymmetry is a decision, not drift:
+// hooks/ has no loader on this box, so porting it forward would be unrunnable code
+// carrying an unrunnable threshold. Pinned so the next reader sees a choice rather than
+// an oversight - if the Claude lane is ever revived, port it and change this test.
+test("the read-side gate is opencode-only, by decision", () => {
+  assert.match(gate, /const RECON_THRESHOLD = 25;/);
+  assert.ok(
+    !/RECON_THRESHOLD/.test(claudeGate),
+    "hooks/tier-gate.js is dormant - adding the read side there is unrunnable code, not parity"
+  );
+  assert.match(AGENTS_FLAT, /`hooks\/` \(every file a `PreToolUse`\/`PostToolUse` hook\)/);
+});
 
 test("claude tier-gate hook mirrors the AGENTS.md thresholds", () => {
   assert.match(claudeGate, /const LINE_THRESHOLD = 10;/);
@@ -209,19 +260,152 @@ test("two distinct files with tiny edits trigger the notice", async () => {
   }
 });
 
-test("read tools are ignored; state never leaks across sessions", async () => {
+// Reads stopped being simply "ignored" on 2026-09-19. They are ignored by the WRITE
+// counters - a read must never look like a touched file - and counted by the recon
+// counter. Both halves matter: the first is why a read+edit pair stays quiet, the
+// second is the reason the read side exists at all.
+test("reads never feed the write-side file counter; state never leaks across sessions", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
   const hook = await hookFor(dir);
   const out = fakeOutput();
   await hook({ tool: "read", sessionID: "s-iso1", callID: "c1", args: { filePath: path.join(dir, "x.js") } }, out);
   assert.equal(out.output, "ok");
 
+  // A read plus ONE edit must stay quiet. If the read had counted as a touched file the
+  // pair would cross FILE_THRESHOLD, and the gate would fire on a one-file change.
+  const o = fakeOutput();
+  await hook({ tool: "edit", sessionID: "s-iso1", callID: "c2", args: { filePath: path.join(dir, "w.js"), newString: "x" } }, o);
+  assert.equal(o.output, "ok", "one read + one edit is a tweak, not a 2-file campaign");
+
   // one file in session A, the same file in session B — neither crosses alone
   for (const s of ["s-isoA", "s-isoB"]) {
-    const o = fakeOutput();
-    await hook({ tool: "edit", sessionID: s, callID: "a.js", args: { filePath: path.join(dir, "a.js"), newString: "x" } }, o);
-    assert.equal(o.output, "ok", `${s}/a.js should stay quiet`);
+    const o2 = fakeOutput();
+    await hook({ tool: "edit", sessionID: s, callID: "a.js", args: { filePath: path.join(dir, "a.js"), newString: "x" } }, o2);
+    assert.equal(o2.output, "ok", `${s}/a.js should stay quiet`);
   }
+});
+
+test("the 25th recon call fires, the 24th does not, and it fires only once", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
+  const hook = await hookFor(dir);
+
+  for (let i = 1; i <= 24; i++) {
+    const o = fakeOutput();
+    await hook({ tool: "read", sessionID: "s-recon", callID: `c${i}`, args: { filePath: `/x/${i}.js` } }, o);
+    assert.equal(o.output, "ok", `read #${i} should stay quiet`);
+  }
+  const o25 = fakeOutput();
+  await hook({ tool: "read", sessionID: "s-recon", callID: "c25", args: { filePath: "/x/25.js" } }, o25);
+  assert.match(o25.output, /\[tier-gate\] Recon budget crossed: 25 read\/grep\/bash calls/);
+
+  const o26 = fakeOutput();
+  await hook({ tool: "read", sessionID: "s-recon", callID: "c26", args: {} }, o26);
+  assert.equal(o26.output, "ok", "once per session, same restraint as the write side");
+});
+
+test("delegating resets the count, so a delegating session never sees the notice", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
+  const hook = await hookFor(dir);
+  for (let i = 1; i <= 60; i++) {
+    const o = fakeOutput();
+    await hook({ tool: "read", sessionID: "s-deleg", callID: `c${i}`, args: {} }, o);
+    assert.equal(o.output, "ok", `read #${i} fired despite regular delegation`);
+    if (i % 10 === 0) {
+      await hook({ tool: "task", sessionID: "s-deleg", callID: `t${i}`, args: {} }, fakeOutput());
+    }
+  }
+});
+
+test("non-write bash is recon; write-shaped bash is not", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
+  const hook = await hookFor(dir);
+
+  let fired = null;
+  for (let i = 1; i <= 25; i++) {
+    const o = fakeOutput();
+    await hook({ tool: "bash", sessionID: "s-bashrecon", callID: `c${i}`, args: { command: "ls -la /tmp" } }, o);
+    if (o.output !== "ok" && fired === null) fired = { i, text: String(o.output) };
+  }
+  assert.equal(fired?.i, 25, "read-shaped bash must reach the recon threshold");
+  assert.match(fired.text, /Recon budget crossed/);
+
+  // A write-shaped bash routes to the WRITE side instead: two distinct redirect targets
+  // cross FILE_THRESHOLD long before 25 calls, and the notice must not say "recon".
+  let w = null;
+  for (let i = 1; i <= 5; i++) {
+    const o = fakeOutput();
+    await hook({ tool: "bash", sessionID: "s-bashwrite", callID: `c${i}`, args: { command: `echo hi > /tmp/f${i}.txt` } }, o);
+    if (o.output !== "ok" && w === null) w = { i, text: String(o.output) };
+  }
+  assert.equal(w?.i, 2, "two distinct redirect targets cross FILE_THRESHOLD");
+  assert.match(w.text, /Tier policy crossed/);
+  assert.ok(!/Recon budget/.test(w.text), "a bash write must not be counted as recon");
+});
+
+test("a state file predating the recon counter does not poison the count", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
+  // Exactly what an older session left behind: no recon, no reconAnnounced. `undefined + 1`
+  // is NaN, which compares false against every threshold and would silently mute the read
+  // side for the whole life of that session.
+  const { default: nodeCrypto } = await import("node:crypto");
+  const stateDir = path.join(os.tmpdir(), "opencode-tier-gate");
+  fs.mkdirSync(stateDir, { recursive: true });
+  const dirKey = nodeCrypto.createHash("sha256").update(dir).digest("hex").slice(0, 16);
+  fs.writeFileSync(
+    path.join(stateDir, `s-legacy-${dirKey}.json`),
+    JSON.stringify({ announced: false, files: [] })
+  );
+
+  const hook = await hookFor(dir);
+  let fired = null;
+  for (let i = 1; i <= 25; i++) {
+    const o = fakeOutput();
+    await hook({ tool: "read", sessionID: "s-legacy", callID: `c${i}`, args: {} }, o);
+    if (o.output !== "ok" && fired === null) fired = i;
+  }
+  assert.equal(fired, 25, "legacy state must normalize to recon: 0, never NaN");
+});
+
+// ---------------------------------------------------------------------------
+// 2b. The build-review team spec — the cheap-build / expensive-review loop
+// ---------------------------------------------------------------------------
+// The spec is the thing that actually enforces "workers measure, the lead judges".
+// Verified 2026-09-19 against a real `team_create`: all four members resolved to
+// ollama models (quick -> glm-5.3-flash, deep -> deepseek-v4.1-flash).
+const TEAM_SPEC = path.join(ROOT, "omo", "teams", "build-review", "config.json");
+
+test("the build-review spec parses and every worker is a cheap category", () => {
+  const spec = JSON.parse(fs.readFileSync(TEAM_SPEC, "utf8"));
+  assert.equal(spec.name, "build-review");
+  // omo caps a team at 8 members and runs 4 in parallel; the spec is written to the
+  // parallel width so no worker sits queued behind another.
+  assert.equal(spec.members.length, 4);
+  assert.deepEqual(
+    spec.members.map((m) => m.category).sort(),
+    ["deep", "quick", "quick", "quick"],
+    "the expensive lane is the LEAD, which reviews - never a member"
+  );
+  for (const m of spec.members) {
+    assert.match(m.name, /^[a-z0-9-]+$/, "omo requires lowercase-hyphen member names");
+    assert.match(
+      m.prompt,
+      /lead owns the verdict/,
+      `${m.name} must not be allowed to grade its own work`
+    );
+    assert.match(m.prompt, /could NOT perform/, `${m.name} must report skipped checks`);
+  }
+});
+
+// Measured 2026-09-19: omo's on-disk team loader does NOT follow a symlinked team
+// directory - it reported "not found" for a path that resolved and held valid JSON.
+// Every other config in this repo is symlinked, so the exception needs a guard.
+test("sync.sh copies team specs rather than symlinking them", () => {
+  const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
+  assert.match(sync, /cp -f "\$spec\/config\.json"/);
+  assert.ok(
+    !/ln -s[^\n]*omo\/teams/.test(sync),
+    "omo's loader does not follow a symlinked team dir - this must stay a copy"
+  );
 });
 
 test("state persists across plugin instances for the same session", async () => {

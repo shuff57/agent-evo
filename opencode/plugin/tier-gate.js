@@ -19,14 +19,41 @@
 // small edits to the SAME file stays quiet (that is the "tweak" lane), while a
 // multi-file campaign crosses the 3-file line and a bulk edit crosses the line
 // count. Both thresholds mirror AGENTS.md exactly.
+//
+// THE READ SIDE (added 2026-09-19). Counting only writes left the expensive half
+// of the problem unguarded: a session can burn hundreds of read/grep/bash calls on
+// the top-tier model and never trip a write threshold, because none of those tools
+// is in WRITERS. Measured on this box, 3 days / 292 sessions: ONE task() delegation
+// per 77 read+grep+bash calls, and 93% of $1120 spend on Anthropic models whose
+// cost was cache-READ volume (600M on opus alone), not output -- i.e. long sessions
+// holding enormous context, which is exactly what "handled it inline" looks like on
+// a bill. So RECON_THRESHOLD read-shaped calls with no delegation now injects a
+// second notice, on the same contract as the first: fail-open, once per session.
 import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
 const WRITERS = new Set(["write", "edit", "patch", "multiedit"]);
+
+// Read-shaped tools. The write-side counters ignore these; the recon counter below
+// is the only reason they are named at all. `codegraph_explore` is deliberately NOT
+// here: AGENTS.md makes it the recommended FIRST move, it is one capped call rather
+// than a loop, and a gate that fires on the behaviour it wants teaches the opposite
+// of the lesson.
+const READERS = new Set(["read", "grep", "glob", "list", "webfetch", "websearch"]);
+
+// Handing work to someone else. `task` is the category/subagent route; team mode
+// dispatches through `team_task_create`.
+const DELEGATORS = new Set(["task", "team_task_create"]);
+
 const LINE_THRESHOLD = 10; // AGENTS.md: "more than ~10 lines of new code"
 const FILE_THRESHOLD = 2; // AGENTS.md: "coordinated fix touching 2+ files"
+// Not a measured optimum -- picked to actually fire. The measured ratio was 1:77,
+// so anything near that would never trigger; 25 is low enough to catch a session
+// that has settled into reading for itself, high enough that a focused "read three
+// files and edit one" pass never sees it.
+const RECON_THRESHOLD = 25; // AGENTS.md: "25 read-shaped calls with no delegation"
 const MARKER = "[tier-gate]";
 
 function stateDir() {
@@ -47,9 +74,13 @@ function stateFile(sessionID, directory) {
 
 function load(sessionID, directory) {
   try {
-    return JSON.parse(fs.readFileSync(stateFile(sessionID, directory), "utf8"));
+    const saved = JSON.parse(fs.readFileSync(stateFile(sessionID, directory), "utf8"));
+    // State files written before the recon counter existed have neither field, and
+    // `undefined + 1` is NaN -- which compares false against every threshold and
+    // would silently disable the read side for the life of that session.
+    return { announced: false, files: [], recon: 0, reconAnnounced: false, ...saved };
   } catch {
-    return { announced: false, files: [] };
+    return { announced: false, files: [], recon: 0, reconAnnounced: false };
   }
 }
 
@@ -239,22 +270,65 @@ export const TierGate = async ({ directory }) => {
     return sessions.get(sessionID);
   };
 
+  const append = (output, lines) => {
+    const text = lines.join("\n");
+    if (typeof output.output === "string") output.output += `\n\n${text}`;
+    else output.output = text;
+  };
+
   return {
     "tool.execute.after": async (input, output) => {
       try {
         const tool = String(input.tool).toLowerCase();
-        if (!WRITERS.has(tool) && tool !== "bash") return;
+        const isBash = tool === "bash";
+        const isWriter = WRITERS.has(tool);
+        if (!isWriter && !isBash && !READERS.has(tool) && !DELEGATORS.has(tool)) return;
+
         const state = track(input.sessionID);
+
+        // Delegating is the whole behaviour the recon counter is asking for, so it
+        // ZEROES the count rather than merely pausing it: a session that keeps handing
+        // work out never accumulates toward the notice at all.
+        if (DELEGATORS.has(tool)) {
+          if (state.recon !== 0) {
+            state.recon = 0;
+            save(input.sessionID, directory, state);
+          }
+          return;
+        }
+
+        // Bash splits both ways, and bashWrite() is the existing arbiter: write-shaped
+        // commands feed the write counters below, everything else (ls, cat, rg, git log)
+        // is recon. That is the 61% of this box's tool calls the write side could not see.
+        const bw = isBash ? bashWrite(String(input.args?.command ?? "")) : null;
+
+        if (READERS.has(tool) || (isBash && !bw.isWrite)) {
+          if (state.reconAnnounced) return; // once per session, same restraint as the write side
+          state.recon += 1;
+          save(input.sessionID, directory, state);
+          if (state.recon < RECON_THRESHOLD) return;
+          state.reconAnnounced = true;
+          save(input.sessionID, directory, state);
+          append(output, [
+            "",
+            `${MARKER} Recon budget crossed: ${state.recon} read/grep/bash calls, no delegation this session.`,
+            "AGENTS.md sends recon to a sub-agent before you read the codebase by hand:",
+            "codegraph_explore first, then explore / librarian / an *-expert. Their file dumps",
+            "never enter this context; every call you make yourself does, and context volume is",
+            "where the top-tier spend actually goes -- not output tokens.",
+            "Spawn one for the next question, or say why this session has to look for itself.",
+            "The count resets on every task(); this notice fires once per session.",
+          ]);
+          return;
+        }
+
+        // --- write side ---------------------------------------------------------
         if (state.announced) return; // once per session is all the policy asks
 
-        let file = filePathOf(input.args);
+        const file = filePathOf(input.args);
         let lines = newLinesOf(tool, input.args);
 
-        // Bash: only write-shaped commands feed the counters; everything else is
-        // ignored exactly like a read.
-        if (tool === "bash") {
-          const bw = bashWrite(String(input.args?.command ?? ""));
-          if (!bw.isWrite) return;
+        if (isBash) {
           for (const f of bw.files) if (f && !state.files.includes(f)) state.files.push(f);
           lines = bw.lines;
         } else if (file && !state.files.includes(file)) {
@@ -262,7 +336,7 @@ export const TierGate = async ({ directory }) => {
         }
         // Persist on every write, not just on announcing — otherwise a plugin reload
         // (or a second opencode instance for the same session) forgets the file count
-        // and the 3-file line never fires. Caught by the persistence unit test.
+        // and the 2-file line never fires. Caught by the persistence unit test.
         save(input.sessionID, directory, state);
 
         const overLines = lines > LINE_THRESHOLD;
@@ -274,17 +348,14 @@ export const TierGate = async ({ directory }) => {
         const why = overLines
           ? `${lines} lines written in one call`
           : `writes now touch ${state.files.length} files (${state.files.slice(0, 5).join(", ")}${state.files.length > 5 ? ", …" : ""})`;
-        const text = [
+        append(output, [
           "",
           `${MARKER} Tier policy crossed: ${why}.`,
           "AGENTS.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
           "Either delegate the remainder (e.g. /delegate, or a category task - quick, or unspecified-high for high-stakes),",
           "or say in your reply why inline is the better call here (high-stakes, genuinely ambiguous, or nearly done).",
           "Announcing this is the whole policy — do not silently continue.",
-        ].join("\n");
-
-        if (typeof output.output === "string") output.output += `\n\n${text}`;
-        else output.output = text;
+        ]);
       } catch {
         // A nudge that throws is worse than no nudge.
       }

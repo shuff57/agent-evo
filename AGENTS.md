@@ -62,7 +62,9 @@ and context drift fail independently.
 - **Bulk mechanical** — rename across N files, port tests, fill boilerplate →
   `task(category="quick")`, fanned out in parallel.
 - **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss →
-  `task(category="unspecified-high")` (sonnet). Skip the cheap tier entirely.
+  `task(category="unspecified-high")` (sonnet). Skip the cheap tier entirely. This and
+  the rework bound below are the ONLY two routes to sonnet: it is an **escalation tier,
+  not a default**. Everything else starts on `quick` and earns its way up.
 
 Size every non-trivial request on two axes — *do I know exactly what "done" looks like*,
 and *how much breaks if this is wrong*:
@@ -92,6 +94,18 @@ returns nothing, `[loop-guard]` when one identical call repeats 20+ times. None 
 all are idempotent per session. A `[loop-guard]` means you are stuck — change approach
 or report the blocker rather than repeating the call.
 
+**The same gate now counts the read side, because that is where the money was.**
+`tier-gate.js` fires a second `[tier-gate]` notice at **25 read/grep/glob/webfetch or
+non-write bash calls in one session with no `task()` at all**; every `task()` resets the
+count to zero, so a session that keeps handing work out never accumulates toward it.
+Measured 2026-09-19 across 3 days and 292 sessions on this box: **one `task()` per 77
+read+grep+bash calls**, and 93% of $1,120 spend sat on Anthropic models whose cost was
+cache-READ volume (600M on opus alone), not output — long sessions holding enormous
+context, which is what "handled it inline" looks like on a bill. The write-side
+thresholds could not see any of it: `WRITERS` contains no read tool. `codegraph_explore`
+is deliberately exempt — it is the recommended first move, and a gate that fires on the
+behaviour it wants teaches the opposite lesson.
+
 The thresholds, the `/delegate` surface and this section are pinned together by
 `opencode/tests/routing-contract.test.mjs`. Edit one, run it, fix the others.
 
@@ -116,6 +130,36 @@ Escalate, don't grind: past two failed reviews the cycles cost more than the son
 build would have. Encode review feedback as a **runnable check you own** — a builder
 that can edit its own gate eventually will.
 
+**More than one independent piece runs as a team, not as serial `task()`s.** Team mode
+is enabled in `~/.omo/omo.jsonc` (4 parallel, 8 max, tmux on), and
+`omo/teams/build-review/config.json` is the spec for exactly this loop: three `quick`
+builders plus one `deep` worker for bulk, with this session as lead.
+
+```
+team_list()                             # an active run under the same name is a crashed orphan
+team_create(teamName="build-review")    # lead = this session; members = 4 cheap workers
+team_task_create(...)                   # one task per independent piece
+                                        # lead reads the replies and REVIEWS the measurements
+team_task_create(...)                   # re-dispatch the fix to the same cheap workers
+team_delete(teamRunId=..., force=true)  # always; an orphan blocks the next create
+```
+
+The worker prompts encode the rule that makes the loop honest: **they report
+measurements and never own the pass/fail verdict on their own work.** The lead
+adjudicates and re-dispatches. That is the "measurement is not verdict" rule below,
+moved out of prose and into the thing that actually runs.
+
+Two things measured 2026-09-19, the first time this spec was loaded:
+
+- **A symlinked team directory is not found.** `~/.omo/teams/<name>` pointed at this
+  repo produced `Team '<name>' was not found. Expected '<that exact path>'` — for a path
+  that resolved and held valid JSON. Replacing the link with a real directory and the
+  same bytes loaded first try. `sync.sh` therefore COPIES team specs, and editing
+  `~/.omo/teams/<name>/config.json` is editing a build artifact; the source is
+  `omo/teams/`.
+- **`deep` resolved to `variant: "medium"`** while omo.jsonc pins it `reasoning: max`.
+  The model was right (`deepseek-v4.1-flash`); the effort dial was not. Read the level
+  back out of the `team_create` response rather than claiming the config applied.
 ### Routing config lives in omo.jsonc, not in prose
 
 `~/.omo/omo.jsonc` is the single source for which model each agent and category runs on,
@@ -139,6 +183,14 @@ agent, ignores your prompt, and exits 0. Generated defs must be `mode: primary`.
 this box's omo.jsonc every one of them resolves to an Anthropic model — a deeper review
 than the old two-seat council, and a narrower one. Repoint a slot at a non-Anthropic
 model there if you want the cross-family lens back.
+
+**`unspecified-high` is load-bearing in two unrelated places — do not cheapen it to push
+builds down.** It is both the sonnet escalation tier above **and 2 of `review-work`'s 5
+seats** (hands-on QA, context mining). Those slot names are compiled into omo's dist, so
+no config can split them: dropping `unspecified-high` to a cheap model to save on builds
+silently buys a cheaper review at the same time. Operator decision 2026-09-19: leave it
+on sonnet, keep it escalation-only. The spend problem was opus holding context inline,
+not sonnet building — see the read-side gate above.
 
 ## Judgment rules that cost real money to relearn
 
