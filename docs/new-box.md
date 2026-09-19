@@ -18,13 +18,77 @@ machine:
    install rather than a bare package name in the `plugin` array (unlike the two
    below) because the config references its absolute install path directly; if a
    version bump moves that path, find it with
-   `find ~/.bun/install/global/node_modules/@rynfar -name meridian`.
+   `find ~/.bun/install/global/node_modules/@rynfar -name meridian`. Installing it is
+   not the same as running it — see "Running meridian as a service" below.
 4. **This repo** — `git clone https://github.com/shuff57/agent-evo.git
    ~/Documents/GitHub/agent-evo`, then `bash sync.sh` (below).
 
 `oh-my-openagent` and `@dietrichgebert/ponytail` need no install step: they are bare
 package names in the `plugin` array, and opencode resolves and caches them itself on
 first run (`~/.cache/opencode/packages/`), the same way `npx` would.
+
+## Shell environment
+
+The bun and opencode installers append their own `PATH` lines to `~/.bashrc` (and
+`~/.bash_profile`, if present) automatically — nothing to add for those. Two more
+lines matter and neither installer writes them:
+
+```bash
+export ANTHROPIC_API_KEY=x                          # placeholder; meridian ignores the value
+export ANTHROPIC_BASE_URL=http://127.0.0.1:3456     # points the Anthropic SDK at meridian
+export OMO_CODEGRAPH_BIN="$HOME/.bun/bin/codegraph"  # no system Node; omo's bundled
+                                                      # resolver needs Node 20-24 and won't find it
+```
+
+`OMO_CODEGRAPH_BIN` only matters if, like this box, `node` resolves to a bun shim rather
+than real Node — check `node --version`; if it prints a bun version banner instead of a
+plain `vX.Y.Z`, you need the override.
+
+## Git identity and GitHub auth
+
+```bash
+git config --global user.name  "<github username>"
+git config --global user.email "<id>+<username>@users.noreply.github.com"
+gh auth login                  # interactive; wires the https credential helper
+```
+
+Commits push over HTTPS through `gh`'s credential helper, not an SSH key — `gh auth
+status` afterward should show `Git operations protocol: https`. The noreply address
+above is the account-level git identity; an individual commit in this repo may still be
+authored with a different `-c user.email=...` for that one commit, which is unrelated and
+does not need to match.
+
+### Running meridian as a service
+
+Running the `bun .../@rynfar/meridian/dist/cli.js` command in a terminal works for one
+session; a systemd user service keeps it running across logins and restarts it on crash:
+
+```ini
+# ~/.config/systemd/user/meridian.service
+[Unit]
+Description=Meridian - Claude Max proxy for OpenCode
+After=network-online.target
+
+[Service]
+ExecStart=%h/.bun/bin/bun %h/.bun/install/global/node_modules/@rynfar/meridian/dist/cli.js
+Restart=on-failure
+RestartSec=3
+Environment=PATH=%h/.bun/bin:%h/.local/bin:%h/.opencode/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user enable --now meridian.service
+systemctl --user status meridian.service   # should read "active (running)"
+```
+
+Optional: a `meridian.service.d/telemetry.conf` drop-in setting
+`MERIDIAN_TELEMETRY_PERSIST=1` moves its diagnostics from in-memory to
+`~/.config/meridian/telemetry.db`, so a `session.concurrent_conflict` or similar stays
+queryable after the fact instead of vanishing on restart. Not required to function — add
+it the first time you actually need to debug a conflict.
 
 ## What `sync.sh` does for you
 
