@@ -457,6 +457,29 @@ test("AGENTS.md records why the install is a subset, not the whole skills/ dir",
   assert.match(AGENTS_FLAT, /the skill loader follows them; the team loader does not/);
 });
 
+// chisle is vendored by hand into ~/.config/opencode/plugins/ and is DEVICE-LOCAL, so
+// nothing here asserts against that path - the three live-settings tests deleted on
+// 2026-09-19 are the precedent: a contract pinned to per-box state can only go red for
+// a reason nobody acts on. What is pinnable is repo-side: the doc points at a measuring
+// script, and that script has to exist. A doc naming a tool that is not there is the
+// dangling-pointer failure this session spent several commits deleting.
+test("AGENTS.md's chisle measurement pointer resolves", () => {
+  assert.match(AGENTS_FLAT, /bun bin\/chisle-savings\.mjs/);
+  assert.ok(
+    fs.existsSync(path.join(ROOT, "bin", "chisle-savings.mjs")),
+    "AGENTS.md sends the reader to bin/chisle-savings.mjs - it must exist"
+  );
+});
+
+// The reason --stats is not the instrument is a fact about someone else's code, so it
+// is recorded rather than tested: chisle 3.5.0 records savings on the Copilot and
+// Claude paths only. If a later version wires the opencode path, this note and the
+// script both become redundant - check before assuming they are still needed.
+test("AGENTS.md records why chisle --stats is not the measurement", () => {
+  assert.match(AGENTS_FLAT, /`npx chisle --stats` does not work for this install shape/);
+  assert.match(AGENTS_FLAT, /Only the plugin was installed, never chisle's ruleset/);
+});
+
 // caveman was always-on under CLAUDE.md, briefly installed on 2026-09-19, then cut the
 // same day on a measurement. Without the number written down the next reader restores
 // it on the strength of the word "compression", which is what the benchmark refutes.

@@ -106,6 +106,36 @@ thresholds could not see any of it: `WRITERS` contains no read tool. `codegraph_
 is deliberately exempt — it is the recommended first move, and a gate that fires on the
 behaviour it wants teaches the opposite lesson.
 
+**A third plugin compresses the input side: `chisle`, installed plugin-only.** The two
+gates above shrink what this session *writes*; `~/.config/opencode/plugins/chisle.js`
+shrinks what it *reads*, eliding the repetitive middle of oversized bash/grep/web/task
+output before the model sees it, salvaging error lines from the cut and spilling the
+full original to `~/.config/opencode/chisle-spill/` so nothing is lost — the marker
+names the path and says to grep it rather than re-run the command. Read/edit/write are
+never touched: eliding them would make the model edit text it never saw, which would
+break `hashline.js`'s exact-byte edits. It layers with `guard-rails` rather than
+fighting it — chisle elides at 8k chars, guard-rails truncates at 200k, both idempotent
+behind their own markers.
+
+**Only the plugin was installed, never chisle's ruleset.** It also ships a YAGNI ladder
+and a prose-compression block that would be appended to `~/.config/opencode/AGENTS.md`
+— which is a symlink to this repo, so its installer writes through it into tracked
+files. That ruleset duplicates ponytail's, rung for rung, so installing both would mean
+two always-on ladders arguing about prose style for no new capability. Three files
+copied by hand (`chisle.js` plus `chisle-hooks/`) buy the input axis for **zero added
+tokens per turn**. Re-do it after an upgrade with `npx chisle --only opencode --dry-run`
+to see the current file list, then copy those three; do not run the real installer.
+
+**`npx chisle --stats` does not work for this install shape — use
+`bun bin/chisle-savings.mjs`.** In chisle 3.5.0 `recordSavings()` has exactly two
+callers, the Copilot and Claude hooks; `compressForOpencode()` returns `transform(...)`
+directly and records nothing, so the ledger `--stats` reads is never written and reports
+zero forever. The marker persists in `opencode.db` and the spilled original sits beside
+it, so the saving is recoverable after the fact with no always-on accounting. That
+script is read-only, on demand, and undercounts on purpose: chisle keeps only the newest
+40 spill files, and an elision whose original has rotated away is reported as an event
+of unknown size rather than estimated.
+
 The thresholds, the `/delegate` surface and this section are pinned together by
 `opencode/tests/routing-contract.test.mjs`. Edit one, run it, fix the others.
 
