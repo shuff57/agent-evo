@@ -44,7 +44,7 @@ AGENTS_DIR=~/my/custom/path bash install.sh
 roster/          # agent definitions + teams + chains (symlinked to ~/.claude/agents)
 skills/          # reusable skill packages (SKILL.md + references)
 memory/          # persistent memory (markdown notes, project-organized, git-synced)
-evolution/       # evolution workspace (config + backups + tests)
+evolution/       # evolution workspace (config + tests)
 install.sh       # full installer with platform detection
 test.sh          # test suite (structure + integrity checks)
 sync.sh          # minimal symlink-only script

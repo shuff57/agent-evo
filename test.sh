@@ -163,7 +163,10 @@ done
 # ── Skills check ────────────────────────────────────────────────────────────
 info "Skills"
 
-# Count all SKILL.md files recursively (handles namespaced sub-dirs like apple/, mlops/)
+# Recursive on purpose, though nothing nests any more: skills/.archive/ held the
+# namespaced trees (topics-2026-05-10/apple/, /mlops/, ...) and was deleted
+# 2026-09-19, so this count now equals the number of skill directories. A
+# divergence between the two means a skill dir with no SKILL.md.
 skill_count=$(find "$SCRIPT_DIR/skills" -name "SKILL.md" 2>/dev/null | wc -l)
 [ "$skill_count" -gt 0 ] && ok "$skill_count skills available" || fail "No skills found"
 

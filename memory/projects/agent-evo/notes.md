@@ -44,7 +44,7 @@ agent-evo/
 | hermes-bridge | Hermes agent integration | Hermes not installed on this machine |
 | get-shit-done (GSD) | Workflow framework w/ skills + hooks | Archived 2026-05-10. User no longer uses it. Files moved to `~/.archive-claude/gsd-2026-05-10/` and `~/.claude/hooks/.archive/` |
 | graphify | Knowledge-graph skill + MCP server + git hooks (`graphifyy` PyPI) | **RETIRED 2026-09-19 for omo's `codegraph`** — `install_graphify()`, the `Glob\|Grep` read-path hook, the `mcpServers.graphify` entry, `patches/graphify-svelte-symbols.py` and the `graphify-out/` ignore/merge rules are all gone. codegraph needs no pip install, no git hooks and no per-repo bootstrap: omo indexes into `~/.omo/codegraph/projects/<repo>-<hash>/` and links it as `.codegraph`. Previously reinstated 2026-08-09 on v0.9.37, removed 2026-08-01 (`a7242f7`); the reason it kept dying is that nothing auto-rebuilt the graph — only 2 of ~17 repos ever had a `graphify-out/`, neither read since. |
-| bundled skill topics | 135 nested skills under `~/.claude/skills/<topic>/<name>/` | Archived 2026-05-10. Loader is flat-only; nested skills were invisible. Moved to `~/.claude/skills/.archive/topics-2026-05-10/`. Pull individuals back to flat root if needed. |
+| bundled skill topics | 135 nested skills under `~/.claude/skills/<topic>/<name>/` | Archived 2026-05-10. Loader is flat-only; nested skills were invisible. Moved to `skills/.archive/topics-2026-05-10/`, which was DELETED 2026-09-19 along with the rest of `skills/.archive/` (1097 files, 23MB, none of it loadable -- the loader never saw a dot-dir). Recover an individual with `git checkout 26a6377 -- skills/.archive/<path>` and place it at the flat root. |
 
 Cleaned files:
 - `evolution/plugin/hermes-bridge.ts` — DELETED

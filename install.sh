@@ -284,17 +284,13 @@ install_evolution() {
   mkdir -p "$INSTALL_DIR/_workspace/_memory"
   ok "Workspace directories created"
 
-  # Create gen-0 factory snapshot if it doesn't exist
-  if [ ! -d "$INSTALL_DIR/evolution/backups/gen-0" ]; then
-    info "Creating gen-0 factory snapshot..."
-    mkdir -p "$INSTALL_DIR/evolution/backups/gen-0"
-    cp "$INSTALL_DIR/roster/"*.md "$INSTALL_DIR/evolution/backups/gen-0/" 2>/dev/null
-    cp "$INSTALL_DIR/roster/teams.yaml" "$INSTALL_DIR/evolution/backups/gen-0/" 2>/dev/null
-    cp "$INSTALL_DIR/roster/agent-chain.yaml" "$INSTALL_DIR/evolution/backups/gen-0/" 2>/dev/null
-    ok "Gen-0 factory snapshot created ($(ls "$INSTALL_DIR/evolution/backups/gen-0/" | wc -l) files)"
-  else
-    ok "Gen-0 factory snapshot already exists"
-  fi
+  # The gen-0 factory snapshot was deleted 2026-09-19 and is NOT regenerated here.
+  # It called itself a factory baseline while being a copy of whatever roster
+  # happened to exist the first time install.sh ran on that box -- so it differed
+  # per machine, and the committed copy had drifted both ways: 22 of its 32 agents
+  # no longer existed, and 9 live ones were never in it. git is the real baseline
+  # (`git checkout <sha> -- roster/`), and skills/evolution/SKILL.md names the
+  # evolution log as the rollback mechanism, not this directory.
 
   # Ensure .gitignore covers _workspace
   if [ -f "$INSTALL_DIR/.gitignore" ]; then
@@ -460,13 +456,6 @@ verify() {
     fi
   done
 
-  if [ -d "$INSTALL_DIR/evolution/backups/gen-0" ]; then
-    ok "Gen-0 factory snapshot exists"
-  else
-    fail "Gen-0 factory snapshot missing"
-    errors=$((errors + 1))
-  fi
-
   if grep -q "_workspace" "$INSTALL_DIR/.gitignore" 2>/dev/null; then
     ok "_workspace is gitignored"
   else
@@ -504,7 +493,6 @@ summary() {
   if [ -d "$INSTALL_DIR/evolution" ]; then
     echo "  Evolution Workspace:"
     echo "    config  -> $INSTALL_DIR/evolution/config/"
-    echo "    backups -> $INSTALL_DIR/evolution/backups/"
     echo "    tests   -> $INSTALL_DIR/evolution/tests/"
     echo ""
   fi
