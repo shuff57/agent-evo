@@ -44,10 +44,10 @@ Sequential pipelines where each step's output feeds the next:
 chain-name:
   description: "What this chain does"
   steps:
-    - agent: planner
-      prompt: "Plan for: $INPUT"
-    - agent: code-engineer
-      prompt: "Implement: $INPUT"
+    - agent: skills-expert
+      prompt: "Research the SKILL.md format for: $INPUT"
+    - agent: config-expert
+      prompt: "Map that onto settings for: $INPUT"
 ```
 
 ## How You Work

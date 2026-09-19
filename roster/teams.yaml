@@ -1,20 +1,16 @@
-full:
-  - scout
-  - planner
-  - code-engineer
-  - critic
-  - documenter
-  - red-team
-
-info:
-  - scout
-  - documenter
-  - critic
-
-frontend:
-  - planner
-  - code-engineer
-  - bowser
+# Teams group roster agents for coordinated work.
+#
+# Nine teams were dissolved on 2026-09-19 alongside the 19-agent omo retirement:
+# full, info, frontend, omo, advisory, planning, quality, design, debug. Every
+# member of each was a retired agent, so none had a resolvable seat left.
+# Restore any of them — and the agents they name — with
+# `git checkout HEAD~1 -- roster/`.
+#
+# Their replacements are omo's own groupings, which live in the plugin rather
+# than here: the `review-work` skill (5 parallel reviewers) covers quality and
+# advisory, `hyperplan` covers planning, and `security-research` covers the
+# red-team seat. A team here may only name a roster/<name>.md file — test.sh
+# enforces that — so an omo builtin cannot be a member.
 
 experts:
   - extensions-expert
@@ -26,34 +22,3 @@ experts:
   - agents-expert
   - cli-expert
   - keybindings-expert
-
-omo:
-  - oracle
-  - librarian
-  - scout
-  - critic
-
-advisory:
-  - oracle
-  - metis
-  - critic
-
-planning:
-  - scout
-  - planner
-  - critic
-
-quality:
-  - qa-tester
-  - critic
-  - red-team
-
-design:
-  - designer
-  - code-engineer
-  - critic
-
-debug:
-  - debugger
-  - scout
-  - oracle

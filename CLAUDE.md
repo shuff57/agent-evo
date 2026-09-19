@@ -7,7 +7,7 @@ Classify each non-trivial user request and delegate to the matching agent via th
 
 - **Investigation** — understand, explore, "how does X work", "where is Y", trace, map, find usages → `Explore` (quick/medium) or `feature-dev:code-explorer` (deep trace across layers).
 - **Planning** — design, architect, "how should we approach", blueprint, strategy, multi-step implementation plan → `Plan` (general) or `feature-dev:code-architect` (feature design with file-level blueprint).
-- **Implementation** — build, add, fix, refactor, write, change code → `code-engineer` by default; for a full feature use the `feature-dev` team (explorer → architect → code-engineer → code-reviewer).
+- **Implementation** — build, add, fix, refactor, write, change code → `task(category="unspecified-high")` by default, which runs Sisyphus-Junior on `claude-sonnet-5` per `~/.omo/omo.jsonc`; for a full feature use the `feature-dev` team (explorer → architect → code-engineer → code-reviewer).
 - **Review** — check, audit, "is this safe", "second opinion", pre-merge pass → `feature-dev:code-reviewer`.
 
 Do NOT route for:
@@ -22,7 +22,7 @@ If intent is genuinely ambiguous, ask one short clarifying question instead of g
 
 The main session (Opus) is the tech lead: it sizes the request, writes the spec, and reviews the result. It does not bulk-type. Everything else goes to the cheapest tier that can actually do the job.
 
-**Default: any request writing more than ~10 lines of new code goes to `ollama-code-engineer`, and any recon question goes to a sub-agent before you touch Grep yourself** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
+**Default: any request writing more than ~10 lines of new code goes to a cheaper tier — `task(category="quick")`, which runs Sisyphus-Junior on `glm-5.3-flash` — and any recon question goes to a sub-agent before you touch Grep yourself** unless it is high-stakes (auth, money, migrations, concurrency, data loss) or genuinely ambiguous. Not "consider delegating" — delegate, then review. Typing the implementation inline means the rule was skipped.
 
 **Enforcement: the tier-gate makes the announcement mechanical on BOTH CLIs.** `opencode/plugin/tier-gate.js` and `hooks/tier-gate.js` (Claude Code, wired in settings.json PreToolUse) count write-tool usage per session (>10 new lines in one call, or writes touching 2+ distinct files) and inject a `[tier-gate]` notice into the tool result — the same delivery channel as the inbox plugin, which cannot be missed. Treat any `[tier-gate]` or `[message center]` injection as user feedback, not noise: the base prompt's own rule is "hooks may intercept tool calls; treat hook output as user feedback," so acting on it is sanctioned by the harness, not a workaround of it. This is the answer to the suppression problem: a harness-injected "do not call the Agent tool" reminder cannot stop a hook from firing, so the notice appears even in sessions where the prose policy above has been silently outranked. It is a nudge, not a block: the notice appearing is guaranteed, what you do with it is the policy above. If you see `[tier-gate]`, act on it in your next line — delegate (`/delegate`, or the Agent tool) or justify inline. For deliberate inline work, `/delegate` runs the fallback lane: it specs, dispatches the `delegate-build` thin forwarder (which makes exactly one `opencode run --auto` call to the cheap model and returns stdout verbatim), reviews, and bounds rework at one round before escalating to sonnet. The thresholds, the fallback command, and this section are pinned together by `opencode/tests/routing-contract.test.mjs` — edit one, run it, fix the others.
 
@@ -48,7 +48,7 @@ below, high stakes (auth, money, migrations, concurrency, data loss), or an edit
 spec would be longer than the diff. Anything else goes out.
 
 - **Recon is always a sub-agent.** "Where is X", "how does Y work", "which files import Z",
-  "what do the docs say" — `scout`, `librarian`, an `*-expert`, or `Explore`. They run on free
+  "what do the docs say" — omo's `explore`, `librarian`, or an `*-expert`. They run on free
   ollama models and their file dumps never enter this context. Fire one *before* you Grep, not
   after Grep fails; reading the codebase by hand is the most common way this session spends
   opus tokens on haiku work.
@@ -56,11 +56,11 @@ spec would be longer than the diff. Anything else goes out.
   each other's output, they go out together — three Agent calls in one block, not three round
   trips. Serialising independent work is a routing failure the same way under-delegating is.
 - **Two lenses beat one pass.** Anything worth reviewing gets at least two reviewers from
-  different model families, dispatched together (`council-glm` + `council-deepseek`, or
-  `critic` + `qa-tester`). One reviewer is an opinion; two that disagree is information.
+  different model families, dispatched together. The `review-work` skill is the packaged
+  version (5 parallel seats); read the diversity caveat under Roster before trusting it.
 - **Sub-CLI over sub-agent for bulk.** An `opencode run` is free per token and costs this
   session no context at all. Route anything mechanical, long, or output-heavy through
-  `bin/handoff.mjs` or `ollama-code-engineer`, and keep the Claude-lane agents for judgment,
+  `bin/handoff.mjs` or `task(category="quick")`, and keep opus for judgment,
   vision, and finishing.
 
 **Gate zero, before all of the above: is this core work I am holding in my head?** If the
@@ -102,8 +102,8 @@ Two axes the table above does not capture, both of which decided real outcomes:
 
 - **Tweak** — one file, obvious, reversible → **do it inline, don't delegate.** The round-trip costs more than the edit.
 - **Build from scratch** — new feature, module, or script → **opus specs → ollama builds → opus reviews.** See the loop below.
-- **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`ollama-code-engineer`, fanned out in parallel.**
-- **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`code-engineer` (sonnet). Skip ollama entirely.**
+- **Bulk mechanical** — rename across N files, port tests, fill boilerplate → **`task(category="quick")`, fanned out in parallel.**
+- **Subtle or high-stakes** — auth, money, migrations, concurrency, data loss → **`task(category="unspecified-high")` (sonnet). Skip ollama entirely.**
 - **Graph-orchestrated multi-part build** — user invokes `$fable` or asks for a bounded task graph with parallel workers → **`fable` skill.** The ask must be in the user's own words ("use a workflow", "fan out agents", "orchestrate this with subagents", `$fable`) — a task that would merely *benefit* from parallelism does not authorize the graph by itself; size it through the tier table and delegate normally. Main session plans/adjudicates; workers are restricted to `glm-5.3-flash` (normal implementation) and `deepseek-v4.1-flash` (loops, bulk). High-stakes nodes still go to sonnet — the graph never overrides the tier table.
 
 ### Build-from-scratch loop
@@ -120,12 +120,12 @@ own gate eventually will, and ownership is enforced, so claiming it is a real wa
 opus: write the spec
         │
         ▼
-ollama-code-engineer ──build──▶ critic [opus]
+sisyphus-junior ──build──▶ review-work [opus]
         ▲                            │
         │                       fail │ pass ──▶ ship
         └──── rework, max 2 ◀────────┤
                                      │
-        after 2 failures: rebuild on code-engineer [sonnet], don't loop again
+        after 2 failures: rebuild on category=unspecified-high [sonnet], don't loop again
 ```
 
 Escalate, don't grind. Past two failed reviews the review cycles cost more than the sonnet build would have. Never send ollama a third time.
@@ -151,19 +151,24 @@ verbatim. `~/.claude/agents` is a generated directory, **not** a symlink — res
 old symlink serves one file to both CLIs, and every ollama-lane agent silently runs on
 Claude instead of spawning opencode.
 
-**Lanes** — ollama for bulk lookup and drafting; Claude for finishing, review, finer passes.
+**Lanes** — ollama for bulk lookup and drafting; Claude for A/V, which is the only thing
+left in this roster that Anthropic has to do. Finishing and review moved to omo
+(`task(category="unspecified-high")`, `review-work`) in the 2026-09-19 retirement.
 
-38 agents, 32 on ollama and 6 on Claude. `@` is the reasoning dial — `effort:` on the
+**`hephaestus` is NOT the sonnet builder here, despite what omo's README implies.** omo
+ships a `no-hephaestus-non-gpt` hook that blocks that agent whenever its model is not a
+GPT one, and `~/.omo/omo.jsonc` pins it to `claude-sonnet-5` — so it does not appear in
+`opencode agent list` at all. Either route sonnet work through the category above, or
+repoint hephaestus at a GPT model in omo.jsonc and authenticate that provider.
+
+19 agents, 18 on ollama and 1 on Claude. `@` is the reasoning dial — `effort:` on the
 Claude side, `--variant` on the opencode side.
 
 | Lane | Route | Agents |
 |---|---|---|
-| **deepseek-flash** (17) | `ollama-cloud/deepseek-v4.1-flash` | all 9 `*-expert`, `scout@low`, `summarizer@low`, `documenter@low`, `librarian@low`, `test-ping@low`, `qa-tester@high`, `council-deepseek@high`, `red-team@high` |
-| **glm-flash** (11) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `council-glm@high`, `ollama-code-engineer@high`, `loom@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low`, `cs-teacher-tester@medium` |
-| **glm-5.3** (3) | `ollama-cloud/glm-5.3` (full, non-flash) | `oracle@max`, `planner@max`, `critic@high` |
-| **kimi** (1) | `ollama-cloud/kimi-k3` | `designer@medium` |
-| **claude/opus** (1) | judgment | `metis@max` |
-| **claude/sonnet** (5) | finishing + vision | `code-engineer@high`, `debugger@high`, `bowser@medium`, `eyes-and-ears@medium`, `visual-analyzer@medium` |
+| **deepseek-flash** (10) | `ollama-cloud/deepseek-v4.1-flash` | all 9 `*-expert`, `test-ping@low` |
+| **glm-flash** (8) | `ollama-cloud/glm-5.3-flash` | `evolver@high`, `evolver-meta@high`, `global-evolver@high`, `cs-student-advanced@max`, `cs-student-tester@medium`, `cs-student-moderate@medium`, `cs-student-beginner@low`, `cs-teacher-tester@medium` |
+| **claude/sonnet** (1) | A/V | `eyes-and-ears@medium` |
 
 `cs-student-beginner` is deliberately `@low` — that persona must NOT infer, so capability
 makes it a worse instrument. It is the one agent whose dial is set against capability.
@@ -173,12 +178,19 @@ makes it a worse instrument. It is the one agent whose dial is set against capab
 level, including models that certainly reason. Variant values are written on the assumption
 they work; never claim one was verified.
 
-**The council was retired to two seats 2026-09-09.** `council-chair`, `council-kimi` and
-`council-qwen` are gone — the chair because the main session adjudicates, and kimi/qwen
-because their namesake models are only reachable through a router. What survives is
-`council-glm` and `council-deepseek`, which genuinely run their own model families; the
-main session dispatches both and adjudicates. Restore any of the three with
-`git checkout HEAD -- roster/<name>.md`.
+**The council was retired entirely 2026-09-19.** `council-chair`, `council-kimi` and
+`council-qwen` went 2026-09-09 — the chair because the main session adjudicates, and
+kimi/qwen because their namesake models are only reachable through a router. The last two
+seats, `council-glm` and `council-deepseek`, went with the omo retirement: the
+`review-work` skill fires five parallel reviewers for the same job. Restore any of the
+five with `git checkout HEAD~1 -- roster/<name>.md`.
+
+**What the council had that `review-work` does not: model-family diversity.** The two
+surviving seats ran on genuinely different families, which is the property that made two
+reviewers worth more than one. `review-work` fires 3× Oracle + 2× unspecified-high, and
+`~/.omo/omo.jsonc` on this box pins oracle to `claude-opus-5` and unspecified-high to
+`claude-sonnet-5` — so that review is **all-Anthropic**. Repoint one slot at a
+non-Anthropic model there, or the diversity was traded for convenience silently.
 
 Every ollama-lane agent's `spawn-secondary` is the Anthropic tier it replaced, so a swap is
 reversible by definition. **No routers** — `openrouter`/`omnirouter` are an operator
@@ -197,7 +209,7 @@ Three traps, all measured 2026-09-09, all of which exit 0 while doing nothing:
   answer was right, so it passes any count-based check. The two generated bodies are
   byte-identical apart from the description line, so this is task-dependent rather than a
   per-agent defect: any trivially-local task invites the shortcut, which hits the recon
-  agents (`scout`, `librarian`, the `*-expert`s) hardest. `tool_uses >= 1` is NECESSARY BUT
+  agents (the surviving `*-expert`s) hardest. `tool_uses >= 1` is NECESSARY BUT
   NOT SUFFICIENT, and reply text proves even less — `test-ping` returns `pong` either way.
   The only sound discriminator is the opencode log, which no wrapper can fake:
 
@@ -523,8 +535,8 @@ Don't activate on quoted/code-block matches. If a keyword fires but context make
 
 After a build + tests are green, on explicit trigger only — **never auto-fire** (each run costs real tokens/minutes). Triggers: "harden it", "stress test", "deep dive", "council review".
 
-- **Verify squad** — is it connected, rendering, and unbroken? Fan out in parallel via the Agent tool: `eyes-and-ears` (does it actually render/play), `bowser` (headless UI/interaction), `qa-tester` (edge cases, untested paths), `red-team` (break it adversarially) — then synthesize through `critic` against the plan. Use for "is everything wired up / rendering correctly / not broken".
-- **Council** — diverse multi-model adversarial review, now two seats and no chair. Dispatch `council-glm` and `council-deepseek` in parallel and adjudicate their verdicts yourself; the main session is the chair. Use for a second-opinion stress test across genuinely different model families.
+- **Verify squad** — is it connected, rendering, and unbroken? `eyes-and-ears` (does it actually render/play) is the one seat that stayed on this roster — nothing in omo listens to audio. Fan it out in parallel with omo's `ultimate-browsing` / `visual-qa` skills (headless UI/interaction) and the `security-research` team skill (break it adversarially). Use for "is everything wired up / rendering correctly / not broken".
+- **Council** — the two remaining seats were retired 2026-09-19. The replacement is omo's `review-work` skill: 5 parallel background reviewers (3× Oracle on goal/quality/security, 2× unspecified-high on hands-on QA and context mining), all of which must pass. It is **not** a like-for-like swap — see the diversity caveat under Roster; on this box every one of those 5 seats resolves to an Anthropic model, so it is a deeper review but a narrower one.
 
 Run either or both. The **experts team** (skills/config/theme/ui/cli/... experts in `teams.yaml`) is NOT for app code — it only applies when the artifact under test IS Claude Code tooling (a skill, agent, theme, plugin, keybinding).
 

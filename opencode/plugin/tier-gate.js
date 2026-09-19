@@ -231,7 +231,7 @@ function newLinesOf(tool, args) {
 export const TierGate = async ({ directory }) => {
   // The gate only applies to primary sessions doing implementation work.
   // Subagent sessions have their own model pinned by the roster; nagging a
-  // deepseek lens about "delegate to ollama-code-engineer" is noise.
+  // deepseek lens about "delegate to a cheaper tier" is noise.
   const sessions = new Map();
 
   const track = (sessionID) => {
@@ -278,7 +278,7 @@ export const TierGate = async ({ directory }) => {
           "",
           `${MARKER} Tier policy crossed: ${why}.`,
           "CLAUDE.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
-          "Either delegate the remainder (e.g. /delegate, or the Agent tool with code-engineer / ollama-code-engineer),",
+          "Either delegate the remainder (e.g. /delegate, or a category task - quick, or unspecified-high for high-stakes),",
           "or say in your reply why inline is the better call here (high-stakes, genuinely ambiguous, or nearly done).",
           "Announcing this is the whole policy — do not silently continue.",
         ].join("\n");

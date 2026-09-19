@@ -61,7 +61,7 @@ for (const name of ["a.js", "b.js"]) {
   assert.equal(r.stdout, "", `${name} quiet`);
 }
 
-r = await fire({ session_id: `${sid}-d`, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "a.js"), new_string: "x" } }, { CLAUDE_AGENT_ID: "code-engineer" });
+r = await fire({ session_id: `${sid}-d`, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "a.js"), new_string: "x" } }, { CLAUDE_AGENT_ID: "sisyphus-junior" });
 assert.equal(r.stdout, "", "subagent (CLAUDE_AGENT_ID) exempt");
 
 r = await fire({ garbage: true });

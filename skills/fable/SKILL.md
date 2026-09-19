@@ -111,7 +111,7 @@ Do not relabel ordinary worker output as orchestration output.
   execute inline per the CLAUDE.md tier policy — do not build a graph for
   its own sake.
 - High-stakes work (auth, money, migrations, concurrency, data loss) goes to
-  sonnet via `code-engineer`, never to an ollama worker — the graph does not
+  sonnet via `task(category="unspecified-high")`, never to an ollama worker — the graph does not
   override the tier table.
 
 ## Differences from upstream fable-orchestrator

@@ -25,7 +25,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const CLAUDE_MD = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
 
 test("CLAUDE.md states the >10-line delegation default", () => {
-  assert.match(CLAUDE_MD, /more than ~10 lines of new code goes to `ollama-code-engineer`/);
+  assert.match(CLAUDE_MD, /more than ~10 lines of new code goes to a cheaper tier/);
+  assert.match(CLAUDE_MD, /`task\(category="quick"\)`/);
 });
 
 test("CLAUDE.md states the 2-file coordinated-fix trigger", () => {
@@ -37,7 +38,10 @@ test("CLAUDE.md states the fallback command the /delegate lane uses", () => {
 });
 
 test("CLAUDE.md pins the rework bound (max 2, then sonnet)", () => {
-  assert.match(CLAUDE_MD, /after 2 failures: rebuild on code-engineer \[sonnet\]/);
+  // Since the 2026-09-19 retirement of code-engineer, the sonnet builder is the
+  // unspecified-high category (Sisyphus-Junior on claude-sonnet-5). NOT hephaestus:
+  // omo's no-hephaestus-non-gpt hook disables that agent on a non-GPT model.
+  assert.match(CLAUDE_MD, /after 2 failures: rebuild on category=unspecified-high \[sonnet\]/);
 });
 
 const gate = fs.readFileSync(path.join(ROOT, "opencode", "plugin", "tier-gate.js"), "utf8");

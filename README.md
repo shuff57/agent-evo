@@ -53,22 +53,21 @@ sync.sh          # minimal symlink-only script
 
 ## Roster
 
-Agents are organized into categories. See [roster/README.md](roster/README.md) for the full breakdown.
+Agents are organized into categories. See [roster/README.md](roster/README.md) for the full breakdown, including where each retired agent's role went.
+
+19 agents. **19 were retired on 2026-09-19** as redundant to oh-my-openagent's builtins, along with 9 of the 10 teams and all 6 chains that were composed out of them.
 
 | Category | Agents |
 |----------|--------|
-| Exploration & Research | scout, librarian, swarm-researcher |
-| Planning & Analysis | planner, plan-draft, swarm-planner, metis |
-| Review & Critique | reviewer, critic, red-team |
-| Advisory | oracle |
-| Implementation | code-engineer, prometheus, swarm-worker, documenter |
-| Orchestration | atlas, meta-orchestrator |
-| Visual & Browser | visual-analyzer, bowser |
-| Domain Experts | extensions, theme, skills, config, ui, prompts, agents, cli, keybindings + test-ping |
+| Evolution | evolver, evolver-meta, global-evolver |
+| A/V Verification | eyes-and-ears |
+| Curriculum Testing | cs-student-tester, cs-student-advanced, cs-student-moderate, cs-student-beginner, cs-teacher-tester |
+| Domain Experts | extensions, theme, skills, config, ui, prompts, agents, cli, keybindings |
+| Utility | test-ping |
 
 ## Teams & Chains
 
-**Teams** group agents for coordinated work. **Chains** are sequential pipelines where each step's output feeds the next.
+**Teams** group agents for coordinated work. **Chains** are sequential pipelines where each step's output feeds the next. One team (`experts`) and no chains survive the 2026-09-19 retirement; both files record what was dissolved and where those shapes went.
 
 ```bash
 cat roster/teams.yaml

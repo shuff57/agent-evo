@@ -16,9 +16,9 @@ Load this skill when:
 - Reviewing or auditing `_workspace/_evolution_log.jsonl`
 
 Do not trigger for:
-- General code improvements (use simplify or code-engineer)
-- Feature planning (use planner or oracle)
-- Debugging individual agent failures (use debugger)
+- General code improvements (use simplify or `task(category="quick")`)
+- Feature planning (use `prometheus` or `oracle`)
+- Debugging individual agent failures (use the `debugging` skill)
 
 ---
 

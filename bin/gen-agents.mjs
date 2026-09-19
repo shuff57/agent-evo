@@ -149,7 +149,9 @@ function forwarderStub(a, spawn) {
 // Claude-side equivalent (task, skill, lsp, question, external_directory,
 // doom_loop) are left unset rather than guessed. Verified against
 // https://opencode.ai/docs/permissions/ 2026-09-17 - allow/ask/deny, and `read`
-// is a real top-level key (confirmed against roster/loom.md's own usage).
+// is a real top-level key (it was confirmed against roster/loom.md, retired
+// 2026-09-19 - no surviving roster file declares `permission:` explicitly, so
+// the passthrough branch below is currently unexercised).
 const TOOL_MAP = {
   read: ['Read'],
   glob: ['Glob'],
@@ -172,7 +174,8 @@ function opencodeDef(a, spawn) {
   // `tools:` (Claude's comma-list) is not itself a valid opencode field, so it's
   // dropped - but its INTENT is real and opencode enforces the same restriction
   // through `permission:`. If the roster already declares `permission:` explicitly
-  // (e.g. roster/loom.md), that wins untouched; otherwise a `tools:` list is
+  // (no roster file does today; roster/loom.md did until 2026-09-19), that wins
+  // untouched; otherwise a `tools:` list is
   // auto-translated below so the restriction the roster author wrote down is the
   // restriction the opencode-side agent actually runs with, not silently dropped.
   let blocks = chunk(a.fm);

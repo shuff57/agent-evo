@@ -15,7 +15,7 @@
 //     ("tweak" lane); a multi-file campaign crosses the 3-file line.
 //   - Once announced, stays quiet for the rest of the session.
 //   - Subagent sessions exempt: their model is pinned by the roster; nagging
-//     a pinned builder (code-engineer, ollama-code-engineer) to "delegate"
+//     a pinned builder (sisyphus-junior on a category model) to "delegate"
 //     is noise. Claude Code runs hooks per tool call in whatever session
 //     context the call lands in, and Task-tool subagents share the parent's
 //     session_id, so the exemption is keyed by agent_id in the payload when
@@ -294,7 +294,8 @@ try {
   const text = [
     `${MARKER} Tier policy crossed: ${why}.`,
     "CLAUDE.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
-    "Either delegate the remainder (Agent tool with code-engineer / ollama-code-engineer, or the fallback",
+    "Either delegate the remainder (Agent tool with a category task - quick, or unspecified-high",
+    "for high-stakes - or the fallback",
     "`opencode run \"<spec>\" --auto -m ollama-cloud/deepseek-v4.1-flash` via Bash), or say in your reply",
     "why inline is the better call here (high-stakes, genuinely ambiguous, or nearly done).",
     "Announcing this is the whole policy — do not silently continue.",

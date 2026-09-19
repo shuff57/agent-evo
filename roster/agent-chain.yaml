@@ -1,65 +1,18 @@
-plan-build:
-  description: "Plan then build — fast two-step implementation without review"
-  steps:
-    - agent: planner
-      prompt: "Plan the implementation for: $INPUT"
-    - agent: code-engineer
-      prompt: "Based on this plan, implement:\n\n$INPUT"
-
-scout-flow:
-  description: "Triple-scout deep recon — explore, validate, verify"
-  steps:
-    - agent: scout
-      prompt: "Explore the codebase and investigate: $INPUT\n\nReport your findings with structure, key files, and patterns."
-    - agent: scout
-      prompt: "Validate and cross-check the following analysis. Look for anything missed, incorrect, or incomplete:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-    - agent: scout
-      prompt: "Final review pass. Verify the analysis below is accurate and complete. Add any missing details or corrections:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-
-plan-review-plan:
-  description: "Iterative planning — plan, critique, then refine with feedback"
-  steps:
-    - agent: planner
-      prompt: "Create a detailed implementation plan for: $INPUT"
-    - agent: critic
-      prompt: "Critically review this implementation plan. Challenge assumptions, find gaps, and suggest improvements:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-    - agent: planner
-      prompt: "Revise and improve your implementation plan based on this critique. Address every issue raised and incorporate the recommendations:\n\nOriginal request: $ORIGINAL\n\nCritique:\n$INPUT"
-
-full-review:
-  description: "End-to-end pipeline — scout, plan, build, and review"
-  steps:
-    - agent: scout
-      prompt: "Explore the codebase and identify: $INPUT"
-    - agent: planner
-      prompt: "Based on this analysis, create a plan:\n\n$INPUT"
-    - agent: code-engineer
-      prompt: "Implement this plan:\n\n$INPUT"
-    - agent: critic
-      prompt: "Review this implementation:\n\n$INPUT"
-
-research-plan-build:
-  description: "Research external docs, then plan and build — for tasks requiring library knowledge"
-  steps:
-    - agent: librarian
-      prompt: "Research external documentation and best practices for: $INPUT\n\nReturn key findings, relevant code examples, and any gotchas."
-    - agent: planner
-      prompt: "Based on this research, create an implementation plan for: $ORIGINAL\n\nResearch findings:\n$INPUT"
-    - agent: code-engineer
-      prompt: "Implement the following plan:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-    - agent: critic
-      prompt: "Verify this implementation is correct and complete:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-
-oracle-then-build:
-  description: "Consult oracle for architecture guidance, then build"
-  steps:
-    - agent: oracle
-      prompt: "Analyze and advise on the best architectural approach for: $INPUT\n\nProvide a clear recommendation with rationale."
-    - agent: code-engineer
-      prompt: "Implement using the following architectural guidance:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-    - agent: critic
-      prompt: "Review this implementation for plan alignment and code quality:\n\n$INPUT\n\nOriginal request: $ORIGINAL"
-
+# Chains are sequential pipelines where each step's output feeds the next.
+#
+# All six chains were dissolved on 2026-09-19 alongside the 19-agent omo
+# retirement: plan-build, scout-flow, plan-review-plan, full-review,
+# research-plan-build, oracle-then-build. Every step of every chain named a
+# retired agent (scout, planner, critic, code-engineer, librarian, oracle), so
+# not one had a resolvable step left. Restore them — and the agents they name —
+# with `git checkout HEAD~1 -- roster/`.
+#
+# The shapes they encoded now live in omo: sisyphus plans and delegates,
+# prometheus -> atlas is the plan-then-execute pipeline, and `review-work` is
+# the review tail. A chain step may only name a roster/<name>.md file, which
+# test.sh enforces, so an omo builtin cannot be a step — repointing these at
+# `explore`/`prometheus`/`momus` needs that validator extended first.
+#
 # ultrawork and deep-interview-then-build moved to commands/ultrawork.md
 # and commands/deep-interview.md — slash commands are the canonical seam
 # for those two workflows.
