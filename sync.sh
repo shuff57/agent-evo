@@ -131,6 +131,29 @@ if [ -d "$REPO/opencode/vendor" ]; then
   done
 fi
 
+# Global instruction file. opencode resolves the GLOBAL layer by the same break-on-first
+# walk as the project one -- ~/.config/opencode/AGENTS.md wins, and only falls through to
+# ~/.claude/CLAUDE.md if it is absent -- so this symlink is what makes opencode/AGENTS.md
+# load at all, in every directory, not just inside this repo.
+#
+# It was created BY HAND on 2026-09-17 and nothing recreated it: neither this script nor
+# install.sh touched it until 2026-09-19. That was invisible while one box had it, and
+# would have cost the next box the whole message-center protocol silently. The project
+# AGENTS.md now points here for that protocol rather than repeating it, so the link is
+# load-bearing, not convenience.
+OC_CONF="$HOME/.config/opencode"
+if [ -f "$REPO/opencode/AGENTS.md" ]; then
+  mkdir -p "$OC_CONF"
+  # A real file here is someone else's global instructions, not ours to clobber. Back it
+  # up rather than overwrite, then link -- the same non-destructive shape install.sh uses.
+  if [ -e "$OC_CONF/AGENTS.md" ] && [ ! -L "$OC_CONF/AGENTS.md" ]; then
+    mv "$OC_CONF/AGENTS.md" "$OC_CONF/AGENTS.md.pre-agent-evo.bak"
+    echo "Global:  backed up existing AGENTS.md -> AGENTS.md.pre-agent-evo.bak"
+  fi
+  ln -sfn "$REPO/opencode/AGENTS.md" "$OC_CONF/AGENTS.md"
+  echo "Global:  AGENTS.md -> $OC_CONF/AGENTS.md"
+fi
+
 echo ""
 echo "Teams:  $(grep -c '^[a-z]' "$REPO/roster/teams.yaml" 2>/dev/null || echo 0)"
 echo "Chains: $(grep -c '^[a-z]' "$REPO/roster/agent-chain.yaml" 2>/dev/null || echo 0)"

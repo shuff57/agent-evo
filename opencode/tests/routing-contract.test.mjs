@@ -31,6 +31,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const AGENTS_MD = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
 const HANDOFF_SKILL = fs.readFileSync(path.join(ROOT, "skills", "handoff", "SKILL.md"), "utf8");
 const PEER_SKILL = fs.readFileSync(path.join(ROOT, "skills", "peer-bridge", "SKILL.md"), "utf8");
+// 2026-09-19, second pass: the always-on file shed another ~1.3k tokens into two more
+// owners. `docs/decisions.md` holds the archaeology - why something was cut, which is
+// needed before re-adding it and never otherwise. `opencode/AGENTS.md` is the GLOBAL
+// instruction file, also always-on, and owns the message-center protocol outright so the
+// project file can point at it instead of repeating it.
+const DECISIONS = fs.readFileSync(path.join(ROOT, "docs", "decisions.md"), "utf8");
+const GLOBAL_MD = fs.readFileSync(path.join(ROOT, "opencode", "AGENTS.md"), "utf8");
 
 // Prose assertions match against a whitespace-flattened copy. The contract is "the doc
 // says this", not "the doc says this with these line breaks" - two assertions went red on
@@ -41,6 +48,8 @@ const flat = (doc) => doc.replace(/\s+/g, " ");
 const AGENTS_FLAT = flat(AGENTS_MD);
 const HANDOFF_FLAT = flat(HANDOFF_SKILL);
 const PEER_FLAT = flat(PEER_SKILL);
+const DECISIONS_FLAT = flat(DECISIONS);
+const GLOBAL_FLAT = flat(GLOBAL_MD);
 
 test("AGENTS.md is the instruction filename, and no CLAUDE.md shadows it", () => {
   assert.ok(fs.existsSync(path.join(ROOT, "AGENTS.md")), "AGENTS.md is what opencode loads");
@@ -48,6 +57,29 @@ test("AGENTS.md is the instruction filename, and no CLAUDE.md shadows it", () =>
     !fs.existsSync(path.join(ROOT, "CLAUDE.md")),
     "a root CLAUDE.md is never read (AGENTS.md wins the break-on-first walk) - it is dead weight that reads as live"
   );
+});
+
+// The "Where the rest lives" table is the whole trim strategy in one place: the always-on
+// file shrank by pushing sections into skills and docs, and every one of those is now
+// reachable ONLY through a pointer in that table. A pointer that rots turns the section
+// it replaced into content nobody can find - strictly worse than the duplication it was
+// meant to remove. So every in-repo path in the table must resolve.
+//
+// Device-local paths (~/.omo/omo.jsonc, ~/.config/opencode/AGENTS.md) are deliberately
+// NOT checked: that is the per-box contract deleted on 2026-09-19 for only ever going red
+// for reasons nobody acts on. The repo-side half is the testable half.
+test("every in-repo pointer in the index table resolves", () => {
+  const table = AGENTS_MD.split("## Where the rest lives")[1]?.split("\n## ")[0] ?? "";
+  assert.ok(table, "the index table must exist - it is how the trimmed sections stay findable");
+
+  const paths = [...table.matchAll(/`([A-Za-z0-9_./-]+\.(?:md|jsonc?))`/g)]
+    .map((m) => m[1])
+    .filter((p) => !p.startsWith("~"));
+  assert.ok(paths.length >= 4, `expected several repo paths in the index, found ${paths.length}`);
+
+  for (const p of paths) {
+    assert.ok(fs.existsSync(path.join(ROOT, p)), `index points at ${p}, which does not exist`);
+  }
 });
 
 test("AGENTS.md states the >10-line delegation default", () => {
@@ -452,9 +484,13 @@ test("every skill AGENTS.md names is installed by sync.sh and exists in skills/"
 });
 
 // Installing all 42 would quadruple the skill-listing cost for skills nothing routes to.
-test("AGENTS.md records why the install is a subset, not the whole skills/ dir", () => {
+// The budget stays in AGENTS.md because it governs an edit someone makes there; the
+// loader asymmetry moved to docs/decisions.md, since it is read when changing sync.sh.
+test("the skills-install budget and the loader asymmetry are both written down", () => {
   assert.match(AGENTS_FLAT, /the six cost ~630 tokens, all 42 cost ~5,100/);
-  assert.match(AGENTS_FLAT, /the skill loader follows them; the team loader does not/);
+  assert.match(AGENTS_FLAT, /docs\/decisions\.md/);
+  assert.match(DECISIONS_FLAT, /The two loaders disagree about symlinks/);
+  assert.match(DECISIONS_FLAT, /Neither behaviour may be assumed from the other/);
 });
 
 // chisle installs into ~/.config/opencode/plugins/, which is DEVICE-LOCAL, so nothing
@@ -471,13 +507,24 @@ test("AGENTS.md's chisle measurement pointer resolves", () => {
   );
 });
 
-// The reason --stats is not the instrument is a fact about someone else's code, so it
-// is recorded rather than tested: chisle 3.5.0 records savings on the Copilot and
-// Claude paths only. If a later version wires the opencode path, this note and the
-// script both become redundant - check before assuming they are still needed.
-test("AGENTS.md records why chisle --stats is not the measurement", () => {
-  assert.match(AGENTS_FLAT, /`npx chisle --stats` does not work for this install shape/);
-  assert.match(AGENTS_FLAT, /It is vendored, and only the plugin — never chisle's ruleset/);
+// The reason --stats is not the instrument is a fact about someone else's code, so it is
+// recorded rather than tested: chisle 3.5.0 records savings on the Copilot and Claude
+// paths only. If a later version wires the opencode path, this note and the script both
+// become redundant - check before assuming they are still needed.
+//
+// The always-on file keeps only the two facts a session acts on - plugin only, and which
+// command measures it. Everything else (update procedure, provenance, why plugins/ and
+// not plugin/) moved into the vendor README, which is read while doing that work.
+test("the chisle install shape and its measurement are recorded", () => {
+  assert.match(AGENTS_FLAT, /plugin only — never chisle's own ruleset/);
+  assert.match(AGENTS_FLAT, /not\*\* `npx chisle --stats`/);
+  assert.match(AGENTS_FLAT, /do not run `npx chisle`/i);
+  // The forensics that justify NOT using --stats live in the vendor README now, so the
+  // claim and its evidence are checked in the same test rather than drifting apart.
+  const readme = flat(fs.readFileSync(
+    path.join(ROOT, "opencode", "vendor", "chisle", "README.md"), "utf8"));
+  assert.match(readme, /`recordSavings\(\)` has exactly two callers/);
+  assert.match(readme, /bun bin\/chisle-savings\.mjs/);
 });
 
 // Vendoring is the whole point of tracking it: the runtime files must be in the repo,
@@ -520,15 +567,16 @@ test("the vendored chisle records its provenance", () => {
 });
 
 // caveman was always-on under CLAUDE.md, briefly installed on 2026-09-19, then cut the
-// same day on a measurement. Without the number written down the next reader restores
-// it on the strength of the word "compression", which is what the benchmark refutes.
-// caveman-commit went for an unrelated reason: it duplicated and CONTRADICTED Commit
-// conduct, so the check is that the rules it uniquely had now live there instead.
-test("AGENTS.md records why both caveman skills were cut, with the numbers", () => {
-  assert.match(AGENTS_FLAT, /`caveman` and `caveman-commit` were removed from the install/);
-  assert.match(AGENTS_FLAT, /\+7% tokens, \+3% cost and \+2% time/);
-  assert.match(AGENTS_FLAT, /not a disinterested source/);
-  assert.match(AGENTS_FLAT, /`caveman-commit` is not a compression skill at all/);
+// same day on a measurement. Without the number written down the next reader restores it
+// on the strength of the word "compression", which is what the benchmark refutes. The
+// record moved to docs/decisions.md on the second trim pass - it is needed exactly once,
+// when someone is about to re-add it, so it should not be re-read every turn. What stays
+// always-on is the POINTER, because the pointer is what makes the record findable.
+test("the caveman cut is recorded, and AGENTS.md points at the record", () => {
+  assert.match(AGENTS_FLAT, /read `docs\/decisions\.md` before restoring either/);
+  assert.match(DECISIONS_FLAT, /\+7% tokens, \+3% cost and \+2% time/);
+  assert.match(DECISIONS_FLAT, /neither is disinterested/);
+  assert.match(DECISIONS_FLAT, /`caveman-commit` is not a compression skill at all/);
 });
 
 // The three rules caveman-commit uniquely had were folded in rather than lost. If they
@@ -733,11 +781,14 @@ test("the peer test headers and the peer skill agree on bun test", () => {
 });
 
 // peer-inbox.js is a Claude Code PostToolUse hook and therefore dormant here; the live
-// mid-run delivery is opencode/plugin/inbox.js, which AGENTS.md must keep naming because
-// a session that does not know messages arrive on tool results will poll or miss them.
-test("AGENTS.md documents mid-run delivery via the opencode inbox plugin", () => {
-  assert.match(AGENTS_FLAT, /opencode\/plugin\/inbox\.js/);
+// mid-run delivery is opencode/plugin/inbox.js. The naming moved to the GLOBAL AGENTS.md
+// on 2026-09-19 - that file owns the message-center protocol and is also always-on, so
+// the rule is still injected every turn, just not twice. The behavioural half stays in
+// the project file because a session that does not know messages arrive on tool results
+// will poll or miss them.
+test("mid-run delivery is documented, and the plugin behind it is named", () => {
   assert.match(AGENTS_FLAT, /Messages sent mid-run find you/);
+  assert.match(GLOBAL_FLAT, /opencode\/plugin\/inbox\.js/);
 });
 
 // The opencode plugin contract: opencode calls EVERY exported function as a plugin factory,

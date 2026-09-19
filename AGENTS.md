@@ -21,6 +21,27 @@ loads — `opencode/plugin/` holds the live equivalents. Don't hand-wire any of 
 opencode; port the behaviour into a plugin instead. The tests still exercise the `hooks/`
 modules as pure functions, so they are not dead weight, they just never fire in a session.
 
+## Where the rest lives
+
+This file is the always-on layer and is kept small deliberately: every line in it is
+re-read on every single turn. Everything below loads only when something reaches for it
+— a skill through the skill tool, a doc through its path — and costs nothing until then.
+
+| When | Read |
+|---|---|
+| dispatching a spec to another session, or a run came back empty | `skills/handoff/SKILL.md` |
+| the same-box agent-to-agent socket, tmux lane, peer keys | `skills/peer-bridge/SKILL.md` |
+| updating, debugging or measuring the tool-output compressor | `opencode/vendor/chisle/README.md` |
+| about to re-add something that was removed | `docs/decisions.md` |
+| which agents exist, and where every retired one went | `roster/README.md` |
+| which model an agent or category runs on | `~/.omo/omo.jsonc`, or `opencode agent list` |
+| the message-center protocol in full | `~/.config/opencode/AGENTS.md` (global, also always-on) |
+
+A pointer here that does not resolve is the exact failure this table exists to prevent,
+so `opencode/tests/routing-contract.test.mjs` checks every in-repo path in it. Moving a
+section out of this file and into one of those is the intended direction of travel; the
+reverse needs a reason, because it is paid for on every turn forever.
+
 ## Delegation
 
 The main session is the tech lead: it sizes the request, writes the spec, reviews the
@@ -47,12 +68,10 @@ and context drift fail independently.
   `*-expert` for this repo's own tooling. Fire one *before* you Grep, not after Grep
   fails; reading the codebase by hand is the most common way a session spends expensive
   tokens on cheap work.
-- **codegraph replaced graphify on 2026-09-19.** omo ships and indexes it itself, into
-  `~/.omo/codegraph/projects/<repo>-<hash>/`, surfaced in each repo as a `.codegraph`
-  symlink — so there is no pip install, no read-path hook, no per-repo git hook and no
-  initial build to keep alive. That bootstrap burden is exactly why graphify died twice:
-  only 2 of ~17 repos ever had a graph, and neither was read. The index is derived data
-  and never syncs; every device builds its own.
+- **codegraph replaced graphify on 2026-09-19**, and needs no bootstrap: omo indexes into
+  `~/.omo/codegraph/projects/<repo>-<hash>/` and surfaces it as a `.codegraph` symlink.
+  Derived data, never synced; every device builds its own. Why graphify went, and what
+  was ripped out with it, is in `docs/decisions.md`.
 - **Independent parts spawn in parallel, in ONE message.** Serialising independent work
   is a routing failure the same way under-delegating is.
 - **Two lenses beat one pass.** Anything worth reviewing gets at least two reviewers,
@@ -106,58 +125,33 @@ thresholds could not see any of it: `WRITERS` contains no read tool. `codegraph_
 is deliberately exempt — it is the recommended first move, and a gate that fires on the
 behaviour it wants teaches the opposite lesson.
 
-**A third plugin compresses the input side: `chisle`, installed plugin-only.** The two
-gates above shrink what this session *writes*; `~/.config/opencode/plugins/chisle.js`
-shrinks what it *reads*, eliding the repetitive middle of oversized bash/grep/web/task
-output before the model sees it, salvaging error lines from the cut and spilling the
-full original to `~/.config/opencode/chisle-spill/` so nothing is lost — the marker
-names the path and says to grep it rather than re-run the command. Read/edit/write are
+**A third plugin compresses the input side: `chisle`.** The two gates above shrink what
+this session *writes*; chisle shrinks what it *reads*, eliding the repetitive middle of
+oversized bash/grep/web/task output before the model sees it, salvaging error lines from
+the cut and spilling the full original to `~/.config/opencode/chisle-spill/` — the marker
+names that path and says to grep it rather than re-run the command. Read/edit/write are
 never touched: eliding them would make the model edit text it never saw, which would
-break `hashline.js`'s exact-byte edits. It layers with `guard-rails` rather than
-fighting it — chisle elides at 8k chars, guard-rails truncates at 200k, both idempotent
-behind their own markers.
+break `hashline.js`'s exact-byte edits. It layers with `guard-rails` rather than fighting
+it — chisle elides at 8k chars, guard-rails truncates at 200k, both idempotent behind
+their own markers.
 
-**It is vendored, and only the plugin — never chisle's ruleset.** The runtime files live
-in `opencode/vendor/chisle/` (MIT, version and commit pinned in its README) and `sync.sh`
-copies them into `~/.config/opencode/plugins/`, so the install travels with the repo
-instead of being a hand-copy on one box. Do **not** run `npx chisle`: its installer also
-appends a YAGNI ladder and a prose-compression block to `~/.config/opencode/AGENTS.md`,
-which is a symlink into this repo, so it writes through into tracked files — and that
-ladder is ponytail's ladder rung for rung, so running both would mean two always-on prose
-policies arguing for no new capability. Plugin only costs **zero tokens per turn**. The
-update procedure, including why `chisle-hooks/package.json` is load-bearing, is in
-`opencode/vendor/chisle/README.md`.
+It is vendored in `opencode/vendor/chisle/` and installed by `sync.sh`, **plugin only —
+never chisle's own ruleset**, which duplicates ponytail's ladder rung for rung and whose
+installer writes through the `~/.config/opencode/AGENTS.md` symlink into tracked files.
+So: do not run `npx chisle`. Measure it with `bun bin/chisle-savings.mjs` and **not**
+`npx chisle --stats`, which reads a ledger the opencode path never writes. The update
+procedure, the provenance pin, why `chisle-hooks/package.json` is load-bearing, and why
+the install target is `plugins/` and not `plugin/`: `opencode/vendor/chisle/README.md`.
 
-**`plugins/` (plural) is the install target, and that is not interchangeable with
-`plugin/`.** Both auto-load — proven 2026-09-19 with a throwaway probe plugin rather than
-assumed — but the singular one is a symlink to `opencode/plugin/` in this repo, where our
-own five plugins live. Vendored third-party code goes in the plural one, which is a real
-device-local directory, and `sync.sh` copies rather than symlinks there because a copy is
-the shape upstream's own installer tests and nobody has verified a symlinked plugin dir
-on this box. The team loader already proved two loaders can disagree about symlinks.
-
-**`npx chisle --stats` does not work for this install shape — use
-`bun bin/chisle-savings.mjs`.** In chisle 3.5.0 `recordSavings()` has exactly two
-callers, the Copilot and Claude hooks; `compressForOpencode()` returns `transform(...)`
-directly and records nothing, so the ledger `--stats` reads is never written and reports
-zero forever. The marker persists in `opencode.db` and the spilled original sits beside
-it, so the saving is recoverable after the fact with no always-on accounting. That
-script is read-only, on demand, and undercounts on purpose: chisle keeps only the newest
-40 spill files, and an elision whose original has rotated away is reported as an event
-of unknown size rather than estimated.
-
-**One thing deliberately does NOT travel: `~/.config/opencode/opencode.jsonc`.** It is a
-real device-local file, not a symlink from here, and it stays that way — it carries a
-literal `/home/shuff57/...` path to the Meridian plugin and an `apiKey` plus a localhost
-`baseURL`, and this repo's own hard-won rule is that an absolute home directory written
-into a tracked config travels to the next box and is wrong there silently. Tracking it as
-a *project* `opencode.json` would be worse than useless: project config only applies
-inside this repo, and these are global settings. So a new box needs three things added to
-its own copy by hand, and that list is the deliverable rather than the file:
-`"@dietrichgebert/ponytail"` in the `plugin` array, the Meridian plugin at whatever
-absolute path it occupies there, and the `anthropic` provider block pointing at the local
-proxy. Everything else in this repo — agents, skills, team specs, our five plugins, the
-vendored chisle — installs itself with `bash sync.sh`.
+**`~/.config/opencode/opencode.jsonc` deliberately does not travel.** It carries a literal
+`/home/shuff57/...` path to the Meridian plugin plus an `apiKey` and a localhost
+`baseURL`, and an absolute home directory written into a tracked config is wrong on the
+next box *silently* — this repo has been bitten by exactly that before. A new box needs
+three things added to its own copy by hand: `"@dietrichgebert/ponytail"` in the `plugin`
+array, the Meridian plugin at whatever absolute path it occupies there, and the
+`anthropic` provider block pointing at the local proxy. Everything else — agents, skills,
+team specs, our five plugins, the global AGENTS.md symlink, the vendored chisle —
+installs itself with `bash sync.sh`.
 
 The thresholds, the `/delegate` surface and this section are pinned together by
 `opencode/tests/routing-contract.test.mjs`. Edit one, run it, fix the others.
@@ -202,26 +196,20 @@ measurements and never own the pass/fail verdict on their own work.** The lead
 adjudicates and re-dispatches. That is the "measurement is not verdict" rule below,
 moved out of prose and into the thing that actually runs.
 
-Two things measured 2026-09-19, the first time this spec was loaded:
+Two things were measured the first time this spec loaded, and both are in
+`docs/decisions.md`: a **symlinked** team directory is not found (hence `sync.sh` copies
+team specs while symlinking skills — the two loaders genuinely disagree), and `deep`
+resolved to `variant: "medium"` against a config pinning `reasoning: max`. Read the level
+back out of the `team_create` response rather than claiming the config applied.
 
-- **A symlinked team directory is not found.** `~/.omo/teams/<name>` pointed at this
-  repo produced `Team '<name>' was not found. Expected '<that exact path>'` — for a path
-  that resolved and held valid JSON. Replacing the link with a real directory and the
-  same bytes loaded first try. `sync.sh` therefore COPIES team specs, and editing
-  `~/.omo/teams/<name>/config.json` is editing a build artifact; the source is
-  `omo/teams/`.
-- **`deep` resolved to `variant: "medium"`** while omo.jsonc pins it `reasoning: max`.
-  The model was right (`deepseek-v4.1-flash`); the effort dial was not. Read the level
-  back out of the `team_create` response rather than claiming the config applied.
 ### Routing config lives in omo.jsonc, not in prose
 
 `~/.omo/omo.jsonc` is the single source for which model each agent and category runs on,
 and at what `reasoning:` level. **Do not restate its pins here.** A duplicated table is
-exactly what produced the `hephaestus` error on 2026-09-19: omo ships a
-`no-hephaestus-non-gpt` hook that disables that agent whenever its model is not a GPT
-one, omo.jsonc pins it to `claude-sonnet-5`, and so it never registers at all — while a
-prose table cheerfully named it the sonnet builder. Read the config, or run
-`opencode agent list`, before naming an agent in a plan.
+exactly what produced the `hephaestus` error — a prose table named it the sonnet builder
+while an omo hook had disabled it entirely, so it was never registered at all
+(`docs/decisions.md`). Read the config, or run `opencode agent list`, before naming an
+agent in a plan.
 
 `roster/*.md` holds only the agents omo does **not** ship — the three evolvers,
 `eyes-and-ears` (multimodal-looker has no audio), five `cs-*` curriculum personas, nine
@@ -271,28 +259,6 @@ not sonnet building — see the read-side gate above.
   something you write yourself. If the user asks before a dispatched run has replied,
   say it is still running.
 
-## Long runs die three ways, all identical from outside
-
-"The model produced nothing" has three distinct causes. Diagnose before blaming the
-model, the spec, or the context length — output limits were never the cause in any
-observed case.
-
-1. **Parent death.** A run launched synchronously from a tool call dies with that call's
-   process tree: zero tokens, an empty reasoning part, no finish and no error. Use
-   `--detach` for anything expected to outlive a few minutes.
-2. **Provider header timeout.** opencode hardcodes a 5-minute limit on *response headers*
-   per request. Past ~90k input tokens the prefill can exceed it and the stream dies with
-   `ProviderHeaderTimeoutError`. Check `~/.local/share/opencode/log/opencode.log` for it.
-   The fix is a `headerTimeout`/`chunkTimeout` of 900000 on that provider block in
-   `~/.config/opencode/opencode.jsonc`.
-3. **Reasoning-budget exhaustion.** opencode clamps output to
-   `min(model.limit.output, 32000)`, and a reasoning variant splits that ceiling into
-   budgets. Measured 2026-09-16: a run burned 123KB of reasoning, hit 32,000 output
-   tokens and ended `finish: "length"` with zero deliverable content and no tool calls.
-   Detect with `opencode export <sessionID>` and read the last message's `finish`.
-   Mitigate by lowering the reasoning level or splitting the spec — never by retrying,
-   which burns the same 32k.
-
 ## Handing work to another session
 
 `bin/handoff.mjs` dispatches a spec to a nested `opencode run` and verifies it did
@@ -302,19 +268,17 @@ something. Use it; do not hand-roll the launch.
 node bin/handoff.mjs --spec /abs/path/to/SPEC.md [--model <id>] [--detach] [--note "..."]
 ```
 
-Five rules, each with a measured silent failure behind it. Full catalogue, including
-which failure each guard exists for, in `skills/handoff/SKILL.md`:
+Absolute paths everywhere, the task in the launch prompt rather than behind an inbox
+read, `--detach` for anything expected to outlive a few minutes, and file claims released
+*before* dispatching an authoring task — a well-behaved builder otherwise stops, blocked,
+after reading the whole spec. **Exit 0 proves nothing**: the threaded reply is the only
+evidence, and once you have dispatched, don't also do the work yourself.
 
-- **Absolute paths everywhere**, plus one line: *if any path I gave you does not exist,
-  STOP and say so rather than guessing.* A relative path resolves against a directory you
-  did not choose, and the run will invent one rather than error.
-- **Put the task in the launch prompt**, never behind a bare "check your inbox", and
-  never as a short `--re` continuation — both get read and not acted on.
-- **Exit 0 proves nothing.** The threaded reply is the only evidence.
-- **Release your file claims before dispatching an authoring task**, or a well-behaved
-  builder stops, blocked, after reading the whole spec first.
-- **Once you have dispatched, don't also do the work yourself.** Wait for the reply, then
-  verify against what it reports.
+Each of those has a measured silent failure behind it, and "the model produced nothing"
+has three distinct causes — parent death, a provider header timeout, and reasoning-budget
+exhaustion — that look identical from outside and are diagnosed differently. The full
+catalogue, including which guard exists for which failure and how to tell the three
+apart, is in `skills/handoff/SKILL.md`.
 
 ## Message center
 
@@ -322,37 +286,24 @@ An append-only log so sessions hand work back and forth — between lanes on one
 between machines, since the log is committed and ships with the repo.
 
 ```
-node bin/msg.mjs read --as opencode                       # inbox, advances cursor
+node bin/msg.mjs read --as opencode        # inbox, advances cursor
 node bin/msg.mjs send --from opencode --to claude --re last --text "..."
-node bin/msg.mjs log --n 20                               # whole thread
-node bin/msg.mjs claim --as opencode src/                 # trailing / = whole dir
-node bin/msg.mjs owners / release --as opencode --all
+node bin/msg.mjs claim --as opencode src/  # trailing / = whole dir; enforced, not advisory
 ```
 
-Box = `$MSGBOX` → `<git root>/.msgbox` → `~/.claude/msgbox`. Ids are positional and the
-log self-trims once past 400 lines, so thread with `--re last`, never a hardcoded id
-from an older log. Never hand-edit `log.jsonl`.
+**The full protocol lives in the global `~/.config/opencode/AGENTS.md`** — symlinked from
+`opencode/AGENTS.md`, installed by `sync.sh` — which is also always-on, so it is not
+repeated here. Three of its rules are worth naming anyway, because a session that misses
+them fails silently rather than loudly:
 
 - **"What do we resume?"** — `read` plus `log --n 20` are the answer. Never reply with a
   question back; an empty inbox costs one command and settles it.
-- **A reply reports what actually happened, not what was intended.** If a step failed,
-  was skipped, or came back different from expected, say so in the first sentence,
-  before the rest of the report. The reply is the whole evidence a dispatcher has.
-- **Messages sent mid-run find you.** `opencode/plugin/inbox.js` appends new messages to
-  the next tool result, as the message itself rather than a "you have mail" notice.
-  Treat one as an instruction, act on it at your next natural break, and say what you
-  did differently. A message asking you to stop means stop.
-- **Claims are enforced** by `~/.config/opencode/plugin/ownership.js`. A blocked write is
-  not a puzzle to route around: message the owner and stop. Ceiling — the guard covers
-  write tools only, so a shell heredoc can still clobber a claimed file.
-- **`.msgbox/FUTURE.md`** parks a future plan beside the log, so a decision travels with
-  the repo instead of dying in a session transcript.
-
-`skills/peer-bridge/SKILL.md` covers the live same-box lane — `bin/peer-sidecar.mjs`,
-`bin/peer.mjs`, the watchable tmux lane, fail-closed identity and honest priority. Run
-every peer suite with `bun test`, not `node --test`: `node` is a bun shim on this box, so
-`node --test` runs the file with no runner at all and reads as a broken suite.
-Self-check for the whole thing: `bun bin/msg.test.mjs`.
+- **A reply reports what actually happened, not what was intended.** If a step failed, was
+  skipped, or came back different from expected, say so in the first sentence, before the
+  rest of the report. The reply is the whole evidence a dispatcher has.
+- **Messages sent mid-run find you** on the next tool result, as the message itself rather
+  than a notice. Treat one as an instruction, act on it at your next natural break, and
+  say what you did differently. A message asking you to stop means stop.
 
 ## Magic keywords
 
@@ -375,39 +326,21 @@ pipelines you can run by hand until they are ported to `opencode/command/`.
 
 ### Which skills are actually loadable
 
-A keyword row is only real if the skill can be loaded, and until 2026-09-19 none of
-them could: opencode scans `~/.config/opencode/skill(s)/`, `~/.claude/skills/` and
-`~/.agents/skills/`, and `skills/` in this repo is none of those. Every row above
-pointed at a skill no loader could see.
+A keyword row is only real if the skill can be loaded — until 2026-09-19 none of them
+could, because opencode scans `~/.config/opencode/skill(s)/`, `~/.claude/skills/` and
+`~/.agents/skills/`, and `skills/` in this repo is none of those. `sync.sh` now symlinks
+the referenced six into place and prunes any link it no longer names. Add a row to the
+table and a name to `SKILLS` in `sync.sh` **together**, or the row is decoration; a
+contract test fails until the two agree.
 
-`sync.sh` symlinks the referenced six into `~/.config/opencode/skill/`, and prunes any
-link it no longer names. Symlinks are fine here — **the skill loader follows them; the
-team loader does not.** Both were tested against this repo on the same day and they
-disagree, so neither behaviour may be assumed from the other.
+It installs six, not all 42, because every installed skill's frontmatter enters the prompt
+on every turn whether the skill is used or not: the six cost ~630 tokens, all 42 cost
+~5,100. That list is a budget, not an oversight.
 
-It installs six, not all 42, because every skill's frontmatter enters the prompt on
-every turn whether the skill is used or not: the six cost ~630 tokens, all 42 cost
-~5,100. Add a row to the table and a name to `SKILLS` in `sync.sh` together, or the
-row is decoration.
-
-**`caveman` and `caveman-commit` were removed from the install on 2026-09-19, hours
-after being added.** Two different reasons, and neither is "we changed our minds":
-
-- **`caveman` is not a token saving.** ponytail's agentic benchmark measures it at
-  **-20% LOC but +7% tokens, +3% cost and +2% time** against a no-skill baseline — it
-  compresses the visible output while spending more overall. ponytail occupies the
-  same slot and is the only arm in that benchmark that cuts every metric. The figure
-  comes from ponytail's own repo, which is not a disinterested source; it is also the
-  only measurement either project publishes, and it is reproducible.
-- **`caveman-commit` is not a compression skill at all** — it is a Conventional
-  Commits formatter, which **Commit conduct below already is**. The two disagreed:
-  it says to skip the body when the subject is self-explanatory, and has never heard
-  of the trailers this repo asks for. Its three rules that were genuinely missing
-  (imperative mood, no AI attribution, don't restate the filename) were folded into
-  Commit conduct instead — ~40 tokens once, rather than ~150 every turn.
-
-Both remain parked in `skills/`. Re-add a name to `SKILLS` in `sync.sh` and a row to
-the table above to bring either back; one without the other is decoration.
+`caveman` and `caveman-commit` were installed and removed the same day, on measurements
+rather than taste — read `docs/decisions.md` before restoring either. That file also
+records why the install is a subset, and why `sync.sh` symlinks skills but copies team
+specs (the two loaders disagree about symlinks, and both behaviours were tested).
 
 ## Post-build hardening (opt-in, gated)
 

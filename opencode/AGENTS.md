@@ -75,3 +75,22 @@ genuinely mid-task and need to hold them.
 
 If a write is blocked, do not work around it — message the owner with what you need changed
 and why, then stop. You can only release your own claims.
+
+Enforcement is `~/.config/opencode/plugin/ownership.js`, and its ceiling is that it covers
+write tools only — a shell heredoc can still clobber a claimed file.
+
+## What else is here
+
+- **`.msgbox/FUTURE.md`** parks a plan beside the log, one per project, so a parked
+  decision travels with the repo instead of dying in a session transcript. A plain file,
+  not a `msg.mjs` feature.
+- **Mid-run delivery is `opencode/plugin/inbox.js`** in the agent-evo repo. It appends the
+  message text itself to the next tool result rather than a "you have mail" notice,
+  because a notice costs a tool call to act on and an agent mid-task routinely decides not
+  to spend one.
+- **The live same-box lane** — socket, tmux window, peer keys — is
+  `skills/peer-bridge/SKILL.md`, loaded on demand.
+- **Self-check:** `bun bin/msg.test.mjs`. Run every peer suite with `bun test`, never
+  `node --test`: `node` is a bun shim on this box, so `node --test` runs the file with no
+  runner at all and `node:test` throws on the first case, which reads as a broken suite
+  rather than a wrong command.
