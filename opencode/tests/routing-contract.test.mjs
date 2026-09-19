@@ -3,7 +3,7 @@
 // so a doc edit that breaks the contract fails CI instead of silently shipping.)
 //
 // Two layers:
-//  1. routing-contract: CLAUDE.md's tier policy and the /delegate surface must keep
+//  1. routing-contract: AGENTS.md's tier policy and the /delegate surface must keep
 //     agreeing with the tier-gate plugin's constants. If someone edits the doc or the
 //     plugin and the other side drifts, this fails.
 //  2. tier-gate unit tests: the counting logic (lines, files, once-per-session)
@@ -22,31 +22,62 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 // ---------------------------------------------------------------------------
 // 1. Routing docs ↔ plugin contract
 // ---------------------------------------------------------------------------
-const CLAUDE_MD = fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
+// 2026-09-19: CLAUDE.md became AGENTS.md. That is not cosmetic - opencode's Instruction
+// service walks ["AGENTS.md", "CLAUDE.md", "CONTEXT.md"] and BREAKS on the first name it
+// finds, so the filename IS the load. In the same pass the handoff and peer catalogues
+// moved into skills/, which load on demand instead of on every prompt. Each assertion
+// below is pinned against whichever file now owns the string; a section that moves again
+// must move its test with it, or this file pins prose that nothing reads.
+const AGENTS_MD = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+const HANDOFF_SKILL = fs.readFileSync(path.join(ROOT, "skills", "handoff", "SKILL.md"), "utf8");
+const PEER_SKILL = fs.readFileSync(path.join(ROOT, "skills", "peer-bridge", "SKILL.md"), "utf8");
 
-test("CLAUDE.md states the >10-line delegation default", () => {
-  assert.match(CLAUDE_MD, /more than ~10 lines of new code goes to a cheaper tier/);
-  assert.match(CLAUDE_MD, /`task\(category="quick"\)`/);
+// Prose assertions match against a whitespace-flattened copy. The contract is "the doc
+// says this", not "the doc says this with these line breaks" - two assertions went red on
+// 2026-09-19 purely because a reflow moved a wrap point mid-phrase, which is a false
+// failure that teaches the next person to loosen the regex instead of fixing the doc.
+// Heading and code-block assertions still use the raw text, because ^...$ is the point.
+const flat = (doc) => doc.replace(/\s+/g, " ");
+const AGENTS_FLAT = flat(AGENTS_MD);
+const HANDOFF_FLAT = flat(HANDOFF_SKILL);
+const PEER_FLAT = flat(PEER_SKILL);
+
+test("AGENTS.md is the instruction filename, and no CLAUDE.md shadows it", () => {
+  assert.ok(fs.existsSync(path.join(ROOT, "AGENTS.md")), "AGENTS.md is what opencode loads");
+  assert.ok(
+    !fs.existsSync(path.join(ROOT, "CLAUDE.md")),
+    "a root CLAUDE.md is never read (AGENTS.md wins the break-on-first walk) - it is dead weight that reads as live"
+  );
 });
 
-test("CLAUDE.md states the 2-file coordinated-fix trigger", () => {
-  assert.match(CLAUDE_MD, /coordinated fix touching 2\+ files/);
+test("AGENTS.md states the >10-line delegation default", () => {
+  assert.match(AGENTS_FLAT, /more than ~10 lines of new code/);
+  assert.match(AGENTS_FLAT, /`task\(category="quick"\)`/);
 });
 
-test("CLAUDE.md states the fallback command the /delegate lane uses", () => {
-  assert.match(CLAUDE_MD, /opencode run "<spec>" --auto -m ollama-cloud\/deepseek-v4\.1-flash/);
+test("AGENTS.md states the 2-file coordinated-fix trigger", () => {
+  assert.match(AGENTS_FLAT, /coordinated fix touching 2\+ files/);
 });
 
-test("CLAUDE.md pins the rework bound (max 2, then sonnet)", () => {
+// The handoff catalogue used to sit inline and cost ~110 lines on every prompt. It is a
+// skill now, so the contract is the POINTER plus the strings at the far end of it - a
+// dangling pointer is the failure this pair catches.
+test("AGENTS.md points at the handoff skill, which owns the dispatch command", () => {
+  assert.match(AGENTS_FLAT, /skills\/handoff\/SKILL\.md/);
+  assert.match(HANDOFF_FLAT, /node bin\/handoff\.mjs --spec/);
+  assert.match(HANDOFF_FLAT, /ollama-cloud\/glm-5\.3-flash/);
+});
+
+test("AGENTS.md pins the rework bound (max 2, then sonnet)", () => {
   // Since the 2026-09-19 retirement of code-engineer, the sonnet builder is the
   // unspecified-high category (Sisyphus-Junior on claude-sonnet-5). NOT hephaestus:
   // omo's no-hephaestus-non-gpt hook disables that agent on a non-GPT model.
-  assert.match(CLAUDE_MD, /after 2 failures: rebuild on category=unspecified-high \[sonnet\]/);
+  assert.match(AGENTS_MD, /after 2 failures: rebuild on category=unspecified-high \[sonnet\]/);
 });
 
 const gate = fs.readFileSync(path.join(ROOT, "opencode", "plugin", "tier-gate.js"), "utf8");
 
-test("tier-gate constants match the CLAUDE.md thresholds", () => {
+test("tier-gate constants match the AGENTS.md thresholds", () => {
   assert.match(gate, /const LINE_THRESHOLD = 10;/);
   assert.match(gate, /const FILE_THRESHOLD = 2;/);
 });
@@ -61,10 +92,12 @@ test("tier-gate announces at most once per session", () => {
   assert.match(gate, /state\.announced = true;/);
 });
 
-// The Claude Code port: same contract, PreToolUse-hook shape.
+// The Claude Code port: same contract, PreToolUse-hook shape. DORMANT since 2026-09-19
+// (this box runs opencode only; nothing loads PreToolUse hooks), but still unit-tested as
+// pure functions below, so its constants must not drift from the doc.
 const claudeGate = fs.readFileSync(path.join(ROOT, "hooks", "tier-gate.js"), "utf8");
 
-test("claude tier-gate hook mirrors the CLAUDE.md thresholds", () => {
+test("claude tier-gate hook mirrors the AGENTS.md thresholds", () => {
   assert.match(claudeGate, /const LINE_THRESHOLD = 10;/);
   assert.match(claudeGate, /const FILE_THRESHOLD = 2;/);
   assert.match(claudeGate, /if \(state\.announced\) process\.exit\(0\);/);
@@ -74,20 +107,14 @@ test("claude tier-gate hook fails open", () => {
   assert.match(claudeGate, /catch\s*{?\s*\n?\s*process\.exit\(0\)/);
 });
 
-test("claude tier-gate hook is wired into settings.json PreToolUse", () => {
-  const settingsPath = path.join(os.homedir(), ".claude", "settings.json");
-  const settings = fs.readFileSync(settingsPath, "utf8");
-  const hooks = JSON.parse(settings).hooks?.PreToolUse ?? [];
-  const wired = hooks.some(
-    (h) => h.matcher === "Edit|Write|NotebookEdit" &&
-      (h.hooks ?? []).some((k) => typeof k.command === "string" && k.command.includes("tier-gate.js"))
-  );
-  assert.ok(wired, "settings.json PreToolUse must invoke hooks/tier-gate.js");
-});
-
-test("CLAUDE.md documents enforcement on both CLIs", () => {
-  assert.match(CLAUDE_MD, /BOTH CLIs/);
-  assert.match(CLAUDE_MD, /hooks\/tier-gate\.js/);
+// The two tests that asserted ~/.claude/settings.json wires this hook were dropped
+// 2026-09-19. They pinned a harness nothing here runs, against an app-managed file that
+// churns per box - so they could only ever go red for a reason no one would act on. What
+// replaces them is the rule that keeps the dormancy from being un-noticed by accident.
+test("AGENTS.md records that the Claude-Code-shaped files are inert", () => {
+  assert.match(AGENTS_FLAT, /`hooks\/` \(every file a `PreToolUse`\/`PostToolUse` hook\)/);
+  assert.match(AGENTS_FLAT, /inert/);
+  assert.match(AGENTS_FLAT, /opencode\/plugin\/` holds the live equivalents/);
 });
 
 // The /delegate lane.
@@ -296,23 +323,18 @@ test("read-only interpreter one-liners are not writes", () => {
   assert.equal(bashWrite(`python -c "open('x', 'a').write(y)"`).isWrite, true);
 });
 
-// The Bash lane is the whole point of bashWrite: the hook understood Bash for a while
-// before settings.json actually routed Bash calls to it, which is a gate that reads as
-// wired and sees nothing. Pin the wiring the same way the Edit|Write lane is pinned.
-test("claude tier-gate hook is wired for the Bash lane too", () => {
-  const settingsPath = path.join(os.homedir(), ".claude", "settings.json");
-  const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
-  const hooks = settings.hooks?.PreToolUse ?? [];
-  const wired = hooks.some(
-    (h) => h.matcher === "Bash" &&
-      (h.hooks ?? []).some((k) => typeof k.command === "string" && k.command.includes("tier-gate.js"))
-  );
-  assert.ok(wired, "settings.json must route Bash to tier-gate.js, else bashWrite never runs");
-});
+// The Bash-lane wiring test went with the other live-settings ones on 2026-09-19: the
+// hook understood Bash before settings.json routed Bash to it, which was a real gate that
+// read as wired and saw nothing - but on a box with no Claude Code there is no wiring to
+// assert. bashWrite() itself is still exercised directly above.
 
 // ---------------------------------------------------------------------------
 // 4. Peer bridge — repo-level wiring + docs contract (hermetic)
 // ---------------------------------------------------------------------------
+// These guard the repo's own settings.json. It is DORMANT (no Claude Code on this box),
+// but it is still a tracked file that travels between machines and has silently lost an
+// entry before, so its shape stays pinned rather than untested.
+//
 // These read the REPO settings.json, never ~/.claude/settings.json. The live file is
 // ORCA-managed and diverges per box, so a contract pinned against it would pass or fail
 // by machine; the repo copy is the source of truth install.sh symlinks into place. The
@@ -345,56 +367,60 @@ test("peer-inbox hook command uses the $HOME-safe repo path", () => {
   assert.match(cmd, /^node \$HOME\/Documents\/GitHub\/agent-evo\/hooks\/peer-inbox\.js$/);
 });
 
-test("CLAUDE.md documents the peer bridge section", () => {
-  assert.match(CLAUDE_MD, /^## Peer bridge$/m);
+test("AGENTS.md points at the peer-bridge skill, which owns the section", () => {
+  assert.match(AGENTS_FLAT, /skills\/peer-bridge\/SKILL\.md/);
+  assert.match(PEER_SKILL, /^# Peer bridge$/m);
 });
 
-test("CLAUDE.md pins the sidecar usage string", () => {
-  assert.match(CLAUDE_MD, /node bin\/peer-sidecar\.mjs --as opencode \[--heartbeat-ms 30000\]/);
+test("the peer skill pins the sidecar usage string", () => {
+  assert.match(PEER_SKILL, /node bin\/peer-sidecar\.mjs --as opencode \[--heartbeat-ms 30000\]/);
 });
 
-test("CLAUDE.md pins the peer CLI send usage string", () => {
+test("the peer skill pins the peer CLI send usage string", () => {
+  // Wrapped with a trailing backslash in the skill's code block; \s+ spans the break.
   assert.match(
-    CLAUDE_MD,
-    /node bin\/peer\.mjs send --to <name\|pid> --text <s> \[--priority now\|next\|later\] \[--from-name <s>\] \[--no-audit\]/
+    PEER_SKILL,
+    /node bin\/peer\.mjs send --to <name\|pid> --text <s> \[--priority now\|next\|later\][\s\\]+\[--from-name <s>\] \[--no-audit\]/
   );
 });
 
-test("CLAUDE.md states the peer bridge's fail-closed identity and trust boundary", () => {
-  assert.match(CLAUDE_MD, /Identity is fail-closed/);
-  assert.match(CLAUDE_MD, /same OS user and nothing more/);
+test("the peer skill states fail-closed identity and the trust boundary", () => {
+  assert.match(PEER_FLAT, /Identity is fail-closed/);
+  assert.match(PEER_FLAT, /same OS user and nothing more/);
 });
 
-test("CLAUDE.md states honest priority semantics", () => {
-  assert.match(CLAUDE_MD, /Priority is honest/);
-  assert.match(CLAUDE_MD, /delivery is the next tool/);
+test("the peer skill states honest priority semantics", () => {
+  assert.match(PEER_FLAT, /Priority is honest/);
+  assert.match(PEER_FLAT, /delivery is the next tool call for all three/);
 });
 
-test("CLAUDE.md pins the watchable-lane usage string", () => {
-  assert.match(CLAUDE_MD, /^### Watchable lane \(tmux\)$/m);
+test("the peer skill pins the watchable-lane usage string", () => {
+  assert.match(PEER_SKILL, /^## Watchable lane \(tmux\)$/m);
   assert.match(
-    CLAUDE_MD,
+    PEER_SKILL,
     /node bin\/peer-term\.mjs ask --as <lane> --text <s> \[--model ID\] \[--new\] \[--log\] \[--auto\] \[--timeout MS\]/
   );
-  assert.match(CLAUDE_MD, /tmux attach -t peer-<lane>/);
+  assert.match(PEER_SKILL, /tmux attach -t peer-<lane>/);
 });
 
 // The peer suites are `bun test`, not `node --test`: on a box where `node` is a bun shim
 // the latter runs the file with no runner and node:test throws, which reads as a broken
 // suite rather than a wrong command. Doc and headers are pinned together so neither can
 // drift back on its own.
-test("the peer test headers and CLAUDE.md agree on bun test", () => {
-  assert.match(CLAUDE_MD, /Run the peer suites with `bun test`, not `node --test`/);
+test("the peer test headers and the peer skill agree on bun test", () => {
+  assert.match(PEER_FLAT, /Run every peer suite with `bun test`, not `node --test`/);
   for (const name of ["codec", "registry", "sidecar", "client", "term"]) {
     const src = fs.readFileSync(path.join(ROOT, "bin", "peer", `${name}.test.mjs`), "utf8").slice(0, 400);
     assert.match(src, new RegExp(`bun test bin/peer/${name}\\.test\\.mjs`), `${name}.test.mjs header`);
   }
 });
 
-test("CLAUDE.md no longer parks the Claude inbox hook", () => {
-  assert.ok(!/left off deliberately/.test(CLAUDE_MD), "the stale parked-hook paragraph must be gone");
-  assert.match(CLAUDE_MD, /hooks\/peer-inbox\.js/);
-  assert.match(CLAUDE_MD, /mtime gate/);
+// peer-inbox.js is a Claude Code PostToolUse hook and therefore dormant here; the live
+// mid-run delivery is opencode/plugin/inbox.js, which AGENTS.md must keep naming because
+// a session that does not know messages arrive on tool results will poll or miss them.
+test("AGENTS.md documents mid-run delivery via the opencode inbox plugin", () => {
+  assert.match(AGENTS_FLAT, /opencode\/plugin\/inbox\.js/);
+  assert.match(AGENTS_FLAT, /Messages sent mid-run find you/);
 });
 
 // The opencode plugin contract: opencode calls EVERY exported function as a plugin factory,

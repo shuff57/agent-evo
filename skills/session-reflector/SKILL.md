@@ -13,7 +13,7 @@ handles HANDOFF.md for resuming across context boundaries. A repo may ship a
 
 ## Mode 1 — Reflection into global memory (default at session end)
 
-The global memory is the flat fact-file store described in the user's CLAUDE.md
+The global memory is the flat fact-file store described in the user's AGENTS.md
 memory protocol. A reflection here is NOT a free-form journal entry — it becomes
 one (or updates one) properly-formatted memory file.
 

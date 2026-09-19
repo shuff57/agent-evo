@@ -15,7 +15,6 @@
 *.ico binary
 *.pdf binary
 *.zip binary
-graphify-out/graph.json merge=graphify
 
 # Cross-CLI message center: an append-only log that two machines both append to.
 # Without union merge, every simultaneous handoff conflicts on the tail line —

@@ -34,7 +34,7 @@ Apply this ordered classifier when the user did not explicitly choose a route:
   N files, port tests, fill boilerplate): `deepseek-v4.1-flash`
 - all other implementation: `glm-5.3-flash`
 - planning, research, review, and other work: stays in the main session or
-  routes by the CLAUDE.md tier table — never to an ollama worker.
+  routes by the AGENTS.md tier table — never to an ollama worker.
 
 An explicit implementation choice wins only when it is one of the two allowed
 routes. After any applicable approval gate, state only
@@ -53,7 +53,7 @@ opencode run "<spec>" --auto -m ollama-cloud/deepseek-v4.1-flash
 ```
 
 For multi-worker or multi-round work, launch through the message center per
-the CLAUDE.md handoff section (`handoff.mjs` with `--model`, absolute spec
+the AGENTS.md handoff section (`handoff.mjs` with `--model`, absolute spec
 paths, claims released before authoring tasks), one lens per opencode
 session, fanned out in parallel where the graph allows. Vision and audio
 stay Anthropic-side — no ollama worker gets them (operator decision
@@ -108,7 +108,7 @@ Do not relabel ordinary worker output as orchestration output.
   approval boundaries. File ownership is enforced: claim before dispatch,
   release when the handoff closes.
 - If delegation adds no value (trivial edit, single file), use one worker or
-  execute inline per the CLAUDE.md tier policy — do not build a graph for
+  execute inline per the AGENTS.md tier policy — do not build a graph for
   its own sake.
 - High-stakes work (auth, money, migrations, concurrency, data loss) goes to
   sonnet via `task(category="unspecified-high")`, never to an ollama worker — the graph does not

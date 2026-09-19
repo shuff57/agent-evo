@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // peer-inbox — PostToolUse delivery of cross-CLI messages into a running Claude Code turn.
 //
-// CLAUDE.md parked this exact hook: "Claude Code has no equivalent hook and does not need
+// AGENTS.md parked this exact hook: "Claude Code has no equivalent hook and does not need
 // one — the harness already surfaces the user's mid-turn messages. If cross-agent messages
 // ever need to reach a long Claude turn the same way, it is a PostToolUse hook running
 // msg.mjs inbox --as claude; it is left off deliberately, because that spawns node on every

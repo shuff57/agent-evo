@@ -25,8 +25,9 @@ roster edit** — the generated copies are not live views.
 `settings.json` **is** symlinked from this repo — `install.sh` links it and then verifies
 the link. That is only safe because the repo copy contains **no absolute home directory**:
 every hook command in it uses `$HOME`. Claude Code runs hook commands through a POSIX shell,
-so `$HOME` expands. Measured 2026-09-09 by watching the `Glob|Grep` graphify hook fire: its
-`[ -f ... ] && ... || true` body is not valid cmd.exe or PowerShell, so a shell is running it.
+so `$HOME` expands. Measured 2026-09-09 by watching a `Glob|Grep` hook fire: its `[ -f ... ] && ... || true`
+body is not valid cmd.exe or PowerShell, so a shell is running it. (That particular hook was
+graphify's, removed 2026-09-19; the shell-expansion fact it established still holds.)
 
 Keep it that way. A literal home directory written into that file travels to every box and is
 one username away from being wrong on the next one, and the guard's version of wrong is

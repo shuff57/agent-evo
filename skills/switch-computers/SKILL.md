@@ -148,7 +148,7 @@ git -C "$AE" push origin master
 **Do not rely on the `Agent-Evo Sync` scheduled task.** At best it is at-logon +
 hourly — slower than walking to the other machine — and it can be off without
 anything announcing it. (Measured 2026-08-29: the task was `Disabled`, having
-last run on 2026-08-19, ten days earlier, while both this file and CLAUDE.md
+last run on 2026-08-19, ten days earlier, while both this file and AGENTS.md
 described it as syncing hourly.) Check it if you like, but push regardless:
 
 ```bash

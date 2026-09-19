@@ -17,7 +17,7 @@ $ARGUMENTS
 
 1. If the task is high-stakes (auth, money, migrations, concurrency, data loss) or
    genuinely ambiguous (you cannot write an unambiguous spec), STOP and say so —
-   those route to `task(category="unspecified-high")` (sonnet) or stay with you, per CLAUDE.md.
+   those route to `task(category="unspecified-high")` (sonnet) or stay with you, per AGENTS.md.
 2. Write the task as an unambiguous spec: exact file paths, complete acceptance
    criteria, and the command that verifies it (tests/lint). The nested session
    cannot ask questions mid-run.

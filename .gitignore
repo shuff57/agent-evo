@@ -1,7 +1,6 @@
 _workspace/
 __pycache__/
 evolution/plugin/node_modules/
-graphify-out/
 skills/.bundled_manifest
 skills/.curator_state
 skills/.usage.json
@@ -26,6 +25,9 @@ skills/synced/
 !.msgbox/log.jsonl
 
 .worktrees/
+
+# omo run-continuation state: per-session scratch, device-local
+.omo/
 
 # /skill-doctor writes these beside the file it rewrites; they are backups,
 # not source, and `git add -A` during a machine-switch park swept one into

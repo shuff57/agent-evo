@@ -72,7 +72,7 @@ and does the cross-machine box).
 
 ## READ — "what were we working on"
 
-This is already the standing instruction in CLAUDE.md's message-center
+This is already the standing instruction in AGENTS.md's message-center
 section — this skill doesn't change it, just names it:
 
 ```bash

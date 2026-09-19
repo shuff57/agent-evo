@@ -106,7 +106,7 @@ const get = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1
 const specArg = get('--spec');
 const model = get('--model') || DEFAULT_MODEL;
 const note = get('--note') || '';
-// Reasoning effort, passed straight through as opencode's `--variant`. CLAUDE.md
+// Reasoning effort, passed straight through as opencode's `--variant`. AGENTS.md
 // documents the flag on the agent route (`opencode run --agent X -m Y --variant Z`)
 // and this wrapper had no way to reach it, which left "dispatch at max effort" as
 // a reason to hand-roll the launch -- the one thing this file exists to prevent.

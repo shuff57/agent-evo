@@ -23,9 +23,9 @@ Cross-project learnings, preferences, and patterns that apply across all work.
 - Memory lives in `agent-evo/memory/` — flat markdown, synced via git
 - Per-project notes go in `memory/projects/<repo-name>/notes.md`
 - Global learnings (env, preferences, gotchas) go in `memory/global/notes.md` (this file)
-- Repo orientation: hand-written map in each repo's `CLAUDE.md` (free, every session) **plus** a graphify knowledge graph in Syllabus + bookSHelf (reinstated 2026-08-09, v0.9.37)
-- **The graph is derived data and is never synced** — `graphify-out/` stays gitignored; every device builds its own. What travels in git is the repo's `.githooks/` + `.graphifyignore`
-- **A fresh clone needs one command**: `git config core.hooksPath .githooks` (local config never clones). `agent-evo/install.sh` does this for the known repos
+- Repo orientation: hand-written map in each repo's `AGENTS.md` (free, every session) **plus** omo's `codegraph` MCP (`codegraph_explore`), on demand
+- **graphify was retired 2026-09-19, replaced by codegraph.** omo ships and indexes codegraph itself under `~/.omo/codegraph/projects/<repo>-<hash>/`, surfaced in each repo as a `.codegraph` symlink — no pip install, no git hooks, no per-repo bootstrap
+- **Both are derived data and neither syncs** — every device builds its own index. Nothing about the graph travels in git
 
 ---
 

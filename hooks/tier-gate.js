@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 // Claude Code port of opencode/plugin/tier-gate.js — makes the tier-routing
-// policy in CLAUDE.md mechanical instead of prose, on the harness where the
+// policy in AGENTS.md mechanical instead of prose, on the harness where the
 // suppression problem actually lives ("do not call the Agent tool" injected
 // mid-session silently outranks the doc; measured skipped 2026-08-17 and
-// 2026-08-18). The graphify Glob|Grep hook in settings.json already proved
-// the PreToolUse additionalContext channel; this uses the same delivery.
+// 2026-08-18).
+//
+// DORMANT since 2026-09-19: this box runs opencode only and nothing loads
+// PreToolUse hooks, so opencode/plugin/tier-gate.js is the gate that actually
+// fires. Kept because the tests exercise bashWrite() and the counting logic
+// directly, as pure functions.
 //
 // Same contract as the opencode plugin:
 //   - >10 new lines in one write call, OR writes touching 2+ distinct files
@@ -27,7 +31,7 @@
 //   stdout: exit 0 with optional JSON {hookSpecificOutput:
 //            {hookEventName:"PreToolUse", additionalContext:"..."}}
 //
-// Thresholds mirror CLAUDE.md exactly; the routing-contract test pins both
+// Thresholds mirror AGENTS.md exactly; the routing-contract test pins both
 // files to the same numbers (opencode/tests/routing-contract.test.mjs).
 
 import fs from "fs";
@@ -293,7 +297,7 @@ try {
     : `writes now touch ${state.files.length} files (${state.files.slice(0, 5).join(", ")}${state.files.length > 5 ? ", …" : ""})`;
   const text = [
     `${MARKER} Tier policy crossed: ${why}.`,
-    "CLAUDE.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
+    "AGENTS.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
     "Either delegate the remainder (Agent tool with a category task - quick, or unspecified-high",
     "for high-stakes - or the fallback",
     "`opencode run \"<spec>\" --auto -m ollama-cloud/deepseek-v4.1-flash` via Bash), or say in your reply",

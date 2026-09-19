@@ -1,4 +1,4 @@
-// Makes the tier-routing policy in CLAUDE.md mechanical instead of prose.
+// Makes the tier-routing policy in AGENTS.md mechanical instead of prose.
 //
 // The policy says: any session writing more than ~10 lines of new code, or making a
 // coordinated fix touching 2+ files, should be delegated to a cheaper-tier builder
@@ -18,15 +18,15 @@
 // Counting is per-write-call, not per-file-lifetime: a legitimate sequence of
 // small edits to the SAME file stays quiet (that is the "tweak" lane), while a
 // multi-file campaign crosses the 3-file line and a bulk edit crosses the line
-// count. Both thresholds mirror CLAUDE.md exactly.
+// count. Both thresholds mirror AGENTS.md exactly.
 import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
 const WRITERS = new Set(["write", "edit", "patch", "multiedit"]);
-const LINE_THRESHOLD = 10; // CLAUDE.md: "more than ~10 lines of new code"
-const FILE_THRESHOLD = 2; // CLAUDE.md: "coordinated fix touching 2+ files"
+const LINE_THRESHOLD = 10; // AGENTS.md: "more than ~10 lines of new code"
+const FILE_THRESHOLD = 2; // AGENTS.md: "coordinated fix touching 2+ files"
 const MARKER = "[tier-gate]";
 
 function stateDir() {
@@ -277,7 +277,7 @@ export const TierGate = async ({ directory }) => {
         const text = [
           "",
           `${MARKER} Tier policy crossed: ${why}.`,
-          "CLAUDE.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
+          "AGENTS.md routes work of this size to a cheaper-tier builder instead of typing it inline.",
           "Either delegate the remainder (e.g. /delegate, or a category task - quick, or unspecified-high for high-stakes),",
           "or say in your reply why inline is the better call here (high-stakes, genuinely ambiguous, or nearly done).",
           "Announcing this is the whole policy — do not silently continue.",
