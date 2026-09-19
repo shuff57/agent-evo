@@ -36,6 +36,7 @@ re-read on every single turn. Everything below loads only when something reaches
 | which agents exist, and where every retired one went | `roster/README.md` |
 | which model an agent or category runs on | `~/.omo/omo.jsonc`, or `opencode agent list` |
 | the message-center protocol in full | `~/.config/opencode/AGENTS.md` (global, also always-on) |
+| setting up a new machine, or about to run an installer | `docs/new-box.md` |
 
 A pointer here that does not resolve is the exact failure this table exists to prevent,
 so `opencode/tests/routing-contract.test.mjs` checks every in-repo path in it. Moving a
@@ -68,10 +69,9 @@ and context drift fail independently.
   `*-expert` for this repo's own tooling. Fire one *before* you Grep, not after Grep
   fails; reading the codebase by hand is the most common way a session spends expensive
   tokens on cheap work.
-- **codegraph replaced graphify on 2026-09-19**, and needs no bootstrap: omo indexes into
-  `~/.omo/codegraph/projects/<repo>-<hash>/` and surfaces it as a `.codegraph` symlink.
-  Derived data, never synced; every device builds its own. Why graphify went, and what
-  was ripped out with it, is in `docs/decisions.md`.
+- **codegraph replaced graphify on 2026-09-19** and needs no bootstrap: omo indexes it
+  itself and surfaces it as a `.codegraph` symlink. Derived data, never synced. Why
+  graphify went, and what was ripped out with it, is in `docs/decisions.md`.
 - **Independent parts spawn in parallel, in ONE message.** Serialising independent work
   is a routing failure the same way under-delegating is.
 - **Two lenses beat one pass.** Anything worth reviewing gets at least two reviewers,
@@ -113,45 +113,27 @@ returns nothing, `[loop-guard]` when one identical call repeats 20+ times. None 
 all are idempotent per session. A `[loop-guard]` means you are stuck — change approach
 or report the blocker rather than repeating the call.
 
-**The same gate now counts the read side, because that is where the money was.**
-`tier-gate.js` fires a second `[tier-gate]` notice at **25 read/grep/glob/webfetch or
-non-write bash calls in one session with no `task()` at all**; every `task()` resets the
-count to zero, so a session that keeps handing work out never accumulates toward it.
-Measured 2026-09-19 across 3 days and 292 sessions on this box: **one `task()` per 77
-read+grep+bash calls**, and 93% of $1,120 spend sat on Anthropic models whose cost was
-cache-READ volume (600M on opus alone), not output — long sessions holding enormous
-context, which is what "handled it inline" looks like on a bill. The write-side
-thresholds could not see any of it: `WRITERS` contains no read tool. `codegraph_explore`
-is deliberately exempt — it is the recommended first move, and a gate that fires on the
-behaviour it wants teaches the opposite lesson.
+**The same gate counts the read side too, because that is where the money was.** A second
+`[tier-gate]` notice fires at **25 read/grep/glob/webfetch or non-write bash calls in one
+session with no `task()` at all**; every `task()` resets the count to zero, so a session
+that keeps handing work out never accumulates toward it. `codegraph_explore` is
+deliberately exempt — it is the recommended first move, and a gate that fires on the
+behaviour it wants teaches the opposite lesson. The spend measurement that set that
+threshold, and why the write-side counters could not see any of it, are in
+`docs/decisions.md`.
 
 **A third plugin compresses the input side: `chisle`.** The two gates above shrink what
 this session *writes*; chisle shrinks what it *reads*, eliding the repetitive middle of
-oversized bash/grep/web/task output before the model sees it, salvaging error lines from
-the cut and spilling the full original to `~/.config/opencode/chisle-spill/` — the marker
-names that path and says to grep it rather than re-run the command. Read/edit/write are
-never touched: eliding them would make the model edit text it never saw, which would
-break `hashline.js`'s exact-byte edits. It layers with `guard-rails` rather than fighting
-it — chisle elides at 8k chars, guard-rails truncates at 200k, both idempotent behind
-their own markers.
+oversized bash/grep/web/task output before the model sees it. Read/edit/write are never
+touched. When its marker appears in a tool result, the full original is already on disk at
+the path the marker names — **grep that file; do not re-run the command.** Do not run
+`npx chisle`: its installer writes a ruleset through the `~/.config/opencode/AGENTS.md`
+symlink into tracked files. Everything else — the vendoring, the update procedure, how it
+layers with `guard-rails`, and why `bun bin/chisle-savings.mjs` rather than
+`npx chisle --stats` — is in `opencode/vendor/chisle/README.md`.
 
-It is vendored in `opencode/vendor/chisle/` and installed by `sync.sh`, **plugin only —
-never chisle's own ruleset**, which duplicates ponytail's ladder rung for rung and whose
-installer writes through the `~/.config/opencode/AGENTS.md` symlink into tracked files.
-So: do not run `npx chisle`. Measure it with `bun bin/chisle-savings.mjs` and **not**
-`npx chisle --stats`, which reads a ledger the opencode path never writes. The update
-procedure, the provenance pin, why `chisle-hooks/package.json` is load-bearing, and why
-the install target is `plugins/` and not `plugin/`: `opencode/vendor/chisle/README.md`.
-
-**`~/.config/opencode/opencode.jsonc` deliberately does not travel.** It carries a literal
-`/home/shuff57/...` path to the Meridian plugin plus an `apiKey` and a localhost
-`baseURL`, and an absolute home directory written into a tracked config is wrong on the
-next box *silently* — this repo has been bitten by exactly that before. A new box needs
-three things added to its own copy by hand: `"@dietrichgebert/ponytail"` in the `plugin`
-array, the Meridian plugin at whatever absolute path it occupies there, and the
-`anthropic` provider block pointing at the local proxy. Everything else — agents, skills,
-team specs, our five plugins, the global AGENTS.md symlink, the vendored chisle —
-installs itself with `bash sync.sh`.
+Setting up a new machine, including the three things `sync.sh` cannot install for you and
+the two installers not to run: `docs/new-box.md`.
 
 The thresholds, the `/delegate` surface and this section are pinned together by
 `opencode/tests/routing-contract.test.mjs`. Edit one, run it, fix the others.

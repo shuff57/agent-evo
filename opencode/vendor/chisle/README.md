@@ -22,6 +22,13 @@ allowlist rather than blocklist, and it is the reason this is safe to run here:
 eliding a read would make the model edit text it never saw, which would break
 `hashline.js`'s exact-byte edits.
 
+It **layers** with our own `opencode/plugin/guard-rails.js` rather than fighting it:
+chisle elides at 8,000 chars, guard-rails truncates at 200,000 (40,000 for web). They are
+25x apart and each is idempotent behind its own marker, so chisle does the working-set
+compression and guard-rails stays the backstop for the genuinely enormous. Keep that gap
+if either threshold is ever retuned — collapse it and the two will rewrite each other's
+output.
+
 **Upstream also ships a ruleset — a YAGNI ladder and a prose-compression block —
 and it is NOT vendored.** Its installer appends that to
 `~/.config/opencode/AGENTS.md`, which on this box is a symlink into this repo, so

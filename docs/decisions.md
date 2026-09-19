@@ -162,3 +162,36 @@ is about the roster. Two notes that belong here instead:
   and is absent from `opencode agent list`. The sonnet lane is
   `task(category="unspecified-high")`. This was caught only because the mapping was
   checked against the live agent list rather than the docs.
+
+---
+
+## Why the tier-gate counts reads, 2026-09-19
+
+The gate only ever counted writing, which left the expensive half structurally invisible:
+`WRITERS` contains no read tool, so a session could burn hundreds of read/grep/bash calls
+on the top-tier model without tripping anything.
+
+Measured across 3 days and 292 sessions on this box:
+
+| | |
+|---|---|
+| delegation rate | **one `task()` per 77 read+grep+bash calls** |
+| spend | $1,120, of which **93% sat on Anthropic models** |
+| shape of that spend | cache-**read** volume — 600M on opus alone — not output |
+
+Long sessions holding enormous context is what "handled it inline" looks like on a bill.
+Hence `RECON_THRESHOLD`: 25 read-shaped calls with no `task()` fires a second notice, and
+any `task()` zeroes the counter.
+
+**25 is tuned to fire, not measured as optimal.** The observed ratio was 1:77, so a
+threshold anywhere near that would never trigger; 25 is low enough to catch a session that
+has settled into reading for itself and high enough that a focused "read three files, edit
+one" pass never sees it. Retune it against a real session, not against this number.
+
+`codegraph_explore` is exempt on purpose and a test pins the exemption: it is the move
+`AGENTS.md` recommends *first*, and a gate that fires on the behaviour it wants teaches
+the opposite of its own lesson.
+
+The read side went into the live opencode plugin only, not the dormant `hooks/tier-gate.js`
+— porting it there would be unrunnable code carrying an unrunnable threshold. That
+asymmetry is pinned by a test so it reads as a decision rather than drift.

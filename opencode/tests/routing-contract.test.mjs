@@ -82,6 +82,24 @@ test("every in-repo pointer in the index table resolves", () => {
   }
 });
 
+// AGENTS.md no longer lists what a new machine needs - it points at docs/new-box.md and
+// says there are three of them. The index test above proves the file EXISTS; this proves
+// it still carries the content, because an empty destination is the same failure as a
+// dangling pointer with an extra step. opencode.jsonc is deliberately untracked (absolute
+// home path + apiKey), so this list is the only thing standing between a fresh box and a
+// silently half-configured one.
+test("the new-box doc carries the three untrackable config entries", () => {
+  const box = flat(fs.readFileSync(path.join(ROOT, "docs", "new-box.md"), "utf8"));
+  assert.match(box, /@dietrichgebert\/ponytail/);
+  assert.match(box, /Meridian/);
+  assert.match(box, /`anthropic` provider block/);
+  assert.match(box, /deliberately not tracked/);
+  // Both installers that write through a tracked symlink, named where someone about to
+  // run one will look.
+  assert.match(box, /npx chisle/);
+  assert.match(box, /install\.sh/);
+});
+
 test("AGENTS.md states the >10-line delegation default", () => {
   assert.match(AGENTS_FLAT, /more than ~10 lines of new code/);
   assert.match(AGENTS_FLAT, /`task\(category="quick"\)`/);
@@ -512,19 +530,24 @@ test("AGENTS.md's chisle measurement pointer resolves", () => {
 // paths only. If a later version wires the opencode path, this note and the script both
 // become redundant - check before assuming they are still needed.
 //
-// The always-on file keeps only the two facts a session acts on - plugin only, and which
-// command measures it. Everything else (update procedure, provenance, why plugins/ and
-// not plugin/) moved into the vendor README, which is read while doing that work.
-test("the chisle install shape and its measurement are recorded", () => {
-  assert.match(AGENTS_FLAT, /plugin only — never chisle's own ruleset/);
-  assert.match(AGENTS_FLAT, /not\*\* `npx chisle --stats`/);
+// Second trim pass, same day: the always-on file now keeps only the two things a session
+// ACTS on mid-turn - that output may arrive elided with the original on disk, and that
+// `npx chisle` must not be run. The install shape, the vendoring, the layering with
+// guard-rails and the measurement command all moved into the vendor README, read while
+// doing that work rather than on every turn.
+test("the chisle behaviour a session acts on stays always-on; the rest moved", () => {
+  assert.match(AGENTS_FLAT, /grep that file; do not re-run the command/);
   assert.match(AGENTS_FLAT, /do not run `npx chisle`/i);
+  assert.match(AGENTS_FLAT, /opencode\/vendor\/chisle\/README\.md/);
   // The forensics that justify NOT using --stats live in the vendor README now, so the
   // claim and its evidence are checked in the same test rather than drifting apart.
   const readme = flat(fs.readFileSync(
     path.join(ROOT, "opencode", "vendor", "chisle", "README.md"), "utf8"));
   assert.match(readme, /`recordSavings\(\)` has exactly two callers/);
   assert.match(readme, /bun bin\/chisle-savings\.mjs/);
+  // Moved out of AGENTS.md on the second pass. Losing it would mean a future retune of
+  // either threshold collapses the 25x gap that makes the two compressors layer.
+  assert.match(readme, /chisle elides at 8,000 chars, guard-rails truncates at 200,000/);
 });
 
 // Vendoring is the whole point of tracking it: the runtime files must be in the repo,
