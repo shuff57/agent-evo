@@ -5,6 +5,27 @@
 Kept out of the always-on `AGENTS.md` because it is needed once per machine and never on
 a normal turn.
 
+## Before `sync.sh`: bun, opencode, meridian
+
+`sync.sh` assumes bun, opencode and this repo already exist. In order, on a bare
+machine:
+
+1. **bun** — `curl -fsSL https://bun.sh/install | bash`, then open a new shell so
+   `~/.bun/bin` is on `PATH`.
+2. **opencode** — `curl -fsSL https://opencode.ai/install | bash`. Lands at
+   `~/.opencode/bin/opencode`, which the installer also puts on `PATH`.
+3. **meridian, globally** — `bun install -g @rynfar/meridian`. It has to be a global
+   install rather than a bare package name in the `plugin` array (unlike the two
+   below) because the config references its absolute install path directly; if a
+   version bump moves that path, find it with
+   `find ~/.bun/install/global/node_modules/@rynfar -name meridian`.
+4. **This repo** — `git clone https://github.com/shuff57/agent-evo.git
+   ~/Documents/GitHub/agent-evo`, then `bash sync.sh` (below).
+
+`oh-my-openagent` and `@dietrichgebert/ponytail` need no install step: they are bare
+package names in the `plugin` array, and opencode resolves and caches them itself on
+first run (`~/.cache/opencode/packages/`), the same way `npx` would.
+
 ## What `sync.sh` does for you
 
 | Installs | Where | Shape |
@@ -59,3 +80,24 @@ Derived or device-local, and every machine rebuilds its own: the codegraph index
 `~/.omo/codegraph/`, chisle's spill directory, the peer-bridge keys in `.msgbox/peer/`,
 and the message-log read cursors. The message log itself (`.msgbox/log.jsonl`) *is*
 committed — that is how a handoff note reaches another machine.
+
+## Optional: which model each agent runs on
+
+`~/.omo/omo.jsonc` is oh-my-openagent's own per-agent model routing — `sisyphus`,
+`oracle`, `explore` and the rest, each pinned to a model and a reasoning level.
+oh-my-openagent writes a default the first time it runs; nothing in this repo ships or
+generates one, and it is deliberately untracked (device-local, per the index table in
+`AGENTS.md`). Tune it later — `opencode agent list` shows the mapping in effect.
+
+## Verify it worked
+
+```bash
+opencode agent list          # every roster + omo-builtin agent resolves to a model
+opencode debug skill         # the six installed skills show up, none missing
+bash test.sh                 # structural + integrity checks
+bun test opencode/tests/routing-contract.test.mjs
+```
+
+If `opencode debug skill` is short the six names in `sync.sh`'s `SKILLS` list,
+`sync.sh` didn't run after this repo changed, or ran before
+`~/.config/opencode/skill/` existed — re-run it.
