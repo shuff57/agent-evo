@@ -311,8 +311,6 @@ trigger clearly inappropriate (the user is asking *about* the skill), say so and
 | Trigger | Skill |
 |---|---|
 | "$fable" | `fable` |
-| "write a commit", "/commit" | `caveman-commit` |
-| "caveman mode", "caveman" | `caveman` (off by default — see below) |
 | "gauntlet loop", "gauntlet this", "loop until it beats X" | `gauntlet-loop` |
 | "/bro", "tldr", "boil it down", "too long" | `bro` |
 | "switching computers", "switch machines", "park this", "pack up" | `switch-computers` |
@@ -329,25 +327,34 @@ them could: opencode scans `~/.config/opencode/skill(s)/`, `~/.claude/skills/` a
 `~/.agents/skills/`, and `skills/` in this repo is none of those. Every row above
 pointed at a skill no loader could see.
 
-`sync.sh` now symlinks the referenced eight into `~/.config/opencode/skill/`. Symlinks
-are fine here — **the skill loader follows them; the team loader does not.** Both were
-tested against this repo on the same day and they disagree, so neither behaviour may
-be assumed from the other.
+`sync.sh` symlinks the referenced six into `~/.config/opencode/skill/`, and prunes any
+link it no longer names. Symlinks are fine here — **the skill loader follows them; the
+team loader does not.** Both were tested against this repo on the same day and they
+disagree, so neither behaviour may be assumed from the other.
 
-It installs eight, not all 42, because every skill's frontmatter enters the prompt on
-every turn whether the skill is used or not: the eight cost ~950 tokens, all 42 cost
+It installs six, not all 42, because every skill's frontmatter enters the prompt on
+every turn whether the skill is used or not: the six cost ~630 tokens, all 42 cost
 ~5,100. Add a row to the table and a name to `SKILLS` in `sync.sh` together, or the
 row is decoration.
 
-**caveman is installed but NOT on by default, and that is a reversal.** `CLAUDE.md`
-used to open with a directive switching it on for every response; the 2026-09-19
-rewrite dropped it. Leaving it dropped is now a measured call rather than an
-oversight: ponytail's agentic benchmark puts caveman at **-20% LOC but +7% tokens,
-+3% cost and +2% time** against a no-skill baseline — it compresses output while
-spending more overall. That figure comes from ponytail's own repo, which is not a
-disinterested source, but it is the only measurement either project publishes and it
-is reproducible. Invoke caveman by name when terse output is wanted; do not make it
-ambient on the strength of the word "compression".
+**`caveman` and `caveman-commit` were removed from the install on 2026-09-19, hours
+after being added.** Two different reasons, and neither is "we changed our minds":
+
+- **`caveman` is not a token saving.** ponytail's agentic benchmark measures it at
+  **-20% LOC but +7% tokens, +3% cost and +2% time** against a no-skill baseline — it
+  compresses the visible output while spending more overall. ponytail occupies the
+  same slot and is the only arm in that benchmark that cuts every metric. The figure
+  comes from ponytail's own repo, which is not a disinterested source; it is also the
+  only measurement either project publishes, and it is reproducible.
+- **`caveman-commit` is not a compression skill at all** — it is a Conventional
+  Commits formatter, which **Commit conduct below already is**. The two disagreed:
+  it says to skip the body when the subject is self-explanatory, and has never heard
+  of the trailers this repo asks for. Its three rules that were genuinely missing
+  (imperative mood, no AI attribution, don't restate the filename) were folded into
+  Commit conduct instead — ~40 tokens once, rather than ~150 every turn.
+
+Both remain parked in `skills/`. Re-add a name to `SKILLS` in `sync.sh` and a row to
+the table above to bring either back; one without the other is decoration.
 
 ## Post-build hardening (opt-in, gated)
 
@@ -378,9 +385,14 @@ the artifact under test IS agent tooling: a skill, an agent, a theme, a plugin.
 
 ## Commit conduct
 
-Conventional-commit subject (≤50 chars), optional body, then structured trailers when
-applicable. Skip trailers for trivial commits. Use them to preserve decision context
-that would otherwise be lost.
+Conventional-commit subject (≤50 chars, hard cap 72) in the imperative mood — "add",
+not "added" or "adds" — then an optional body and structured trailers when applicable.
+Skip trailers for trivial commits. Use them to preserve decision context that would
+otherwise be lost.
+
+Never in a commit message: AI attribution of any kind ("Generated with …", "as
+requested by …" — use a `Co-authored-by` trailer if attribution is genuinely needed),
+or a restatement of the filename when the scope already names it.
 
 - `Constraint:` — active constraint that shaped this decision
 - `Rejected:` — alternative considered | reason for rejection

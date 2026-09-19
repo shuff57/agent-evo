@@ -416,6 +416,12 @@ test("sync.sh symlinks skills, the opposite of how it installs team specs", () =
   const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
   assert.match(sync, /ln -sfn "\$REPO\/skills\/\$s"/);
   assert.match(sync, /OC_SKILL="\$HOME\/\.config\/opencode\/skill"/);
+  // The install must also SHRINK. Without a prune, dropping a name from SKILLS leaves
+  // that skill loaded forever - measured 2026-09-19 when caveman and caveman-commit
+  // were dropped and stayed in `opencode debug skill` until swept by hand.
+  assert.match(sync, /pruned=\$\(\(pruned \+ 1\)\)/);
+  assert.match(sync, /case "\$target" in "\$REPO\/skills\/"\*\)/,
+    "prune must only remove links into THIS repo - another tool's skills are not ours");
 });
 
 // A keyword row naming a skill that no loader can reach is the exact failure this
@@ -424,7 +430,7 @@ test("sync.sh symlinks skills, the opposite of how it installs team specs", () =
 test("every skill AGENTS.md names is installed by sync.sh and exists in skills/", () => {
   const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
   const declared = (sync.match(/^SKILLS="([^"]+)"/m)?.[1] ?? "").split(/\s+/).filter(Boolean);
-  assert.ok(declared.length >= 8, "SKILLS list must be populated");
+  assert.ok(declared.length >= 6, "SKILLS list must be populated");
 
   for (const s of declared) {
     assert.ok(
@@ -436,7 +442,10 @@ test("every skill AGENTS.md names is installed by sync.sh and exists in skills/"
   // Backtick-quoted skill names in the keyword table rows must all be installed.
   const table = AGENTS_MD.split("## Magic keywords")[1]?.split("###")[0] ?? "";
   const named = [...table.matchAll(/^\|[^|]*\|\s*`([a-z0-9-]+)`/gm)].map((m) => m[1]);
-  assert.ok(named.length >= 5, "keyword table must have rows");
+  // Floor, not a count: the guard exists so a regex that silently matches nothing reads
+  // as a pass. It was >= 5 until caveman and caveman-commit were cut on 2026-09-19, and
+  // it failed on the cut - which is the check doing its job. Lower it when a row goes.
+  assert.ok(named.length >= 4, "keyword table must have rows");
   for (const n of named) {
     assert.ok(declared.includes(n), `AGENTS.md triggers \`${n}\` but sync.sh never installs it`);
   }
@@ -444,17 +453,30 @@ test("every skill AGENTS.md names is installed by sync.sh and exists in skills/"
 
 // Installing all 42 would quadruple the skill-listing cost for skills nothing routes to.
 test("AGENTS.md records why the install is a subset, not the whole skills/ dir", () => {
-  assert.match(AGENTS_FLAT, /the eight cost ~950 tokens, all 42 cost ~5,100/);
+  assert.match(AGENTS_FLAT, /the six cost ~630 tokens, all 42 cost ~5,100/);
   assert.match(AGENTS_FLAT, /the skill loader follows them; the team loader does not/);
 });
 
-// caveman was always-on under CLAUDE.md and is deliberately not under AGENTS.md.
-// Without the measurement written down, the next reader restores the directive on the
-// strength of the word "compression" - which is what the benchmark contradicts.
-test("AGENTS.md records that caveman is invoke-only, with the number behind it", () => {
-  assert.match(AGENTS_FLAT, /caveman is installed but NOT on by default/);
+// caveman was always-on under CLAUDE.md, briefly installed on 2026-09-19, then cut the
+// same day on a measurement. Without the number written down the next reader restores
+// it on the strength of the word "compression", which is what the benchmark refutes.
+// caveman-commit went for an unrelated reason: it duplicated and CONTRADICTED Commit
+// conduct, so the check is that the rules it uniquely had now live there instead.
+test("AGENTS.md records why both caveman skills were cut, with the numbers", () => {
+  assert.match(AGENTS_FLAT, /`caveman` and `caveman-commit` were removed from the install/);
   assert.match(AGENTS_FLAT, /\+7% tokens, \+3% cost and \+2% time/);
   assert.match(AGENTS_FLAT, /not a disinterested source/);
+  assert.match(AGENTS_FLAT, /`caveman-commit` is not a compression skill at all/);
+});
+
+// The three rules caveman-commit uniquely had were folded in rather than lost. If they
+// vanish, the cut silently became a regression instead of a consolidation.
+test("Commit conduct absorbed the rules caveman-commit uniquely carried", () => {
+  const commit = AGENTS_MD.split("## Commit conduct")[1] ?? "";
+  const flat = commit.replace(/\s+/g, " ");
+  assert.match(flat, /imperative mood/);
+  assert.match(flat, /AI attribution of any kind/);
+  assert.match(flat, /restatement of the filename when the scope already names it/);
 });
 
 test("state persists across plugin instances for the same session", async () => {

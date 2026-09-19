@@ -62,9 +62,9 @@ fi
 #
 # Only the skills AGENTS.md actually references are installed. Every installed skill's
 # frontmatter is injected on every turn whether it is used or not, so this list is a
-# budget, not an oversight: these eight cost ~950 tokens, all 42 would cost ~5,100.
+# budget, not an oversight: these six cost ~630 tokens, all 42 would cost ~5,100.
 # A skill named in AGENTS.md but missing here is a dangling pointer -- add to both.
-SKILLS="bro caveman caveman-commit fable gauntlet-loop handoff peer-bridge switch-computers"
+SKILLS="bro fable gauntlet-loop handoff peer-bridge switch-computers"
 OC_SKILL="$HOME/.config/opencode/skill"
 mkdir -p "$OC_SKILL"
 installed=0
@@ -77,7 +77,25 @@ for s in $SKILLS; do
     missing="$missing $s"
   fi
 done
+
+# Prune links this script no longer names. Without this the install only ever GROWS:
+# dropping a name from SKILLS leaves that skill loaded forever, which is what happened
+# when caveman and caveman-commit were dropped on 2026-09-19 -- they stayed in
+# `opencode debug skill` until swept by hand. Only links INTO THIS REPO are removed; a
+# real directory, or a link pointing elsewhere, belongs to another tool and is left.
+pruned=0
+for link in "$OC_SKILL"/*; do
+  [ -L "$link" ] || continue
+  name="$(basename "$link")"
+  case " $SKILLS " in *" $name "*) continue ;; esac
+  target="$(readlink -f "$link" 2>/dev/null || true)"
+  case "$target" in "$REPO/skills/"*) rm "$link"; pruned=$((pruned + 1)) ;; esac
+done
+
 echo "Skills: $installed linked -> $OC_SKILL/"
+if [ "$pruned" -gt 0 ]; then
+  echo "  pruned $pruned stale link(s) no longer named in SKILLS"
+fi
 [ -n "$missing" ] && echo "  WARNING: named in SKILLS but not in skills/:$missing"
 
 echo ""
