@@ -312,6 +312,7 @@ trigger clearly inappropriate (the user is asking *about* the skill), say so and
 |---|---|
 | "$fable" | `fable` |
 | "write a commit", "/commit" | `caveman-commit` |
+| "caveman mode", "caveman" | `caveman` (off by default — see below) |
 | "gauntlet loop", "gauntlet this", "loop until it beats X" | `gauntlet-loop` |
 | "/bro", "tldr", "boil it down", "too long" | `bro` |
 | "switching computers", "switch machines", "park this", "pack up" | `switch-computers` |
@@ -320,6 +321,33 @@ trigger clearly inappropriate (the user is asking *about* the skill), say so and
 consulted — do not shadow it. `commands/ultrawork.md` and `commands/deep-interview.md`
 are Claude Code slash commands and are not installed for opencode; they describe
 pipelines you can run by hand until they are ported to `opencode/command/`.
+
+### Which skills are actually loadable
+
+A keyword row is only real if the skill can be loaded, and until 2026-09-19 none of
+them could: opencode scans `~/.config/opencode/skill(s)/`, `~/.claude/skills/` and
+`~/.agents/skills/`, and `skills/` in this repo is none of those. Every row above
+pointed at a skill no loader could see.
+
+`sync.sh` now symlinks the referenced eight into `~/.config/opencode/skill/`. Symlinks
+are fine here — **the skill loader follows them; the team loader does not.** Both were
+tested against this repo on the same day and they disagree, so neither behaviour may
+be assumed from the other.
+
+It installs eight, not all 42, because every skill's frontmatter enters the prompt on
+every turn whether the skill is used or not: the eight cost ~950 tokens, all 42 cost
+~5,100. Add a row to the table and a name to `SKILLS` in `sync.sh` together, or the
+row is decoration.
+
+**caveman is installed but NOT on by default, and that is a reversal.** `CLAUDE.md`
+used to open with a directive switching it on for every response; the 2026-09-19
+rewrite dropped it. Leaving it dropped is now a measured call rather than an
+oversight: ponytail's agentic benchmark puts caveman at **-20% LOC but +7% tokens,
++3% cost and +2% time** against a no-skill baseline — it compresses output while
+spending more overall. That figure comes from ponytail's own repo, which is not a
+disinterested source, but it is the only measurement either project publishes and it
+is reproducible. Invoke caveman by name when terse output is wanted; do not make it
+ambient on the strength of the word "compression".
 
 ## Post-build hardening (opt-in, gated)
 

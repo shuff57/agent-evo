@@ -55,8 +55,33 @@ if [ -d "$REPO/omo/teams" ]; then
   done
 fi
 
+# Skills. SYMLINKED, unlike the team specs directly above -- the two loaders behave
+# differently and both were tested on 2026-09-19: the skill loader resolves a symlinked
+# skill directory (verified by `opencode debug skill` reporting the linked skill at its
+# ~/.config path), the team loader does not. Do not "make them consistent".
+#
+# Only the skills AGENTS.md actually references are installed. Every installed skill's
+# frontmatter is injected on every turn whether it is used or not, so this list is a
+# budget, not an oversight: these eight cost ~950 tokens, all 42 would cost ~5,100.
+# A skill named in AGENTS.md but missing here is a dangling pointer -- add to both.
+SKILLS="bro caveman caveman-commit fable gauntlet-loop handoff peer-bridge switch-computers"
+OC_SKILL="$HOME/.config/opencode/skill"
+mkdir -p "$OC_SKILL"
+installed=0
+missing=""
+for s in $SKILLS; do
+  if [ -f "$REPO/skills/$s/SKILL.md" ]; then
+    ln -sfn "$REPO/skills/$s" "$OC_SKILL/$s"
+    installed=$((installed + 1))
+  else
+    missing="$missing $s"
+  fi
+done
+echo "Skills: $installed linked -> $OC_SKILL/"
+[ -n "$missing" ] && echo "  WARNING: named in SKILLS but not in skills/:$missing"
+
 echo ""
 echo "Teams:  $(grep -c '^[a-z]' "$REPO/roster/teams.yaml" 2>/dev/null || echo 0)"
 echo "Chains: $(grep -c '^[a-z]' "$REPO/roster/agent-chain.yaml" 2>/dev/null || echo 0)"
 echo ""
-echo "Done. Re-run this after ANY roster/ or omo/teams/ edit - the generated copies are not live."
+echo "Done. Re-run this after ANY roster/, omo/teams/ or skills/ edit - the generated copies are not live."

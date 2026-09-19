@@ -408,6 +408,55 @@ test("sync.sh copies team specs rather than symlinking them", () => {
   );
 });
 
+// The two loaders disagree about symlinks and BOTH were tested 2026-09-19: the skill
+// loader resolved a symlinked skill dir (opencode debug skill reported it at its
+// ~/.config path), the team loader above did not. Pinning the asymmetry stops a future
+// tidy-up from "making them consistent" and silently unloading every skill.
+test("sync.sh symlinks skills, the opposite of how it installs team specs", () => {
+  const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
+  assert.match(sync, /ln -sfn "\$REPO\/skills\/\$s"/);
+  assert.match(sync, /OC_SKILL="\$HOME\/\.config\/opencode\/skill"/);
+});
+
+// A keyword row naming a skill that no loader can reach is the exact failure this
+// session spent several commits removing. The table and the install list are one
+// contract: edit either and this fails until both agree.
+test("every skill AGENTS.md names is installed by sync.sh and exists in skills/", () => {
+  const sync = fs.readFileSync(path.join(ROOT, "sync.sh"), "utf8");
+  const declared = (sync.match(/^SKILLS="([^"]+)"/m)?.[1] ?? "").split(/\s+/).filter(Boolean);
+  assert.ok(declared.length >= 8, "SKILLS list must be populated");
+
+  for (const s of declared) {
+    assert.ok(
+      fs.existsSync(path.join(ROOT, "skills", s, "SKILL.md")),
+      `sync.sh installs ${s} but skills/${s}/SKILL.md does not exist`
+    );
+  }
+
+  // Backtick-quoted skill names in the keyword table rows must all be installed.
+  const table = AGENTS_MD.split("## Magic keywords")[1]?.split("###")[0] ?? "";
+  const named = [...table.matchAll(/^\|[^|]*\|\s*`([a-z0-9-]+)`/gm)].map((m) => m[1]);
+  assert.ok(named.length >= 5, "keyword table must have rows");
+  for (const n of named) {
+    assert.ok(declared.includes(n), `AGENTS.md triggers \`${n}\` but sync.sh never installs it`);
+  }
+});
+
+// Installing all 42 would quadruple the skill-listing cost for skills nothing routes to.
+test("AGENTS.md records why the install is a subset, not the whole skills/ dir", () => {
+  assert.match(AGENTS_FLAT, /the eight cost ~950 tokens, all 42 cost ~5,100/);
+  assert.match(AGENTS_FLAT, /the skill loader follows them; the team loader does not/);
+});
+
+// caveman was always-on under CLAUDE.md and is deliberately not under AGENTS.md.
+// Without the measurement written down, the next reader restores the directive on the
+// strength of the word "compression" - which is what the benchmark contradicts.
+test("AGENTS.md records that caveman is invoke-only, with the number behind it", () => {
+  assert.match(AGENTS_FLAT, /caveman is installed but NOT on by default/);
+  assert.match(AGENTS_FLAT, /\+7% tokens, \+3% cost and \+2% time/);
+  assert.match(AGENTS_FLAT, /not a disinterested source/);
+});
+
 test("state persists across plugin instances for the same session", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tier-gate-test-"));
   const hook1 = await hookFor(dir);
