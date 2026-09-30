@@ -10,7 +10,7 @@ description: >
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 model: sonnet
 effort: high
-spawn-primary: opencode/ollama-cloud/glm-5.3-flash@high
+spawn-primary: opencode/cheaper-inference/glm-5.3-flash@high
 spawn-secondary: claude/sonnet@high
 ---
 

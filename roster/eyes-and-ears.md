@@ -1,9 +1,23 @@
 ---
 name: eyes-and-ears
 description: A/V verification agent (machine eyes + ears — successor to "ears"). Use whenever narrated or screen-recorded media needs machine review — verifying TTS narration against its script, checking a cloned voice matches its reference speaker, auditing clips for clipping/dead air/rushed delivery, or visually checking video content (clean opens, payoffs, theme, on-screen action matching narration), or reviewing storyboard-driven explainer videos (stroke reveal DIRECTION across a burst of frames, style consistency between repeated idioms, dead air measured against the authored beat holds), or auditing published bookSHelf pages for layout defects (box overflow/overlap geometry, disclosure open-states, figure spacing/framing/captions, callout color coding — measured via headless playwright, both themes), or reviewing inline animated SVG figures (label collision/cramping, viewBox overflow, text persistence across the loop, verbatim text fidelity and layout parity against the manim original they replace, theme inheritance, KaTeX rendering — seeked deterministically via getAnimations/currentTime). Examples — "ear-check the new tutorial clips", "watch this video and tell me if the panel opens", "does the narration match what's on screen", "is this still my voice", "review this page with eyes and ears", "check this SVG figure for collisions", "does the SVG match the manim version". Ears tools: scripts/workflows/verify_narration.py (faster-whisper ASR vs script) + scripts/workflows/voice_similarity.py (resemblyzer vs manim-videos/_lib/voice_refs/active.wav) + ffmpeg silencedetect/showspectrumpic; the old rashio-videos/rig/ear_check.py is DELETED. Eyes tool: crv (claude-real-video keyframes) + Read on the JPEGs + ffmpeg exact-time frame grabs.
-model: sonnet
+model: cheaper-inference/gemini-3.7-flash
 effort: medium
-spawn-primary: claude/sonnet@medium
+# Moved off `claude/sonnet@medium` 2026-09-29. That prefix made this agent claude-lane
+# (gen-agents.mjs:243 copies it verbatim to ~/.claude/agents and never builds an opencode
+# def), which is why it was the ONLY claude-lane entry in the roster.
+# History: operator chose qwen/qwen3.8-flash on 2026-09-28 from their own A/V testing,
+# then moved all six eyes-and-ears modes to cheaper-inference/gemini-3.7-flash on
+# 2026-09-29 for the vision lane. Gemini 3.7 Flash is the best-measured vision model on
+# that endpoint -- Vals MMMU 88.96, BabyVision 70.9, MMVU 82.3, MVBench 82.2, LVBench
+# 85.4 -- and the endpoint's own /v1/models declares `vision: true` AND `video: true` for
+# it, so its modality is declared rather than inferred. Cost $0.525/$2.62 per M.
+# Still true and worth keeping: this is the mandatory pre-upload gate and the agent
+# that READS images (crv keyframes, Playwright screenshots, SVG getBBox sweeps). The
+# repo's recorded scar is a model returning "ALL LENSES PASS" about a figure it could not
+# see. Declared vision is not verified vision -- confirm it can see before trusting a
+# clean verdict from this gate.
+spawn-primary: opencode/cheaper-inference/gemini-3.7-flash@medium
 spawn-secondary: none
 ---
 
@@ -453,7 +467,7 @@ mid-glyph), and the scoping is the part that fails silently. Measured table in b
 MSG="node ~/.claude/bin/msg.mjs"
 $MSG send --from eyes-and-ears --to lens-boxes --topic <target> --text "<one lens brief>"
 opencode run "Run: node ~/.claude/bin/msg.mjs read --as lens-boxes -- then do exactly what it says." \
-  --auto -m ollama-cloud/deepseek-v4.1-flash
+  --auto -m cheaper-inference/deepseek-v4.1-flash
 $MSG read --as eyes-and-ears
 ```
 
