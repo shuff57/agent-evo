@@ -60,43 +60,71 @@ fi
 # skill directory (verified by `opencode debug skill` reporting the linked skill at its
 # ~/.config path), the team loader does not. Do not "make them consistent".
 #
-# Only the skills AGENTS.md actually references are installed. Every installed skill's
-# frontmatter is injected on every turn whether it is used or not, so this list is a
-# budget, not an oversight: these six cost ~630 tokens, all 42 would cost ~5,100.
-# A skill named in AGENTS.md but missing here is a dangling pointer -- add to both.
-SKILLS="bro fable gauntlet-loop handoff peer-bridge switch-computers"
-OC_SKILL="$HOME/.config/opencode/skill"
-mkdir -p "$OC_SKILL"
-installed=0
-missing=""
-for s in $SKILLS; do
-  if [ -f "$REPO/skills/$s/SKILL.md" ]; then
-    ln -sfn "$REPO/skills/$s" "$OC_SKILL/$s"
+# Every skills/<dir> with a top-level SKILL.md is linked, auto-discovered -- no fixed
+# list. The user chose all skills on 2026-09-30, replacing the old six-name budget
+# list (six cost ~630 tokens/turn, the full set ~5,100, because every installed
+# skill's frontmatter is injected on every turn whether used or not). To trim, add a
+# name to SKILLS_SKIP below -- the prune removes its stale link on the next run.
+#
+# Two destinations: ~/.config/opencode/skill/ (opencode) and per-skill links inside
+# ~/.claude/skills/ (Claude Code reads only that directory, and install.sh's
+# whole-directory symlink can never work there because synced/ and the Orca links
+# already live in it). opencode scans both roots; on 2026-09-30 `opencode debug skill`
+# showed a skill present in both collapses to a single entry, no duplicates.
+SKILLS_SKIP="
+  evolution     # duplicate of steve-desktop/.claude/skills/evolution (live project-local; copies differ)
+  roster-match  # duplicate of app-synced ~/.claude/skills/synced/*/roster-match (copies differ)
+  steve         # duplicate of steve-desktop/.claude/skills/steve (live project-local; copies differ)
+"
+SKIP=""
+while IFS= read -r line; do
+  name="${line%%#*}"; name="${name//[[:space:]]/}"
+  [ -n "$name" ] && SKIP="$SKIP $name "
+done <<< "$SKILLS_SKIP"
+
+is_skipped() { case "$SKIP" in *" $1 "*) return 0 ;; esac; return 1; }
+
+install_skills() {
+  dest="$1"
+  mkdir -p "$dest"
+  installed=0
+  for dir in "$REPO/skills"/*/; do
+    s="$(basename "$dir")"
+    [ -f "$dir/SKILL.md" ] || continue
+    if is_skipped "$s"; then continue; fi
+    # Never clobber an existing entry that is not our own link into this repo.
+    if [ -e "$dest/$s" ] && [ ! -L "$dest/$s" ]; then
+      echo "  Skill: $dest/$s is a real directory, left alone"
+      continue
+    fi
+    if [ -L "$dest/$s" ] && [ "$(readlink -f "$dest/$s" 2>/dev/null)" != "$(readlink -f "$dir")" ]; then
+      echo "  Skill: $dest/$s is a foreign link, left alone"
+      continue
+    fi
+    ln -sfn "$dir" "$dest/$s"
     installed=$((installed + 1))
-  else
-    missing="$missing $s"
-  fi
-done
+  done
 
-# Prune links this script no longer names. Without this the install only ever GROWS:
-# dropping a name from SKILLS leaves that skill loaded forever, which is what happened
-# when caveman and caveman-commit were dropped on 2026-09-19 -- they stayed in
-# `opencode debug skill` until swept by hand. Only links INTO THIS REPO are removed; a
-# real directory, or a link pointing elsewhere, belongs to another tool and is left.
-pruned=0
-for link in "$OC_SKILL"/*; do
-  [ -L "$link" ] || continue
-  name="$(basename "$link")"
-  case " $SKILLS " in *" $name "*) continue ;; esac
-  target="$(readlink -f "$link" 2>/dev/null || true)"
-  case "$target" in "$REPO/skills/"*) rm "$link"; pruned=$((pruned + 1)) ;; esac
-done
+  # Prune links this run no longer installs (skill deleted, or added to SKILLS_SKIP).
+  # Without this the install only ever GROWS: dropping a name leaves that skill loaded
+  # forever, which is what happened when caveman and caveman-commit were dropped on
+  # 2026-09-19 -- they stayed in `opencode debug skill` until swept by hand. Only links
+  # INTO THIS REPO are removed; a real directory, or a link pointing elsewhere, belongs
+  # to another tool and is left.
+  pruned=0
+  for link in "$dest"/*; do
+    [ -L "$link" ] || continue
+    name="$(basename "$link")"
+    if [ -f "$REPO/skills/$name/SKILL.md" ] && ! is_skipped "$name"; then continue; fi
+    target="$(readlink -f "$link" 2>/dev/null || true)"
+    case "$target" in "$REPO/skills/"*) rm "$link"; pruned=$((pruned + 1)) ;; esac
+  done
+  echo "Skills: $installed linked -> $dest/ (pruned $pruned)"
+}
 
-echo "Skills: $installed linked -> $OC_SKILL/"
-if [ "$pruned" -gt 0 ]; then
-  echo "  pruned $pruned stale link(s) no longer named in SKILLS"
-fi
-[ -n "$missing" ] && echo "  WARNING: named in SKILLS but not in skills/:$missing"
+install_skills "$HOME/.config/opencode/skill"
+install_skills "$HOME/.claude/skills"
+
 
 # Vendored third-party plugins. COPIED into ~/.config/opencode/plugins/ (PLURAL) --
 # three separate reasons, none of them style:

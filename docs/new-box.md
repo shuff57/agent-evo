@@ -95,7 +95,7 @@ it the first time you actually need to debug a conflict.
 | Installs | Where | Shape |
 |---|---|---|
 | agents | `~/.config/opencode/agents/` | generated from `roster/*.md` by `bin/gen-agents.mjs` |
-| skills | `~/.config/opencode/skill/` | symlinks, only the six `AGENTS.md` names; stale links pruned |
+| skills | `~/.config/opencode/skill/` + `~/.claude/skills/` | per-skill symlinks; every `skills/<dir>` with a `SKILL.md` (auto-discovered, `SKILLS_SKIP` trims); stale links pruned |
 | team specs | `~/.omo/teams/<name>/` | **copies** — the team loader does not follow a symlinked directory |
 | our plugins | `~/.config/opencode/plugin` | one symlink to `opencode/plugin/` |
 | vendored plugins | `~/.config/opencode/plugins/` | copies from `opencode/vendor/*/`, currently chisle |
@@ -157,11 +157,11 @@ generates one, and it is deliberately untracked (device-local, per the index tab
 
 ```bash
 opencode agent list          # every roster + omo-builtin agent resolves to a model
-opencode debug skill         # the six installed skills show up, none missing
+opencode debug skill         # every linked skill shows up exactly once, no duplicates
 bash test.sh                 # structural + integrity checks
 bun test opencode/tests/routing-contract.test.mjs
 ```
 
-If `opencode debug skill` is short the six names in `sync.sh`'s `SKILLS` list,
-`sync.sh` didn't run after this repo changed, or ran before
-`~/.config/opencode/skill/` existed — re-run it.
+If `opencode debug skill` is missing a skill that has a `skills/<name>/SKILL.md` in
+this repo and is not in `SKILLS_SKIP`, `sync.sh` didn't run after this repo changed —
+re-run it.
