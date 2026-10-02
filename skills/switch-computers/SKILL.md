@@ -1,6 +1,6 @@
 ---
 name: switch-computers
-description: "Park a session so it can be picked up on another machine, or resume one parked elsewhere. PARK writes a handoff note into the message-center box that actually travels between boxes, releases file claims, then commits every tracked/modified/untracked file and pushes. RESUME pulls and reads the note back. Use on 'switching computers', 'switch machines', 'moving to my laptop/desktop', 'park this', 'pack up', 'continuing on the other box', 'I'm on the other computer now', 'pick up where I left off on this machine'."
+description: "Park a session so it can be picked up on another machine, or resume one parked elsewhere. PARK writes a park note into the message-center box that actually travels between boxes, releases file claims, then commits every tracked/modified/untracked file and pushes. RESUME pulls and reads the note back. Use on 'switching computers', 'switch machines', 'moving to my laptop/desktop', 'park this', 'pack up', 'continuing on the other box', 'I'm on the other computer now', 'resume on this machine from the other box'. Not for delegating work to an agent (use handoff)."
 license: MIT
 ---
 

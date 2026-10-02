@@ -1,6 +1,6 @@
 ---
 name: session-reflector
-description: "Capture end-of-session learnings into user-global auto-memory, and write/read HANDOFF.md for cross-context resume. Use when a session ends with durable learnings, when starting a session that left a handoff, or on 'session end'/'save learnings'/'handoff'/'pick up where I left off'. Writes global memory files in the ~/.claude/projects/<slug>/memory/ format. Distinct from the project-local session-reflector that writes .agents/memory/pending/."
+description: "Capture end-of-session learnings into user-global auto-memory, and write/read HANDOFF.md for cross-context resume. Use when a session ends with durable learnings, when starting a session that left a handoff, or on 'session end'/'save learnings'/'write HANDOFF.md'/'resume from HANDOFF.md'. File-based and same-machine: for moving to another computer use switch-computers; to delegate a build to another agent use handoff. Writes global memory files in the ~/.claude/projects/<slug>/memory/ format. Distinct from the project-local session-reflector that writes .agents/memory/pending/."
 license: MIT
 ---
 

@@ -1,10 +1,12 @@
 ---
 name: handoff
 description: >-
-  Dispatch a spec to a nested opencode run with bin/handoff.mjs, and the full
-  catalogue of measured silent failures each of its guards exists for. Use when
-  handing a build to another session, when a dispatched run came back empty or
-  exited 0 having done nothing, or before hand-rolling an `opencode run` launch.
+  Dispatch a build spec to a nested `opencode run` with bin/handoff.mjs (agent
+  to agent delegation, not session resume), and the full catalogue of measured
+  silent failures each of its guards exists for. Use when delegating a build to
+  another agent, when a dispatched run came back empty or exited 0 having done
+  nothing, or before hand-rolling an `opencode run` launch. To resume your own
+  work later use session-reflector (same machine) or switch-computers (another).
 ---
 
 # Handoff
