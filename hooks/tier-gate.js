@@ -269,7 +269,14 @@ try {
   // the notice is once per session, so that phantom spent the budget and the
   // genuinely large write later in the session was met with silence. The
   // unattributed sentinel is not a path and must survive unresolved.
-  const identify = (f) => (f === "<bash:unattributed>" ? f : path.resolve(cwd, f));
+  // The shell expands a leading ~ before the command runs, but the command text
+  // we parse still has it literal; resolve it to HOME or it becomes a phantom
+  // "<cwd>/~/..." file distinct from the absolute path Write/Edit report.
+  const identify = (f) => {
+    if (f === "<bash:unattributed>") return f;
+    if (f === "~" || f.startsWith("~/")) f = path.join(os.homedir(), f.slice(1));
+    return path.resolve(cwd, f);
+  };
   const remember = (f) => {
     const id = identify(f);
     if (!state.files.includes(id)) state.files.push(id);

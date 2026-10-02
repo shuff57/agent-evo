@@ -36,6 +36,13 @@ r = await fire({ session_id: sid, cwd: tmp, tool_name: "Edit", tool_input: { fil
 assert.equal(r.code, 0);
 assert.equal(r.stdout, "", "small edit stays quiet");
 
+// a leading ~ in a Bash redirect is the same file as the absolute path Edit reports
+const sid5 = `${sid}-f`;
+const tildeName = `tg-tilde-${process.pid}.md`;
+await fire({ session_id: sid5, cwd: tmp, tool_name: "Bash", tool_input: { command: `echo hi >> ~/${tildeName}` } });
+r = await fire({ session_id: sid5, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(os.homedir(), tildeName), new_string: "x" } });
+assert.equal(r.stdout, "", "~/f via Bash and /home/u/f via Edit are one file, not two");
+
 const big = Array.from({ length: 22 }, (_, i) => `line ${i}`).join("\n"); // 21 newlines
 r = await fire({ session_id: sid, cwd: tmp, tool_name: "Write", tool_input: { file_path: path.join(tmp, "big.js"), content: big } });
 assert.equal(r.code, 0);
@@ -79,7 +86,7 @@ await fire({ session_id: sid4, cwd: tmp, tool_name: "Edit", tool_input: { file_p
 r = await fire({ session_id: sid4, cwd: tmp2, tool_name: "Edit", tool_input: { file_path: path.join(tmp2, "a.js"), new_string: "x" } });
 assert.equal(r.stdout, "", "same session, different cwd: fresh counter (a.js is file #1 there)");
 
-console.log("PASS: tier-gate hook — 12 behavioral checks");
+console.log("PASS: tier-gate hook — 13 behavioral checks");
 // cleanup our test state files
 for (const f of fs.readdirSync(STATE)) {
   if (f.startsWith(sid)) fs.rmSync(path.join(STATE, f));
