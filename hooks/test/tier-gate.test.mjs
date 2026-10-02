@@ -54,18 +54,20 @@ r = await fire({ session_id: sid, cwd: tmp, tool_name: "Edit", tool_input: { fil
 assert.equal(r.stdout, "", "already announced: quiet for rest of session");
 
 const sid2 = `${sid}-b`;
-for (const name of ["a.js", "b.js", "c.js"]) {
+// FILE_THRESHOLD is 2: the first file is quiet, the second crosses it.
+for (const name of ["a.js", "b.js"]) {
   r = await fire({ session_id: sid2, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, name), new_string: "one line" } });
+  if (name === "a.js") assert.equal(r.stdout, "", "first file quiet");
 }
-assert.match(JSON.parse(r.stdout).hookSpecificOutput.additionalContext, /3 files/);
+assert.match(JSON.parse(r.stdout).hookSpecificOutput.additionalContext, /2 files/);
 
 r = await fire({ session_id: sid2, cwd: tmp, tool_name: "Write", tool_input: { file_path: path.join(tmp, "x.js"), content: "tiny" } });
 assert.equal(r.stdout, "", "sid2 announced already");
 
 const sid3 = `${sid}-c`;
-for (const name of ["a.js", "b.js"]) {
-  r = await fire({ session_id: sid3, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, name), new_string: "x" } });
-  assert.equal(r.stdout, "", `${name} quiet`);
+for (const n of [1, 2, 3]) {
+  r = await fire({ session_id: sid3, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "a.js"), new_string: "x" } });
+  assert.equal(r.stdout, "", `same file edited ${n}x counts once: quiet`);
 }
 
 r = await fire({ session_id: `${sid}-d`, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "a.js"), new_string: "x" } }, { CLAUDE_AGENT_ID: "sisyphus-junior" });
@@ -82,9 +84,8 @@ assert.equal(r.stdout, "", "bad json: no output");
 const sid4 = `${sid}-e`;
 const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), "tg2-"));
 await fire({ session_id: sid4, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "a.js"), new_string: "x" } });
-await fire({ session_id: sid4, cwd: tmp, tool_name: "Edit", tool_input: { file_path: path.join(tmp, "b.js"), new_string: "x" } });
 r = await fire({ session_id: sid4, cwd: tmp2, tool_name: "Edit", tool_input: { file_path: path.join(tmp2, "a.js"), new_string: "x" } });
-assert.equal(r.stdout, "", "same session, different cwd: fresh counter (a.js is file #1 there)");
+assert.equal(r.stdout, "", "same session, different cwd: fresh counter (each cwd has one file; shared counter would hit 2)");
 
 console.log("PASS: tier-gate hook — 13 behavioral checks");
 // cleanup our test state files
