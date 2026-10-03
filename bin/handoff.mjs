@@ -106,10 +106,10 @@ const get = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1
 const specArg = get('--spec');
 const model = get('--model') || DEFAULT_MODEL;
 const note = get('--note') || '';
-// Reasoning effort, passed straight through as opencode's `--variant`. AGENTS.md
-// documents the flag on the agent route (`opencode run --agent X -m Y --variant Z`)
-// and this wrapper had no way to reach it, which left "dispatch at max effort" as
-// a reason to hand-roll the launch -- the one thing this file exists to prevent.
+// Reasoning effort. opencode 2.0 dropped `--variant`; it now rides on the model id as
+// `-m provider/model#variant` (this flag stays `--variant` and is folded in at launch).
+// Without it, "dispatch at max effort" would be a reason to hand-roll the launch -- the
+// one thing this file exists to prevent. Note cheaper-inference offers low/medium/high.
 const variant = get('--variant');
 
 if (!specArg) {
@@ -229,7 +229,7 @@ if (args.includes('--detach')) {
   // idle write here would race the detached run and lie about it. The run's own sidecar (or
   // the stale window) owns the transition back.
   heartbeat(STATUS.BUSY);
-  const child = spawn('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
+  const child = spawn('opencode', ['run', shellSafePrompt, '--auto', '-m', variant ? `${model}#${variant}` : model], {
     shell: true,
     detached: true,
     stdio: 'ignore',
@@ -243,7 +243,7 @@ if (args.includes('--detach')) {
 }
 
 heartbeat(STATUS.BUSY);
-const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', model, ...(variant ? ['--variant', variant] : [])], {
+const run = spawnSync('opencode', ['run', shellSafePrompt, '--auto', '-m', variant ? `${model}#${variant}` : model], {
   stdio: 'inherit',
   shell: true,
   env,

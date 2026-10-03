@@ -92,8 +92,11 @@ function splitSpawn(spec) {
 // ---------------------------------------------------------------- emit
 
 function forwarderStub(a, spawn) {
-  const variantFlag = spawn.variant ? ` --variant ${spawn.variant}` : '';
-  const cmd = `opencode run "<task>" --agent ${a.name} -m ${spawn.model}${variantFlag} --auto --dir "$(pwd)"`;
+  // opencode 2.0: no --variant and no --dir on `run`. Effort rides on the model as
+  // `provider/model#variant`, and the cwd is inherited. The custom cheaper-inference
+  // provider offers low/medium/high (not max), so roster `@max` maps to `#high`.
+  const eff = spawn.variant === 'max' ? 'high' : spawn.variant;
+  const cmd = `opencode run "<task>" --agent ${a.name} -m ${spawn.model}${eff ? '#' + eff : ''} --auto`;
   // Carry the roster frontmatter verbatim; override only what must change.
   // The wrapper runs on haiku regardless of what the agent itself needs.
   let blocks = chunk(a.fm);
@@ -255,7 +258,7 @@ for (const a of agents) {
     }
     wroteClaude++; wroteOpencode++;
     console.log(`  ${a.name.padEnd(22)} -> opencode run --agent ${a.name} -m ${spawn.model}` +
-                (spawn.variant ? ` --variant ${spawn.variant}` : ''));
+                (spawn.variant ? `#${spawn.variant === 'max' ? 'high' : spawn.variant}` : ''));
   }
 }
 
