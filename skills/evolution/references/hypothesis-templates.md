@@ -29,7 +29,7 @@ PROPOSED EDIT:
 PREDICTED OUTCOME: rephrase_rate for [agent X] drops below 0.1 within 2 sessions.
   Users no longer need to manually invoke [agent X] by name.
 
-CONFIDENCE: [HIGH if 5/5 sessions | MEDIUM if 3-4/5 | LOW if 1-2/5]
+CONFIDENCE: [per SKILL.md Phase 3 rubric]
 ```
 
 ---

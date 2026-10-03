@@ -182,6 +182,7 @@ Check skill adoption status:
 | `stub` | Created by evolver, body not yet completed |
 | `pending_review` | Human is reviewing — do not mutate |
 | `active` | Body completed, skill is in use |
+| `stale_stub` | Pending 5+ sessions; awaiting a human decision to activate or reject |
 | `rejected` | Human decided not to activate — archive the stub |
 | `deprecated` | Skill was active but is no longer needed |
 

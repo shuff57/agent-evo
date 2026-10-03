@@ -44,10 +44,10 @@ Key metric fields to extract per session entry:
 - `skill_loads` — which skills were loaded, in order
 - `manual_repetitions` — patterns the user performed manually 3+ times
 
-If `summary.jsonl` does not exist or has fewer than 2 entries, output:
+If `summary.jsonl` does not exist or has fewer than `min_entries_for_run` entries (`calibration.md`), output:
 
 ```
-Insufficient data for evolution. Need at least 2 sessions in _workspace/_metrics/summary.jsonl.
+Insufficient data for evolution. Need at least <min_entries_for_run> sessions in _workspace/_metrics/summary.jsonl.
 ```
 
 And stop. Do not propose mutations based on a single session.
@@ -85,7 +85,7 @@ For each flagged agent or skill, assign exactly one divergence type. When severa
 | INCOMPLETE | Correct agent selected but task partially fails or requires a second pass |
 | MISLEADING | Wrong agent selected initially, user switches to correct one |
 | INEFFICIENT | Task succeeds but agent_switches > 0 before final success, or extra hops |
-| STRUCTURAL | Agent succeeds at task but always must delegate what it could own |
+| STRUCTURAL | Agent attempts work it should delegate (no delegation rule covers it) |
 | SKILL_GAP | Repeated manual pattern with no matching skill |
 | SKILL_STALE | Skill loads but trigger condition no longer matches actual invocations |
 | SKILL_WEAK | Skill loads, task begins, but user corrects or abandons mid-skill |
@@ -167,7 +167,7 @@ Before finalizing any proposed edit, verify:
 
 ```
 1. Read the target file
-2. Apply the change with the Edit tool (Write for a whole-file rewrite)
+2. Apply the change with the Edit tool (Write only to create a new file, e.g. a stub)
 3. Re-read the changed region and confirm the text actually differs
 4. Append log entry to _workspace/_evolution_log.jsonl
 ```
@@ -201,7 +201,7 @@ For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 | No plugin edits | Never edit `.ts` or `.js` files |
 | No pinned edits | Never edit files with `pinned: true` in frontmatter |
 | Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md. Sole exception: `skills/_archived/<name>/` holds rejected stubs and is intentionally not discovered |
-| Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). Flag for removal; don't let empty stubs accrete |
+| Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). A stub with no frontmatter to carry an age is flagged for removal directly. Don't let empty stubs accrete |
 | No Tier-3 edits | Never edit files with `tier: 3` in frontmatter |
 | Mutation caps | Max 3 agent mutations + 2 skill mutations per session. Skill improvements and adoption state changes count; new stubs and audits do not (see `skill-evolution-protocol.md`) |
 | Model-agnostic | All edits must work on cheap models, not just Claude |
