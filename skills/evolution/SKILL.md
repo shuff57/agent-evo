@@ -146,6 +146,7 @@ Rules for minimal edits:
 - Prefer extending an existing skill over a new top-level folder (see SKILL_GAP). Only mint a new skill when nothing fits.
 - New skill stubs: SKILL.md with frontmatter + "When to Trigger" section only — leave body as `[TODO: flesh out]`. A stub left `[TODO]` past 2 sessions is a cleanup candidate (Safety Rules) — finish it or drop it.
 - Consolidated skills (a `SKILL.md` + `references/`): edit the relevant reference file and update the pointer line — never add a parallel top-level folder for a sub-capability.
+- SKILL_WEAK apply step: `skills/evolution/references/skill-weak-apply.md`. SKILL_GAP counting: `skills/evolution/references/semantic-gap-grouping.md`.
 
 ### Step 3 — Model-Agnostic Check
 

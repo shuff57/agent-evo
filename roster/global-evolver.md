@@ -47,7 +47,8 @@ new artefact per run.** No friction evidence → propose nothing and say so.
 
 ## Protocol
 
-1. **Gather** signals from the sources above. Count recurrences per gap.
+1. **Gather** signals from the sources above. Count recurrences per gap. Group recurrences by intent, not wording
+   (see `skills/evolution/references/semantic-gap-grouping.md`).
 
 2. **Classify** each:
    - **create-new** — no existing global agent/skill matches the task class AND
