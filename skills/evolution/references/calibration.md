@@ -267,7 +267,7 @@ to add an 8th, evolver-meta must prune the least-validated one.
 
 ## Scoring a prediction: run the count, don't reconstruct it
 
-`scripts/prediction_status.py` (beside this file) answers the one question
+`scripts/prediction_status.py` (in `../scripts/`) answers the one question
 every reconciliation turns on — **how many real, non-skeleton sessions have
 landed since this mutation** — for every PENDING row in both logs at once:
 
@@ -279,15 +279,15 @@ VALIDATED vs MISSED stays a judgment call on evidence.
 
 Run it BEFORE diagnosing "unmeasurable predictions". That pathology has been
 diagnosed repeatedly while the underlying obstacle was cost, not
-falsifiability: hand-counting the denominator across a 289-entry evolution
-log, a 60-entry meta log and a 69-row session index is archaeology, so it gets
+falsifiability: hand-counting the denominator across a several-hundred-entry
+evolution log, a meta log and a session index is archaeology, so it gets
 deferred and the row stays PENDING. On 2026-08-08 the script's first run found
 **7 predictions already past their window** and sitting unreconciled, against
 1 that genuinely could not be scored yet.
 
 Read `skeleton` from the session row; never infer it. Skeleton rows carry a
 `notes` string explaining that they are skeletons, so any "does it have notes"
-heuristic counts all 69 rows as real when 41 are autolog placeholders — an
+heuristic counts every row as real when a large share are autolog placeholders — an
 error that inflates every window and makes stuck predictions look satisfied.
 
 ## Change history

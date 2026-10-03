@@ -180,7 +180,7 @@ Use `Edit` in place, never write-to-`.tmp`-then-rename. `Edit` fails loudly when
 
 ## Phase 5 — Prior Evolution Reconciliation
 
-For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
+For each entry in `_evolution_log.jsonl` with a `predicted_outcome`, no `actual_outcome`, and `status` of `PENDING`, `APPLIED` or `MONITORING` (in practice mutations are logged as `APPLIED`/`MONITORING`, so scanning only `PENDING` misses them):
 
 1. Check whether enough domain-relevant sessions have passed (`min_sessions_post_mutation` in `calibration.md`; heuristics 3-6 there refine the window). Run `python ~/.claude/skills/evolution/scripts/prediction_status.py` to get the count for every PENDING row at once; it assigns no verdicts
 2. Compare predicted_outcome to current signals for the mutated agent/skill
