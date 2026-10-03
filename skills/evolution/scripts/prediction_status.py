@@ -33,7 +33,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_WORKSPACE = Path.cwd() / "_workspace"
@@ -54,7 +54,11 @@ def calibrated_min_sessions() -> int:
     except OSError:
         return FALLBACK_MIN_SESSIONS
     m = re.search(r"^\|\s*min_sessions_post_mutation\s*\|\s*(\d+)\s*\|", text, re.M)
-    return int(m.group(1)) if m else FALLBACK_MIN_SESSIONS
+    if not m:
+        print("warning: min_sessions_post_mutation not found in calibration.md; "
+              f"using {FALLBACK_MIN_SESSIONS}", file=sys.stderr)
+        return FALLBACK_MIN_SESSIONS
+    return max(1, min(4, int(m.group(1))))  # hard bounds 1-4 per calibration.md
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -76,9 +80,12 @@ def parse_ts(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         return None
+    # Mixed naive/aware timestamps would raise TypeError when compared; treat
+    # a missing timezone as UTC so one bad row cannot kill the report.
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 def is_real_session(row: dict) -> bool:
@@ -105,7 +112,7 @@ def real_sessions_since(sessions: list[dict], when: datetime) -> list[str]:
     return out
 
 
-SCOREABLE_STATUSES = {"PENDING", "APPLIED", "MONITORING"}
+SCOREABLE_STATUSES = {"PENDING", "APPLIED", "MONITORING", "INSUFFICIENT_DATA"}
 
 
 def collect_pending(rows: list[dict], source: str) -> list[dict]:

@@ -59,8 +59,8 @@ For each agent in `roster/`:
 For each skill in `skills/`:
 1. Examine load frequency, abandonment rate, and post-load correction signals
 2. Classify divergences
-3. For skills with SKILL_GAP: extend an existing skill if one fits, else propose a new stub; either only if the pattern repeats in at least `skill_edit_min_sessions` sessions (`calibration.md`)
-4. For skills with SKILL_STALE or SKILL_WEAK: propose minimal SKILL.md edits
+3. For skills with SKILL_GAP: extend an existing skill if one fits, else create a new stub per the evolution skill; either only if the pattern repeats in at least `skill_edit_min_sessions` sessions (`calibration.md`). Below the gate, report it as a proposal only: no file is written
+4. For skills with SKILL_STALE or SKILL_WEAK: propose minimal SKILL.md edits (applied only if the signal also meets `skill_edit_min_sessions`; otherwise report only)
 5. For SKILL_EXTERNAL: flag for human review, do not auto-mutate
 6. Cap: maximum 2 skill mutations per session
 
@@ -110,7 +110,7 @@ Templates: `skills/evolution/references/hypothesis-templates.md`
 When confidence is MEDIUM or HIGH and the mutation is within caps:
 
 1. Read the target file
-2. Apply the change with the `Edit` tool (or `Write` for a whole-file rewrite)
+2. Apply the change with the `Edit` tool (`Write` only to create a new file, such as a stub)
 3. Re-read the changed region and confirm the text is actually different
 4. Append a log entry to `_workspace/_evolution_log.jsonl`:
 
