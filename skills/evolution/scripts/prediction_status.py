@@ -31,14 +31,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
 
 DEFAULT_WORKSPACE = Path.cwd() / "_workspace"
 # Heuristic #6 reconciles a non-recurrence entry at 2x the base window.
-DEFAULT_MIN_SESSIONS = 2
+FALLBACK_MIN_SESSIONS = 2
 NON_RECURRENCE_MULTIPLIER = 2
+CALIBRATION = Path(__file__).resolve().parent.parent / "references" / "calibration.md"
+
+
+def calibrated_min_sessions() -> int:
+    """Read `min_sessions_post_mutation` from calibration.md's Tunables table.
+
+    Falls back to FALLBACK_MIN_SESSIONS if the file or row is missing, so the
+    script still runs standalone. --min-sessions overrides both.
+    """
+    try:
+        text = CALIBRATION.read_text(encoding="utf-8")
+    except OSError:
+        return FALLBACK_MIN_SESSIONS
+    m = re.search(r"^\|\s*min_sessions_post_mutation\s*\|\s*(\d+)\s*\|", text, re.M)
+    return int(m.group(1)) if m else FALLBACK_MIN_SESSIONS
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -97,13 +113,12 @@ def collect_pending(rows: list[dict], source: str) -> list[dict]:
 
     The evolver's own write template names "PENDING" as the initial status,
     but in practice every mutation in this log's history has been logged
-    directly as APPLIED or MONITORING instead (calibration.md heuristic #5,
-    added 2026-08-16: 0/201 predicted-outcome rows ever carried literal
-    PENDING). Scanning only PENDING made this script's "nothing to
+    directly as APPLIED or MONITORING instead (0/201 predicted-outcome rows
+    ever carried literal PENDING when this was checked). Scanning only PENDING made this script's "nothing to
     reconcile" report silently correct on a technicality while 100+ rows
     with a predicted_outcome and no actual_outcome sat outside its view.
-    Widened per heuristic #5's explicit request so the report matches what
-    reconciliation is actually supposed to cover.
+    Widened so the report matches what reconciliation is actually supposed
+    to cover.
     """
     pending = []
     for idx, row in enumerate(rows):
@@ -128,9 +143,12 @@ def collect_pending(rows: list[dict], source: str) -> list[dict]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
-    ap.add_argument("--min-sessions", type=int, default=DEFAULT_MIN_SESSIONS)
+    ap.add_argument("--min-sessions", type=int, default=None,
+                    help="base window; default: min_sessions_post_mutation from calibration.md")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
+    if args.min_sessions is None:
+        args.min_sessions = calibrated_min_sessions()
 
     ws = args.workspace
     sessions = read_jsonl(ws / "_metrics" / "summary.jsonl")
