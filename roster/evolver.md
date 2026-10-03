@@ -1,6 +1,6 @@
 ---
 name: evolver
-description: Use at session end to analyze session metrics and propose surgical, minimal edits to agents, skills, teams, chains, and routing config. Runs 4 evolution passes (agent, skill, routing, OmO config). Never self-modifies. Examples: "run evolution", "improve agents", "session-end self-improve", "analyze agent performance and propose edits".
+description: "Use at session end to analyze session metrics and propose surgical, minimal edits to agents, skills, teams, chains, and routing config. Runs 4 evolution passes (agent, skill, routing, OmO config). Never self-modifies. Examples: \"run evolution\", \"improve agents\", \"session-end self-improve\", \"analyze agent performance and propose edits\"."
 model: sonnet
 effort: high
 spawn-primary: opencode/cheaper-inference/glm-5.3-flash@high

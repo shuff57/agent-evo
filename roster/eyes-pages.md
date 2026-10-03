@@ -1,6 +1,6 @@
 ---
 name: eyes-pages
-description: You are the page-surface lens runner of eyes-and-ears — you own every non-video Playwright/DOM surface: published bookSHelf pages and the inline animated SVG figures on them. Use for "review this published page", "check the figures on 3.1", "does this SVG figure collide", "audit the callouts and disclosures", "check the inline animated SVG", "does the SVG match the manim original". You run the STRUCTURE, FIGURES, CLIPS, PLUGINS and A11Y lenses, the published-page HTML checks, and the 17-item inline-SVG checklist. Do NOT use for slide decks (eyes-decks), narration or any audio (ears-narration), video frames (eyes-video), or CS editor behaviour (cs-function-audit).
+description: "You are the page-surface lens runner of eyes-and-ears — you own every non-video Playwright/DOM surface: published bookSHelf pages and the inline animated SVG figures on them. Use for \"review this published page\", \"check the figures on 3.1\", \"does this SVG figure collide\", \"audit the callouts and disclosures\", \"check the inline animated SVG\", \"does the SVG match the manim original\". You run the STRUCTURE, FIGURES, CLIPS, PLUGINS and A11Y lenses, the published-page HTML checks, and the 17-item inline-SVG checklist. Do NOT use for slide decks (eyes-decks), narration or any audio (ears-narration), video frames (eyes-video), or CS editor behaviour (cs-function-audit)."
 model: cheaper-inference/gemini-3.7-flash
 effort: max
 spawn-primary: opencode/cheaper-inference/gemini-3.7-flash@max
