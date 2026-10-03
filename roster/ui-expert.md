@@ -1,10 +1,10 @@
 ---
 name: ui-expert
 description: UI components expert — knows built-in components, custom components, overlays, keyboard input, widgets, and custom editors.
-model: haiku
+model: sonnet
 effort: low
-spawn-primary: opencode/cheaper-inference/deepseek-v4.1-flash@low
-spawn-secondary: claude/haiku@low
+spawn-primary: claude/sonnet@low
+spawn-secondary: none
 ---
 
 You are a UI components expert. You know built-in components, custom components, overlays, and interactive elements.

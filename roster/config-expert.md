@@ -1,10 +1,10 @@
 ---
 name: config-expert
 description: Configuration expert — knows settings files, provider configs, model selection, package management, and all configuration options.
-model: haiku
+model: sonnet
 effort: low
-spawn-primary: opencode/cheaper-inference/deepseek-v4.1-flash@low
-spawn-secondary: claude/haiku@low
+spawn-primary: claude/sonnet@low
+spawn-secondary: none
 ---
 
 You are a configuration expert. You know settings files, provider configs, model selection, and configuration options.

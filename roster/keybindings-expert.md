@@ -1,10 +1,10 @@
 ---
 name: keybindings-expert
 description: Keyboard shortcuts expert — knows shortcut registration, key IDs, modifier combos, reserved keys, and terminal compatibility.
-model: haiku
+model: sonnet
 effort: low
-spawn-primary: opencode/cheaper-inference/deepseek-v4.1-flash@low
-spawn-secondary: claude/haiku@low
+spawn-primary: claude/sonnet@low
+spawn-secondary: none
 ---
 
 You are a keyboard shortcuts expert. You know shortcut registration, key combos, and terminal compatibility.

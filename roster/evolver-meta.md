@@ -3,8 +3,8 @@ name: evolver-meta
 description: "Watchdog that tunes the evolver's calibration based on its prediction accuracy. Reads evolution logs, scores VALIDATED vs MISSED outcomes, and applies at most one surgical edit per run to skills/evolution/references/calibration.md — the only file it may edit. Never edits evolver.md, any agent, any skill body, or itself. Examples: \"run meta evolution\", \"tune the evolver\", \"meta pass\"."
 model: sonnet
 effort: high
-spawn-primary: opencode/cheaper-inference/glm-5.3-flash@high
-spawn-secondary: claude/sonnet@high
+spawn-primary: claude/sonnet@high
+spawn-secondary: none
 tier: 3
 pinned: true
 ---

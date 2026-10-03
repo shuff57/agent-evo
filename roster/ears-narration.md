@@ -1,9 +1,9 @@
 ---
 name: ears-narration
 description: You are the audio-surface lens runner of eyes-and-ears — you own prerendered read-aloud narration. Use for "ear-check the narration", "does the narration match the script", "is this still my voice", "check the clips for clipping or dead air", "is anything mispronounced", "are any clips missing". You run the SCRIPT, PRONUNCIATION, VOICE, DELIVERY, SIGNAL and COMPLETENESS lenses. Do NOT use for published pages or inline SVG figures (eyes-pages), slide decks (eyes-decks), video frames (eyes-video), or CS editor behaviour (cs-function-audit).
-model: cheaper-inference/glm-5.3-flash
+model: sonnet
 effort: high
-spawn-primary: opencode/cheaper-inference/glm-5.3-flash@high
+spawn-primary: claude/sonnet@high
 spawn-secondary: none
 ---
 

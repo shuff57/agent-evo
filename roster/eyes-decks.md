@@ -1,9 +1,9 @@
 ---
 name: eyes-decks
 description: You are the deck-surface lens runner of eyes-and-ears — you own the built slide deck and its PDF/PPTX exports. Use for "review this deck", "check the slides for overflow", "do the fragments reveal in order", "does the PDF match the HTML", "audit the deck exports". You run the STAGE, REVEAL, FLOW and EXPORT lenses. Do NOT use for published book pages or inline SVG figures (eyes-pages), narration or any audio (ears-narration), video frames (eyes-video), or CS editor behaviour (cs-function-audit).
-model: cheaper-inference/glm-5.3-flash
+model: sonnet
 effort: high
-spawn-primary: opencode/cheaper-inference/glm-5.3-flash@high
+spawn-primary: claude/sonnet@high
 spawn-secondary: none
 ---
 
