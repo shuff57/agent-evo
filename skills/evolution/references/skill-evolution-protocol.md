@@ -85,6 +85,20 @@ Pattern steps:
 Action required: Review the stub, complete the body instructions, and activate.
 ```
 
+### Propose-Only Output (skill edit or SKILL_GAP below the gate, or LOW confidence)
+
+A proposal that is not applied writes no file. Report it, and log it with `status: "PROPOSED_HUMAN_REVIEW"` (below `skill_edit_min_sessions`) or `"FLAGGED_LOW_CONFIDENCE"` (LOW confidence). Neither status is scanned by Phase 5 or `prediction_status.py`, so a proposal is never scored as a mutation. It does not consume the skill cap.
+
+```
+SKILL PROPOSAL — NOT APPLIED
+Target: skills/[skill-name]/[SKILL.md | references/new-file.md]
+Divergence: [SKILL_STALE | SKILL_WEAK | SKILL_GAP]
+Why not applied: [below skill_edit_min_sessions (K of N) | LOW confidence]
+Proposed change: [one sentence]
+Predicted outcome: [measurable improvement]
+Log entry: _workspace/_evolution_log.jsonl @ [timestamp], status [PROPOSED_HUMAN_REVIEW | FLAGGED_LOW_CONFIDENCE]
+```
+
 ### Stub SKILL.md Template
 
 The evolver creates stubs with this structure:
@@ -94,6 +108,7 @@ The evolver creates stubs with this structure:
 name: [skill-name]
 description: [1-2 sentences covering the task domain and key trigger phrases]
 status: stub
+created: [YYYY-MM-DD]
 ---
 
 # [Skill Name]
@@ -189,6 +204,8 @@ Check skill adoption status:
 The `status` field in the skill's frontmatter tracks this state.
 
 ### Escalation Rules
+
+A stub's age is the number of `summary.jsonl` sessions dated after its `created` date. A stub with no `created` field cannot be aged; flag it for a human decision.
 
 | Condition | Action |
 |-----------|--------|

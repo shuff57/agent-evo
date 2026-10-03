@@ -201,14 +201,14 @@ For each entry in `_evolution_log.jsonl` with a `predicted_outcome`, no `actual_
 | No plugin edits | Never edit `.ts` or `.js` files |
 | No pinned edits | Never edit files with `pinned: true` in frontmatter |
 | Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md. Sole exception: `skills/_archived/<name>/` holds rejected stubs and is intentionally not discovered |
-| Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). A stub with no frontmatter to carry an age is flagged for removal directly. Don't let empty stubs accrete |
+| Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). A stub with no `created` date cannot be aged and is flagged for a human decision. Don't let empty stubs accrete |
 | No Tier-3 edits | Never edit files with `tier: 3` in frontmatter |
 | Mutation caps | Owned here (`roster/evolver.md` restates them; this table wins). Max 3 agent mutations + 2 skill mutations per session. Skill improvements (including SKILL_GAP extensions) and adoption state changes count; new stubs and audits do not (see `skill-evolution-protocol.md`) |
 | Model-agnostic | All edits must work on cheap models, not just Claude |
 | LOW confidence | Propose but do not apply — flag for human review |
 | SKILL_EXTERNAL | Flag only — do not mutate |
 | Verify every write | Edit in place, then re-read and confirm the text changed. The write tool's success message is not evidence (Phase 4, Step 4) |
-| Log everything | Every mutation (applied or proposed) goes in evolution_log.jsonl |
+| Log everything | Every mutation goes in evolution_log.jsonl. Applied: `APPLIED`. Not applied: `PROPOSED_HUMAN_REVIEW` (below the skill gate) or `FLAGGED_LOW_CONFIDENCE` (LOW), using the Propose-Only Output format in `skill-evolution-protocol.md`. Those two statuses are never reconciled |
 
 ---
 
