@@ -6,7 +6,7 @@ Templates for generating evolution hypotheses. Each template maps an observed si
 
 ## Template: STALE
 
-**Use when:** rephrase_rate >= 0.25 across 3+ sessions; correct agent handles task but routing fails first.
+**Use when:** rephrase_rate meets `signal_flag_threshold` across `min_sessions_for_flag` sessions (`calibration.md`); correct agent handles task but routing fails first.
 
 ```
 OBSERVATION: [Agent X] has rephrase_rate [N] across [K] of 5 sessions. Users successfully
@@ -175,7 +175,7 @@ HYPOTHESIS: This is a repeating workflow with no corresponding skill. Users exec
   is stable enough ([K] sessions, same steps) to justify creating a skill stub.
 
 PROPOSED EDIT:
-  Action: Create new skill stub
+  Action: Extend an existing skill (add `references/*.md` + pointer line) if one fits; otherwise create a new skill stub
   File: skills/[proposed-skill-name]/SKILL.md
   Content: frontmatter (name, description) + "When to Trigger" section.
   Body: [TODO: flesh out — document the observed manual steps as a starting checklist]
@@ -185,7 +185,7 @@ PROPOSED EDIT:
 PREDICTED OUTCOME: manual_pattern_frequency for this sequence drops to 0 within 3 sessions
   as the skill auto-loads and guides the workflow.
 
-CONFIDENCE: [HIGH if K >= 4 | MEDIUM if K = 3 | LOW if K < 3]
+CONFIDENCE: [per SKILL.md Phase 3 rubric; creating a skill also needs the K >= 3 gate in skill-evolution-protocol.md]
 ```
 
 ---
@@ -251,10 +251,6 @@ CONFIDENCE: [HIGH | MEDIUM | LOW]
 
 ## Confidence Calibration Reference
 
-| Confidence | Criteria |
-|-----------|---------|
-| HIGH | Signal present in 5/5 analyzed sessions. Same divergence type each time. Pattern is identical or near-identical across sessions. |
-| MEDIUM | Signal present in 3-4/5 sessions. Same divergence type. Minor variation in pattern (different phrasings of same underlying issue). |
-| LOW | Signal present in 1-2 sessions. Or: divergence type varies across sessions. Or: signal is present but weak (rate < 0.15). |
+The rubric lives in SKILL.md Phase 3 (counts from `calibration.md`). It is not restated here.
 
 LOW confidence: output the proposal, do not apply the mutation. Mark as "FLAGGED FOR HUMAN REVIEW."

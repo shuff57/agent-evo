@@ -1,16 +1,18 @@
 ---
 name: evolution
-description: Evolution protocol for the evolver agent. Covers divergence classification, hypothesis generation, surgical edit protocol, safety rules, and rollback awareness. Load this skill whenever running agent/skill/routing/config evolution.
+description: This skill should be used when the evolver agent runs agent, skill, routing or config evolution, or when the user says "run evolution", "evolve", "improve agents" or "self-improve". It covers divergence classification, hypothesis templates, the surgical edit protocol, safety rules, calibration thresholds and rollback.
 ---
 
 # Evolution Skill
 
-This skill defines the full protocol the evolver agent follows when analyzing session metrics and proposing improvements to the agent system. It is also the reference for any human operator reviewing or auditing evolution activity.
+This skill defines the protocol the evolver agent follows when analyzing session metrics and proposing improvements to the agent system.
+
+Single-source rule: `SKILL.md` owns the procedure (write method, approval, caps, stub handling). `references/calibration.md` owns every tunable number (flag threshold, session counts, confidence bars). Reference files point back here or to a calibration key; they do not restate numbers.
 
 ## When to Trigger
 
 Load this skill when:
-- The user says "evolve", "improve agents", "self-improve", "optimize", or "run evolution"
+- The user says "evolve", "improve agents", "self-improve", or "run evolution"
 - A session-end hook invokes the evolver agent
 - A human operator asks "what would the evolver change?"
 - Reviewing or auditing `_workspace/_evolution_log.jsonl`
@@ -18,7 +20,7 @@ Load this skill when:
 Do not trigger for:
 - General code improvements (use simplify or `task(category="quick")`)
 - Feature planning (use `prometheus` or `oracle`)
-- Debugging individual agent failures (use the `debugging` skill)
+- Debugging a single agent failure (that is a debugging task, not an evolution pass)
 
 ---
 
@@ -26,12 +28,12 @@ Do not trigger for:
 
 Before any analysis, load:
 
-1. `~/.claude/skills/evolution/references/calibration.md` — AUTHORITATIVE tunables and learned heuristics (evolver-meta owned). Values there override the inline defaults quoted in this skill (e.g. the 0.25 flag threshold, the confidence rubric session counts).
+1. `~/.claude/skills/evolution/references/calibration.md` — AUTHORITATIVE tunables and learned heuristics (evolver-meta owned). Its values win over anything stated elsewhere (flag threshold, session counts, confidence bars).
 2. `_workspace/_metrics/summary.jsonl` — read last 5 entries (JSONL, one object per line, sorted by timestamp ascending; take tail 5)
 3. `_workspace/_evolution_log.jsonl` — full history
 4. `_workspace/_metrics/events.jsonl` — live correction/rephrase/friction events (hook-written; may not exist). Corroborates self-reported counts.
 
-**Path pinning (required):** every `_workspace/...` path above resolves relative to the current session's working directory — the project checkout or worktree the invoking session was started in — never a cached, user-global, or other-repo location. This applies even when that working directory is a git worktree rather than the project's primary clone. If a mutated agent/skill/config's home repo differs from the data-source project, state both paths explicitly in the report rather than silently assuming one root. Confirmed failure mode (2026-07-04): a pass resolved `_workspace/` to the user-global agent-evo checkout instead of the invoking bookSHelf worktree and incorrectly reported "insufficient data."
+**Path pinning (required):** every `_workspace/...` path above resolves relative to the current session's working directory — the project checkout or worktree the invoking session was started in — never a cached, user-global, or other-repo location. This holds for git worktrees too. If a mutated agent/skill/config's home repo differs from the data-source project, state both paths explicitly in the report rather than silently assuming one root. (Seen once: a pass read the user-global agent-evo checkout instead of the invoking worktree and wrongly reported "insufficient data".)
 
 Key metric fields to extract per session entry:
 - `agent_id` — which agent handled the task
@@ -69,13 +71,13 @@ Reference signal taxonomy: `skills/evolution/references/signal-taxonomy.md`
 
 When counting `manual_pattern_frequency` or SKILL_GAP recurrences, group by intent, not wording: `skills/evolution/references/semantic-gap-grouping.md`.
 
-Threshold for flagging: any signal >= 0.25 across 3+ sessions triggers classification.
+Flag a signal when it meets `signal_flag_threshold` across `min_sessions_for_flag` sessions (both in `calibration.md`); that triggers classification.
 
 ---
 
 ## Phase 2 — Divergence Classification
 
-For each flagged agent or skill, assign exactly one divergence type. When multiple types fit, prefer the most specific.
+For each flagged agent or skill, assign exactly one divergence type. When several fit, use the Classification Priority order in `skills/evolution/references/divergence-types.md`.
 
 | Code | Signal Pattern |
 |------|---------------|
@@ -84,7 +86,7 @@ For each flagged agent or skill, assign exactly one divergence type. When multip
 | MISLEADING | Wrong agent selected initially, user switches to correct one |
 | INEFFICIENT | Task succeeds but agent_switches > 0 before final success, or extra hops |
 | STRUCTURAL | Agent succeeds at task but always must delegate what it could own |
-| SKILL_GAP | Repeated manual pattern with no matching skill; 3+ sessions |
+| SKILL_GAP | Repeated manual pattern with no matching skill |
 | SKILL_STALE | Skill loads but trigger condition no longer matches actual invocations |
 | SKILL_WEAK | Skill loads, task begins, but user corrects or abandons mid-skill |
 | SKILL_EXTERNAL | Skill failure correlates with external service unavailability |
@@ -108,10 +110,14 @@ PREDICTED OUTCOME: [measurable — e.g., "rephrase_rate drops below 0.1 within 2
 CONFIDENCE: [LOW | MEDIUM | HIGH]
 ```
 
-Confidence rubric:
-- HIGH: signal present in 5/5 sessions, same divergence type each time
-- MEDIUM: signal present in 3-4/5 sessions, same divergence type
-- LOW: signal present in 1-2 sessions, or divergence type varies
+Confidence rubric (counts come from `calibration.md`: `confidence_high_sessions`, `confidence_medium_sessions`):
+- HIGH: same-type signal in at least `confidence_high_sessions` of the last 5 sessions
+- MEDIUM: same-type signal in at least `confidence_medium_sessions` of the last 5
+- LOW: fewer than that, or the divergence type varies
+
+A second, corroborating signal type for the same target may raise the level by one (see Signal Aggregation Rules in `signal-taxonomy.md`); a single signal never does.
+
+Skill creation and edits to existing skills carry an extra gate on top of this rubric, stated in `skill-evolution-protocol.md`.
 
 Templates: `skills/evolution/references/hypothesis-templates.md`
 
@@ -146,7 +152,7 @@ Rules for minimal edits:
 - Remove trigger phrases only if they are demonstrably wrong
 - Body edits: change one paragraph or add one rule at most
 - Prefer extending an existing skill over a new top-level folder (see SKILL_GAP). Only mint a new skill when nothing fits.
-- New skill stubs: SKILL.md with frontmatter + "When to Trigger" section only — leave body as `[TODO: flesh out]`. A stub left `[TODO]` past 2 sessions is a cleanup candidate (Safety Rules) — finish it or drop it.
+- New skill stubs: use the stub template in `skill-evolution-protocol.md` (Capability 2). Its Capability 4 ladder governs how long a stub may sit unfinished.
 - Consolidated skills (a `SKILL.md` + `references/`): edit the relevant reference file and update the pointer line — never add a parallel top-level folder for a sub-capability.
 - SKILL_WEAK apply step: `skills/evolution/references/skill-weak-apply.md`.
 
@@ -166,16 +172,9 @@ Before finalizing any proposed edit, verify:
 4. Append log entry to _workspace/_evolution_log.jsonl
 ```
 
-Step 3 is the load-bearing one, and it is not optional. A success message from
-the write step is not evidence the file changed — that claim has been false in
-this workspace before (2026-08-16: 11 log rows reported as reconciled were all
-still `PENDING` at the field level). Report counts from the re-read only.
+Item 3 (the re-read) is mandatory. A success message from the write step is not evidence the file changed; log rows have been reported as reconciled while still `PENDING` at the field level. Report counts from the re-read only.
 
-This step used to prescribe writing `<target>.tmp` and renaming it over the
-target. No pass ever did it; every one used `Edit` in place. Corrected in favour
-of practice on 2026-08-17 rather than the reverse, because `Edit` fails loudly
-when `old_string` no longer matches — it catches a target that changed underneath
-you, which a blind tmp-then-rename would silently clobber.
+Use `Edit` in place, never write-to-`.tmp`-then-rename. `Edit` fails loudly when `old_string` no longer matches, which catches a target that changed underneath you; a blind rename would clobber it.
 
 ---
 
@@ -183,12 +182,12 @@ you, which a blind tmp-then-rename would silently clobber.
 
 For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 
-1. Check if enough sessions have passed to observe the predicted outcome (minimum 2 sessions post-mutation)
+1. Check whether enough domain-relevant sessions have passed (`min_sessions_post_mutation` in `calibration.md`; heuristics 3-6 there refine the window). Run `python ~/.claude/skills/evolution/scripts/prediction_status.py` to get the count for every PENDING row at once; it assigns no verdicts
 2. Compare predicted_outcome to current signals for the mutated agent/skill
 3. Update the log entry:
    - `status: "VALIDATED"` if signal improved as predicted
    - `status: "MISSED"` if signal did not improve or worsened
-   - `status: "INSUFFICIENT_DATA"` if fewer than 2 sessions post-mutation
+   - `status: "INSUFFICIENT_DATA"` if the window has not elapsed
 4. For MISSED entries: classify the prediction failure and generate a revised hypothesis
 
 ---
@@ -201,14 +200,14 @@ For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 | No meta-domain edits | Never edit `evolver-meta.md` or `skills/evolution/references/calibration.md` — calibration is written only by evolver-meta |
 | No plugin edits | Never edit `.ts` or `.js` files |
 | No pinned edits | Never edit files with `pinned: true` in frontmatter |
-| Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md |
-| Stub hygiene | A skill folder with no `SKILL.md`, or a body still `[TODO]` after 2+ sessions, is a cleanup candidate — flag it for removal; don't let empty stubs accrete |
+| Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md. Sole exception: `skills/_archived/<name>/` holds rejected stubs and is intentionally not discovered |
+| Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). Flag for removal; don't let empty stubs accrete |
 | No Tier-3 edits | Never edit files with `tier: 3` in frontmatter |
-| Mutation caps | Max 3 agent mutations + 2 skill mutations per session |
+| Mutation caps | Max 3 agent mutations + 2 skill mutations per session. Skill improvements and adoption state changes count; new stubs and audits do not (see `skill-evolution-protocol.md`) |
 | Model-agnostic | All edits must work on cheap models, not just Claude |
 | LOW confidence | Propose but do not apply — flag for human review |
 | SKILL_EXTERNAL | Flag only — do not mutate |
-| Verify every write | Edit in place, then re-read and confirm the text changed. The write tool's success message is not evidence — see Step 4 |
+| Verify every write | Edit in place, then re-read and confirm the text changed. The write tool's success message is not evidence (Phase 4, Step 4) |
 | Log everything | Every mutation (applied or proposed) goes in evolution_log.jsonl |
 
 ---
@@ -227,4 +226,4 @@ For this reason: always commit or checkpoint before running evolution in a produ
 When a MISSED outcome is detected, do not immediately apply a counter-mutation. Instead:
 1. Log the miss
 2. Generate a revised hypothesis
-3. Wait for the next session to validate the revised hypothesis has LOW confidence before proposing a new mutation
+3. Treat the revised hypothesis as LOW confidence: propose it, and apply nothing until a later session lifts it past the Phase 3 rubric

@@ -13,7 +13,7 @@ This document defines the 4 skill evolution capabilities: improvement, suggestio
 Apply skill improvement when ALL of the following are true:
 - Divergence type is SKILL_STALE or SKILL_WEAK
 - Confidence is MEDIUM or HIGH
-- Signal is present in 3+ of the last 5 sessions
+- Signal is present in 3+ of the last 5 sessions (an extra gate for editing a skill, on top of the SKILL.md Phase 3 confidence rubric)
 - The skill is not marked `pinned: true` in its frontmatter
 - The proposed edit touches only one section (trigger phrases OR body instructions, not both in the same mutation)
 
@@ -44,13 +44,9 @@ Confidence: [MEDIUM | HIGH]
 Log entry: _workspace/_evolution_log.jsonl @ [timestamp]
 ```
 
-### Atomic Write Procedure
+### Write Procedure
 
-1. Read `skills/[skill]/SKILL.md` into memory
-2. Apply the minimal edit in memory
-3. Write to `skills/[skill]/SKILL.md.tmp`
-4. Rename `skills/[skill]/SKILL.md.tmp` to `skills/[skill]/SKILL.md`
-5. Append log entry with `status: "PENDING"`
+Follow SKILL.md Phase 4, Step 4: read the file, apply the minimal change with `Edit` in place, re-read the changed region to confirm it differs, then append the log entry with `status: "PENDING"`. Do not write a `.tmp` file and rename it.
 
 ---
 
@@ -62,7 +58,7 @@ Log entry: _workspace/_evolution_log.jsonl @ [timestamp]
 
 Propose a new skill when ALL of the following are true:
 - Divergence type is SKILL_GAP
-- The manual pattern repeats in 3+ of the last 5 sessions
+- The manual pattern repeats in 3+ of the last 5 sessions (an extra gate for creating a skill, on top of the SKILL.md Phase 3 confidence rubric)
 - The pattern involves 3 or more sequential steps
 - No existing skill covers the pattern (verified by checking all skill descriptions)
 - The pattern is stable (same steps across sessions, not just coincidentally similar)
@@ -195,7 +191,7 @@ The `status` field in the skill's frontmatter tracks this state.
 
 | Condition | Action |
 |-----------|--------|
-| Stub is 1-2 sessions old | Note in adoption section of evolution report |
+| Stub is 1-2 sessions old | Note in adoption section of evolution report. SKILL.md Safety Rules defer to this ladder for stub age |
 | Stub is 3+ sessions old | Escalate in evolution report: "ACTION REQUIRED — stub has been pending [N] sessions" |
 | Stub is 5+ sessions old | Mark as `status: stale_stub` in frontmatter and flag for human decision: activate or reject |
 | Stub is rejected | Move file to `skills/_archived/[skill-name]/SKILL.md`, log the rejection |
@@ -224,10 +220,10 @@ The `status` field in the skill's frontmatter tracks this state.
 
 Skill evolution capabilities share the session mutation cap with agent evolution:
 
-- Maximum 2 skill mutations per session (Capability 1 — improvements only)
+- Maximum 2 skill mutations per session. Capability 1 improvements and Capability 4 adoption state changes count (see below)
 - New skill stubs (Capability 2) do NOT count against the mutation cap (they are proposals, not mutations, until a human activates them)
 - Skill audit (Capability 3) never counts against the cap (read-only)
-- Skill adoption state changes (Capability 4) count as 1 mutation each (they modify frontmatter)
+- Skill adoption state changes (Capability 4) count as 1 mutation each (they modify frontmatter), so they share the same 2-skill cap as improvements
 
 If the cap is reached mid-session:
 - Stop applying mutations

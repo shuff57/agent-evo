@@ -23,9 +23,9 @@ This reference defines how to detect and interpret implicit user feedback from s
 rephrase_rate = rephrase_count / total_tasks_for_agent
 ```
 
-**Threshold:** rephrase_rate >= 0.25 across 3+ sessions = classify divergence.
+**Threshold:** rephrase_rate meets `signal_flag_threshold` across `min_sessions_for_flag` sessions (`calibration.md`) = classify divergence.
 
-**False positive risk:** Single-session spikes may reflect user unfamiliarity rather than agent description problems. Require 3+ sessions before acting.
+**False positive risk:** Single-session spikes may reflect user unfamiliarity rather than agent description problems. Require `min_sessions_for_flag` sessions before acting.
 
 ---
 
@@ -52,7 +52,7 @@ rephrase_rate = rephrase_count / total_tasks_for_agent
 correction_rate = correction_count / tasks_completed_by_agent
 ```
 
-**Threshold:** correction_rate >= 0.20 for a specific task type across 3+ sessions = classify divergence.
+**Threshold:** correction_rate for a specific task type meets `signal_flag_threshold` across `min_sessions_for_flag` sessions (`calibration.md`) = classify divergence.
 
 **Distinguish from normal iteration:** Some tasks are naturally iterative (creative writing, design). Corrections on those tasks are expected and do not indicate a divergence unless the correction is about a consistent omission.
 
@@ -80,7 +80,7 @@ correction_rate = correction_count / tasks_completed_by_agent
 switch_rate = switches_away_from_agent / tasks_started_with_agent
 ```
 
-**Threshold:** switch_rate >= 0.20 from a specific source agent across 3+ sessions = classify divergence.
+**Threshold:** switch_rate from a specific source agent meets `signal_flag_threshold` across `min_sessions_for_flag` sessions (`calibration.md`) = classify divergence.
 
 **Important:** Track switch destination. If the destination varies randomly, the source agent may have a general quality problem (SKILL_WEAK). If the destination is consistent, the source agent is MISLEADING for that task type.
 
@@ -161,6 +161,6 @@ When combining signals to determine confidence for a hypothesis:
 
 2. **Require consistency** — a signal that appears in 3 sessions but disappears in sessions 4 and 5 may indicate a self-corrected issue. Do not act on it; add a note that it may be recovering.
 
-3. **Cross-reference multiple signals** — a single signal type (e.g., rephrase_rate alone) with HIGH rate is MEDIUM confidence. Two corroborating signal types (rephrase_rate + switch_rate) for the same agent is HIGH confidence.
+3. **Cross-reference multiple signals** — the session-count rubric in SKILL.md Phase 3 sets the base confidence. Two corroborating signal types (e.g. rephrase_rate + switch_rate) for the same agent raise it by one level; a single signal type never does.
 
 4. **Separate task types** — do not average correction_rate across all tasks for an agent. Compute it per task type. An agent can be excellent at its core tasks and INCOMPLETE for a specific edge case.

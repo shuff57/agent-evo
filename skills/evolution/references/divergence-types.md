@@ -114,7 +114,7 @@ This reference defines all 9 divergence types used in the evolution protocol. Ea
 - Divergence: SKILL_GAP — propose a new `skill-updater` skill stub.
 - Fix: create `skills/skill-updater/SKILL.md` with frontmatter and "When to Trigger" section. Mark body as [TODO].
 
-**Target section:** new SKILL.md (create, do not modify existing files)
+**Target section:** extend an existing skill first (`references/*.md` + pointer line) if one fits; create a new SKILL.md stub only when none does
 
 ---
 

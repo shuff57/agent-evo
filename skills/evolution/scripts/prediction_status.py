@@ -21,7 +21,7 @@ Usage
 -----
     python prediction_status.py [--workspace PATH] [--min-sessions N] [--json]
 
---workspace defaults to the bookSHelf workspace. A "skeleton" session row is one
+--workspace defaults to ./_workspace under the current directory. A "skeleton" session row is one
 carrying no real signal (autolog placeholders): no notes, no tasks_handled, and
 no skill_loads. Those must not count toward a post-mutation window -- 38 days of
 them accumulated once and made every window look satisfied.
