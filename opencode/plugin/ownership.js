@@ -6,6 +6,14 @@ import path from "path";
 const MSG = path.join(os.homedir(), ".claude", "bin", "msg.mjs").replace(/\\/g, "/");
 const WRITERS = new Set(["write", "edit", "patch", "multiedit"]);
 
+// opencode ALSO loads ~/.claude/settings.json hooks (its claude-code compat layer),
+// so the PreToolUse `msg.mjs guard` fires in here too. That hook defaults to --as
+// claude, which deadlocks: whichever identity holds a claim, the OTHER guard blocks the
+// write, so a claim becomes a lock the claimant cannot open. The hook reads
+// ${MSGBOX_AS:-claude}, so name this lane's identity in the env its hook subprocesses
+// inherit and both guards agree. Same default as inbox.js's ME.
+process.env.MSGBOX_AS ??= "opencode";
+
 export const Ownership = async ({ directory }) => ({
   "tool.execute.before": async (input, output) => {
     if (!WRITERS.has(String(input.tool).toLowerCase())) return;
