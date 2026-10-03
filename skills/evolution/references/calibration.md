@@ -19,13 +19,15 @@ never edits it. Humans may edit freely.
 | min_sessions_post_mutation | 2 | 1 - 4 | **Domain-relevant** sessions required before a PENDING mutation can be reconciled — a session only counts toward this window if it actually exercised the mutation's target domain/skill/agent. Raw elapsed session count does NOT by itself satisfy this: if N non-relevant sessions have passed and zero relevant ones, the window has not started, not closed. (See heuristic #4's relevance-gap sub-reason, which is the correct label while true, and heuristic #3's "no sessions logged" for when summary.jsonl itself hasn't grown — both are "window not yet open," not "window closed uninformatively.") |
 | confidence_high_sessions | 5 | 4 - 5 | Sessions (of last 5) with same-type signal for HIGH confidence |
 | confidence_medium_sessions | 2 | 2 - 4 | Sessions (of last 5) with same-type signal for MEDIUM confidence |
+| skill_edit_min_sessions | 3 | 2 - 5 | Extra gate on top of the confidence rubric: sessions (of last 5) with same-type signal required before the evolver edits or creates a skill. A MEDIUM/HIGH skill proposal below this is propose-only (Flagged for Human Review) |
 
 Values outside hard bounds are invalid — the evolver must treat an
 out-of-bounds value as the nearest bound and flag it in its report.
 
-NOT tunable (locked in evolver.md safety rules, never moved here):
-mutation caps, pinned/tier-3 protections, no-plugin-edit rule,
-atomic-write protocol, LOW-confidence-propose-only rule.
+NOT tunable (never moved here): pinned/tier-3 protections, no-plugin-edit
+rule, the edit-in-place-then-verify write rule, LOW-confidence-propose-only
+rule. Mutation caps are owned by SKILL.md Safety Rules (`evolver.md`
+restates them for convenience; SKILL.md wins on any disagreement).
 
 ## Learned heuristics
 

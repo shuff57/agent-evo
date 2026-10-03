@@ -11,9 +11,9 @@ This document defines the 4 skill evolution capabilities: improvement, suggestio
 ### Trigger Conditions
 
 Apply skill improvement when ALL of the following are true:
-- Divergence type is SKILL_STALE or SKILL_WEAK
+- Divergence type is SKILL_STALE or SKILL_WEAK, or SKILL_GAP resolved by extending an existing skill (a `references/*.md` + pointer line)
 - Confidence is MEDIUM or HIGH
-- Signal is present in 3+ of the last 5 sessions (an extra gate for editing a skill, on top of the SKILL.md Phase 3 confidence rubric)
+- Signal is present in at least `skill_edit_min_sessions` of the last 5 sessions (`calibration.md`; an extra gate on top of the SKILL.md Phase 3 rubric). A MEDIUM/HIGH proposal below this gate is propose-only: list it under "Flagged for Human Review"
 - The skill is not marked `pinned: true` in its frontmatter
 - The proposed edit touches only one section (trigger phrases OR body instructions, not both in the same mutation)
 
@@ -58,14 +58,14 @@ Follow SKILL.md Phase 4, Step 4: read the file, apply the minimal change with `E
 
 Propose a new skill when ALL of the following are true:
 - Divergence type is SKILL_GAP
-- The manual pattern repeats in 3+ of the last 5 sessions (an extra gate for creating a skill, on top of the SKILL.md Phase 3 confidence rubric)
+- The manual pattern repeats in at least `skill_edit_min_sessions` of the last 5 sessions (`calibration.md`; same extra gate as Capability 1)
 - The pattern involves 3 or more sequential steps
 - No existing skill covers the pattern (verified by checking all skill descriptions)
 - The pattern is stable (same steps across sessions, not just coincidentally similar)
 
 Do NOT propose a new skill when:
 - The pattern is present in fewer than 3 sessions
-- An existing skill covers the pattern but is not triggering (use improvement instead)
+- An existing skill covers or partly covers the pattern (use Capability 1: fix it or extend it)
 - The pattern involves external services that may be unavailable (SKILL_EXTERNAL)
 
 ### Approval Requirements

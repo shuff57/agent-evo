@@ -185,7 +185,7 @@ PROPOSED EDIT:
 PREDICTED OUTCOME: manual_pattern_frequency for this sequence drops to 0 within 3 sessions
   as the skill auto-loads and guides the workflow.
 
-CONFIDENCE: [per SKILL.md Phase 3 rubric; creating a skill also needs the K >= 3 gate in skill-evolution-protocol.md]
+CONFIDENCE: [per SKILL.md Phase 3 rubric; creating or extending a skill also needs K >= `skill_edit_min_sessions`]
 ```
 
 ---

@@ -181,7 +181,7 @@ This reference defines all 9 divergence types used in the evolution protocol. Ea
 When multiple divergence types fit, use this priority order (most specific wins):
 
 1. SKILL_EXTERNAL (always overrides if external dependency is involved)
-2. SKILL_GAP (if no skill exists at all)
+2. SKILL_GAP (if no skill covers the pattern as a whole)
 3. MISLEADING (if wrong agent is selected before correct one)
 4. STRUCTURAL (if agent attempts task it should delegate)
 5. SKILL_WEAK (if skill loads but execution fails)

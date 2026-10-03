@@ -10,7 +10,7 @@ Recurrence comes in two kinds:
 - **Workflow**: the same multi-step sequence requested repeatedly, however it is phrased.
 - **Misunderstanding**: the same correction recurring. When a skill already covers the
   task, this is SKILL_WEAK on that skill, not SKILL_GAP (SKILL_GAP requires that no skill
-  exists; see Classification Priority in `divergence-types.md`).
+  covers the whole task; see Classification Priority in `divergence-types.md`).
 
 Rules:
 - Reason about meaning; do not group by keyword or regex matching.

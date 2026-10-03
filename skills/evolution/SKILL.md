@@ -117,7 +117,7 @@ Confidence rubric (counts come from `calibration.md`: `confidence_high_sessions`
 
 A second, corroborating signal type for the same target may raise the level by one (see Signal Aggregation Rules in `signal-taxonomy.md`); a single signal never does.
 
-Skill creation and edits to existing skills carry an extra gate on top of this rubric, stated in `skill-evolution-protocol.md`.
+Creating or editing a skill (including extending one for a SKILL_GAP) needs the extra gate `skill_edit_min_sessions` from `calibration.md`; below it the proposal is propose-only. Details in `skill-evolution-protocol.md`.
 
 Templates: `skills/evolution/references/hypothesis-templates.md`
 
@@ -125,7 +125,7 @@ Templates: `skills/evolution/references/hypothesis-templates.md`
 
 ## Phase 4 — Surgical Edit Protocol
 
-For each MEDIUM or HIGH confidence divergence:
+For each MEDIUM or HIGH confidence divergence (skill changes also need the `skill_edit_min_sessions` gate from Phase 3):
 
 ### Step 1 — Identify Section
 
@@ -203,7 +203,7 @@ For each entry in `_evolution_log.jsonl` with `status: "PENDING"`:
 | Flat-only skills | Never create `<group>/<name>/SKILL.md` — the loader is flat; nested skills are NOT discovered. New skills → `skills/<name>/SKILL.md`; sub-capabilities → `skills/<name>/references/*.md` + a pointer line in that SKILL.md. Sole exception: `skills/_archived/<name>/` holds rejected stubs and is intentionally not discovered |
 | Stub hygiene | A skill folder with no `SKILL.md`, or a stub body still `[TODO]`, follows the Capability 4 escalation ladder in `skill-evolution-protocol.md` (note, then ACTION REQUIRED, then `stale_stub`). A stub with no frontmatter to carry an age is flagged for removal directly. Don't let empty stubs accrete |
 | No Tier-3 edits | Never edit files with `tier: 3` in frontmatter |
-| Mutation caps | Max 3 agent mutations + 2 skill mutations per session. Skill improvements and adoption state changes count; new stubs and audits do not (see `skill-evolution-protocol.md`) |
+| Mutation caps | Owned here (`roster/evolver.md` restates them; this table wins). Max 3 agent mutations + 2 skill mutations per session. Skill improvements (including SKILL_GAP extensions) and adoption state changes count; new stubs and audits do not (see `skill-evolution-protocol.md`) |
 | Model-agnostic | All edits must work on cheap models, not just Claude |
 | LOW confidence | Propose but do not apply — flag for human review |
 | SKILL_EXTERNAL | Flag only — do not mutate |
