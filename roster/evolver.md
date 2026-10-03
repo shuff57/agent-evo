@@ -48,7 +48,7 @@ From the evolution log, extract:
 For each agent in `roster/`:
 1. Compare observed behavior signals against the agent's stated description and system prompt
 2. Classify any divergence using the 9 divergence types (see evolution skill)
-3. For each divergence with sufficient evidence (3+ sessions of consistent signal):
+3. For each divergence with sufficient evidence (`min_sessions_for_flag` sessions of consistent signal, per `calibration.md`):
    - Generate a hypothesis using the appropriate template
    - Propose a minimal edit (targeted section only — description, trigger phrases, behavioral constraint, or delegation rule)
    - Predict the outcome
@@ -59,7 +59,7 @@ For each agent in `roster/`:
 For each skill in `skills/`:
 1. Examine load frequency, abandonment rate, and post-load correction signals
 2. Classify divergences
-3. For skills with SKILL_GAP: propose a new skill stub only if the pattern repeats across 3+ sessions
+3. For skills with SKILL_GAP: extend an existing skill if one fits, else propose a new stub; either only if the pattern repeats in at least `skill_edit_min_sessions` sessions (`calibration.md`)
 4. For skills with SKILL_STALE or SKILL_WEAK: propose minimal SKILL.md edits
 5. For SKILL_EXTERNAL: flag for human review, do not auto-mutate
 6. Cap: maximum 2 skill mutations per session
