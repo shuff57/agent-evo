@@ -1,7 +1,7 @@
 ---
 name: eyes-and-ears
 description: "A/V verification agent (machine eyes + ears — successor to \"ears\"). Use whenever narrated or screen-recorded media needs machine review — verifying TTS narration against its script, checking a cloned voice matches its reference speaker, auditing clips for clipping/dead air/rushed delivery, or visually checking video content (clean opens, payoffs, theme, on-screen action matching narration), or reviewing storyboard-driven explainer videos (stroke reveal DIRECTION across a burst of frames, style consistency between repeated idioms, dead air measured against the authored beat holds), or auditing published bookSHelf pages for layout defects (box overflow/overlap geometry, disclosure open-states, figure spacing/framing/captions, callout color coding — measured via headless playwright, both themes), or reviewing inline animated SVG figures (label collision/cramping, viewBox overflow, text persistence across the loop, verbatim text fidelity and layout parity against the manim original they replace, theme inheritance, KaTeX rendering — seeked deterministically via getAnimations/currentTime). Examples — \"ear-check the new tutorial clips\", \"watch this video and tell me if the panel opens\", \"does the narration match what's on screen\", \"is this still my voice\", \"review this page with eyes and ears\", \"check this SVG figure for collisions\", \"does the SVG match the manim version\". Ears tools: scripts/workflows/verify_narration.py (faster-whisper ASR vs script) + scripts/workflows/voice_similarity.py (resemblyzer vs manim-videos/_lib/voice_refs/active.wav) + ffmpeg silencedetect/showspectrumpic; the old rashio-videos/rig/ear_check.py is DELETED. Eyes tool: crv (claude-real-video keyframes) + Read on the JPEGs + ffmpeg exact-time frame grabs."
-model: cheaper-inference/gemini-3.7-flash
+model: cheaper-inference/gemini-3.8-flash
 effort: medium
 # Moved off `claude/sonnet@medium` 2026-09-29. That prefix made this agent claude-lane
 # (gen-agents.mjs:243 copies it verbatim to ~/.claude/agents and never builds an opencode
@@ -17,7 +17,7 @@ effort: medium
 # repo's recorded scar is a model returning "ALL LENSES PASS" about a figure it could not
 # see. Declared vision is not verified vision -- confirm it can see before trusting a
 # clean verdict from this gate.
-spawn-primary: opencode/cheaper-inference/gemini-3.7-flash@medium
+spawn-primary: opencode/cheaper-inference/gemini-3.8-flash@medium
 spawn-secondary: none
 ---
 

@@ -18,6 +18,13 @@
 
 set -e
 
+# --lean: Claude Code is the main harness. Still generate every agent, INCLUDING the
+# opencode agent defs the eyes-* forwarders call (gemini/qwen vision), and link skills
+# into ~/.claude/skills/ -- but skip the rest of the opencode install: omo team specs,
+# ~/.config/opencode/skill, vendored plugins and the global AGENTS.md link.
+LEAN=0
+[ "$1" = "--lean" ] && LEAN=1
+
 REPO="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE="$HOME/.claude/agents"
 
@@ -42,7 +49,7 @@ node "$REPO/bin/gen-agents.mjs"
 # ~/.omo/teams/<name>/config.json directly is editing a build artifact -- the
 # source is omo/teams/, and the edit is gone the next time this runs.
 OMO_TEAMS="$HOME/.omo/teams"
-if [ -d "$REPO/omo/teams" ]; then
+if [ "$LEAN" = 0 ] && [ -d "$REPO/omo/teams" ]; then
   mkdir -p "$OMO_TEAMS"
   for spec in "$REPO/omo/teams/"*/; do
     [ -f "$spec/config.json" ] || continue
@@ -122,7 +129,7 @@ install_skills() {
   echo "Skills: $installed linked -> $dest/ (pruned $pruned)"
 }
 
-install_skills "$HOME/.config/opencode/skill"
+[ "$LEAN" = 0 ] && install_skills "$HOME/.config/opencode/skill"
 install_skills "$HOME/.claude/skills"
 
 
@@ -144,7 +151,7 @@ install_skills "$HOME/.claude/skills"
 # procedure (do NOT run `npx chisle`: its installer also appends a ruleset to
 # ~/.config/opencode/AGENTS.md, which is a symlink into this repo).
 OC_PLUGINS="$HOME/.config/opencode/plugins"
-if [ -d "$REPO/opencode/vendor" ]; then
+if [ "$LEAN" = 0 ] && [ -d "$REPO/opencode/vendor" ]; then
   mkdir -p "$OC_PLUGINS"
   for v in "$REPO/opencode/vendor/"*/; do
     name="$(basename "$v")"
@@ -170,7 +177,7 @@ fi
 # AGENTS.md now points here for that protocol rather than repeating it, so the link is
 # load-bearing, not convenience.
 OC_CONF="$HOME/.config/opencode"
-if [ -f "$REPO/opencode/AGENTS.md" ]; then
+if [ "$LEAN" = 0 ] && [ -f "$REPO/opencode/AGENTS.md" ]; then
   mkdir -p "$OC_CONF"
   # A real file here is someone else's global instructions, not ours to clobber. Back it
   # up rather than overwrite, then link -- the same non-destructive shape install.sh uses.

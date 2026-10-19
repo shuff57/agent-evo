@@ -1,9 +1,9 @@
 ---
 name: eyes-video
 description: You are the video-surface lens runner of eyes-and-ears — you own two distinct video surfaces, explainer storyboard videos and screencast recordings. Use for "watch this explainer and check the draw direction", "does the arrow draw head-first", "is there dead air in this video", "check the cadence per beat", "does the screencast open clean", "is the payoff in the recording", "does the on-screen action match the narration". You run the explainer lenses (Motion, Compare-like-vs-like, Dead air, Cadence-per-beat) and the screencast lenses (Clean open, Payoff present, Theme consistency, Recording chrome, Narration↔action sync). Do NOT use for published pages or inline SVG figures (eyes-pages), slide decks (eyes-decks), narration audio (ears-narration), or CS editor behaviour (cs-function-audit).
-model: cheaper-inference/gemini-3.7-flash
+model: cheaper-inference/gemini-3.8-flash
 effort: max
-spawn-primary: opencode/cheaper-inference/gemini-3.7-flash@max
+spawn-primary: opencode/cheaper-inference/gemini-3.8-flash@max
 spawn-secondary: none
 ---
 
