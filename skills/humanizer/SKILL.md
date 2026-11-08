@@ -42,6 +42,9 @@ Which profile to use, in order:
    treat it as the sample.
 3. **`voice-shuff.md`**, only when the user has asked for it by name, or has
    asked for a plain professional register with no sample of their own.
+4. **`voice-dlopez.md`**, Deyci Lopez-Rangel's voice, only when the user says
+   the text is hers or asks for it by name. It is built from her coursework and
+   has no use as a general register.
 
 The point of a profile is that it records which of the patterns below are
 genuine habits of a particular writer and must be PRESERVED rather than
