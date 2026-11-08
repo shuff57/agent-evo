@@ -9,8 +9,9 @@ look better.
 - "Save preset" stored in the reference's browser; our share links, examples
   and saved figures cover the teacher workflow.
 - Marketing and SEO copy; FAQ wording is ours and written for verSHion.
-- The reference's exact colours, fonts and spacing. Interaction and teaching
-  capability only.
+- The reference's visual look: its colours, fonts and line weights. verSHion keeps its own
+  style. **In scope** (owner decision 2026-11-08): interaction feel (acting on the figure itself,
+  live updates, actions per task) and layout feel (what goes where, label placement).
 - Their freehand structure-drawing surface in `structure-editor` unless it is
   chosen as a round; the `organic-structure` generator is the in-scope part.
 - Site-specific linking/reuse pages and the teacher.dev footer.

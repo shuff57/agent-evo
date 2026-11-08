@@ -222,7 +222,9 @@ the miss stays. Commit the code and `docs/figures-parity/` together, one round p
 Stop and say which applies:
 
 - the session's target is reached;
-- two consecutive rounds raise the pooled score by less than 0.5;
+- two consecutive rounds are misses (no hit: the capability failed the probe or the checker,
+  or its figure's score did not rise). A single-capability round moves the pooled score by
+  0.1 or so, so the pooled gain is reported but is not a stop signal (owner decision 2026-11-08);
 - the remaining gaps all need a design decision (ask, don't guess);
 - the reference moved (`compare.md`) and the user has not agreed a new baseline;
 - a test or census regression cannot be fixed inside the round.
