@@ -14,3 +14,4 @@ look better.
 - Their freehand structure-drawing surface in `structure-editor` unless it is
   chosen as a round; the `organic-structure` generator is the in-scope part.
 - Site-specific linking/reuse pages and the teacher.dev footer.
+- Links that open the same data as a different figure (motion graph ↔ motion map). Our figures are separate tools; a teacher copies the values across. (owner decision 2026-11-08)

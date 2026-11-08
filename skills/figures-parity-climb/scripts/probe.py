@@ -45,8 +45,18 @@ HANDLE_ONLY = ("handle:", "handle-edit:", "label-drag")
 LIST_FILES = {"faq.rs", "interact.rs", "labels.rs", "start.rs", "census.rs", "mod.rs"}
 
 
+TOKEN_STARTS = ("changes:", "handle:", "handle-edit:", "label-drag", "param:", "param-choice:", "show-answers", "style", "label-size", "symbol:")
+
+
 def tokens(ev: str) -> list[str]:
-    return [t.strip() for t in ev.split(" + ") if t.strip()]
+    """Split on " + " only where a new token starts, so an option value like "Solid + liquid" stays whole."""
+    out: list[str] = []
+    for part in ev.split(" + "):
+        if out and not part.strip().startswith(TOKEN_STARTS):
+            out[-1] += " + " + part
+        else:
+            out.append(part)
+    return [t.strip() for t in out if t.strip()]
 
 
 def coerce(fig: dict, key: str, raw):
