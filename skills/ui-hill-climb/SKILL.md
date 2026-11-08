@@ -1,6 +1,6 @@
 ---
 name: ui-hill-climb
-description: Raise a desktop or web UI's design score by blind A/B grading against a reference app, one measured round at a time. Use when asked to make an app look better than another app, to "push the UI score to X", to run a design critic panel, or when a UI change needs to be judged by something other than the person who made it.
+description: Raise a desktop or web UI's design score by blind A/B grading against a reference app, one measured round at a time, against a bar written down before the first round. Use when asked to make an app look better than another app, to "push the UI score to X", to set up a design hill climb and its criteria, to run a design critic panel, to check whether a UI fix actually helped (before/after rounds), or when a UI change needs to be judged by something other than the person who made it.
 ---
 
 # UI hill climb
@@ -28,6 +28,9 @@ because every failure below actually happened and silently produced confident wr
    analyze.py  ── control error FIRST, then votes, then means
         │
         ▼
+   criteria_check.py  ── PASS/FAIL against the written bar (visual + task track)
+        │
+        ▼
    read the named gaps ──▶ fix the top one or two ──▶ capture again
 ```
 
@@ -42,6 +45,11 @@ because every failure below actually happened and silently produced confident wr
 - **Mirrors.** Show a few pairs a second time with A and B swapped. A judge that keeps preferring
   the left image is invisible without this. (Round 6: mistral agreed with itself 2/5 — its votes got
   discounted, and the mean moved 0.3 once they were.)
+- **Before/after pairs when the question is "did the fix help".** The same machinery can point at
+  your own previous build instead of the reference: `"ref_same_names": true` in the `UC_ROUND` file,
+  `UC_REFS` set to the old shots. An absolute round answers "are we good yet"; a before/after round
+  answers "did this change help". They are different rounds and must not be conflated — the pairs
+  prove the direction, the full round proves the level.
 - **Two independent things must be true:** the set must be assembled from the images the key says
   (verify byte for byte), and the judge must be consistent on duplicates. Check both, every round.
 
@@ -57,6 +65,7 @@ edit the config block at the top of each file.
 | `scripts/verify_blind.py` | rebuilds every image from the key and compares hashes; exits 1 on any drift |
 | `scripts/analyze.py` | parses verdicts, prints controls → mirrors → votes → per-screen means → dimensions |
 | `scripts/critic.md` | the prompt; `OUTFILE` is substituted per judge |
+| `scripts/criteria_check.py` | turns a results file (and a task ledger) into PASS/FAIL against the written bar: per-screen means, weakest dimension, dark parity, pair win rate, tasks |
 
 Run:
 
@@ -82,6 +91,21 @@ Use models from different labs — agreement across labs is evidence, agreement 
 not. Expect a scale spread of up to 2 points between judges on the same image (deepseek ~5.9,
 mistral ~7.9 in one round); never compare means across a changed panel.
 
+A provider instance only serves some models, and `run_critics.sh` starts every thread with
+`--provider opencode`; start any other provider directly with `t3 thread start`.
+
+## Criteria to meet
+
+Write the bar down before the first round; a number without a gate is a mood.
+
+- **Visual**: every screen ≥ a stated mean, no dimension below a stated floor, a share of pairs won,
+  dark within a delta of light.
+- **Task**: fixed jobs (first bank, import → export, sign-up, wrong input, destructive undo,
+  keyboard only, quit mid-edit, empty states), each recorded step by step and ruled from the
+  recording. Unmeasured is not passed.
+
+`criteria_check.py RESULTS.json [tasks.json]` prints PASS/FAIL against both.
+
 ## Rules that keep the number honest
 
 1. **Builder never grades.** The agent that wrote the CSS is the worst possible judge of it.
@@ -94,6 +118,10 @@ mistral ~7.9 in one round); never compare means across a changed panel.
 6. **Fix what they name, not what you like.** Each judge names exactly one biggest gap, located and
    specific. Two rounds of gaps on one screen is a real defect; a single mention is taste.
 7. **Never trade a passing test for a look.** Build, run the suite, then shoot.
+8. **One judge cannot establish a delta.** Ten verdicts from one model are a hint, not a measurement;
+   three judges steer, five claim.
+9. **Mirrors decide near-ties.** When two images are close, a flipped mirror is the answer: the pair
+   is a tie, whatever the scores say.
 
 ## Pitfalls, all measured
 
@@ -112,6 +140,23 @@ mistral ~7.9 in one round); never compare means across a changed panel.
   its hover state. Fine, as long as every round is shot the same way.
 - **Long lines and empty floors are what the critics actually penalise.** Cap prose at ~70
   characters, and anchor short pages with a footer rule: those two changes moved ten screens at once.
+## Cutting the token cost
+
+A full round is every frame times five critics, plus controls and mirrors. Two cuts keep what a
+judge sees, and so the verdicts, unchanged:
+
+- **Grade only frames that changed.** Capture is deterministic, so an untouched screen is
+  byte-identical. `scripts/changed.py TEMPLATE_ROUND.json PREV_SHOTS NEW_SHOTS OUT.json` writes a
+  `UC_ROUND` file with only the differing frames (controls and mirrors drawn from them) and exits 2
+  when nothing changed. Carried screens keep last round's verdicts and are marked as carried. How
+  much it saves depends on the builder: touching most screens saves little (measured 6 of 30
+  frames identical), fixing two screens saves most of the round.
+- **Steer with three judges, claim with five.** Run the cheap, ungated critics between builder
+  runs (`UC_PANEL=steer` in the project's `run_critics.sh`). Only claim the bar on a full-panel
+  round, and never compare a steer round's means with a full round's (rule 3).
+
+Deliberately not cut: the critic prompt, the four scores on both sides of a pair, controls, mirrors
+and `verify_blind.py`. The number's honesty rests on those.
 
 ## Report shape
 
