@@ -5,10 +5,10 @@ Work list: the manifest.txt in the blind folder beside the images. Each line is 
 For each item, open the image file(s) with your file-reading tool and really look at them. Judge only what you can see. Base nothing on file names, or on any file other than those images. Do not list directories or read anything else in that folder. Do not use OCR or scripts to analyse the images.
 
 Score 0-10 on four dimensions. 10 means best-in-class desktop software and 5 means mediocre, so use the whole range. Do not cluster around 7.
-- hierarchy: can you tell at once what matters most, what comes next, and what to do?
+- hierarchy: can you tell at once what matters most, what comes next, and what to do? Does the UI use intentional visual contrast and weight to guide attention, or does it wash out into an indistinct monochrome blur?
 - spacing: alignment, rhythm, consistency, density, clipping, overlap, wasted space
 - type: size scale, weights, readability, line length, truncation
-- state: are selected, active, disabled, empty, saved and error states legible? Is it clear what is interactive?
+- state: are selected, active, disabled, empty, saved and error states legible? Are interactive affordances obvious (do buttons and links clearly look clickable rather than flat labels or passive tags)? Beware the monochrome trap: do not reward designs that strip out all semantic color and contrast at the expense of clear interaction cues.
 
 Compare the two images of a pair like for like: they show the same fixture content. A narrow window, a dark theme, a printed page inside the app, a modal over a dimmed page, and blanked-out rectangles where logos were removed are all deliberate; do not penalise the blanked rectangles. If A and B are really equal, say "tie". Do not invent differences.
 

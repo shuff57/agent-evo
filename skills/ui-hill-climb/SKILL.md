@@ -63,6 +63,7 @@ edit the config block at the top of each file.
 | `scripts/blindlib.py` | mask rectangles per screen/role, `build(path, screen, side, narrow)` → the blind image |
 | `scripts/make_blind.py` | assembles pairs + singles + controls + mirrors into `<out>.tmp`, renames once, writes `key.json` (source path, screen, role, both hashes) |
 | `scripts/verify_blind.py` | rebuilds every image from the key and compares hashes; exits 1 on any drift |
+| `scripts/visual_diff.py` | creates side-by-side before/after comparison with numbered bounding boxes around changed pixel clusters for human spot-checks |
 | `scripts/analyze.py` | parses verdicts, prints controls → mirrors → votes → per-screen means → dimensions |
 | `scripts/critic.md` | the prompt; `OUTFILE` is substituted per judge |
 | `scripts/criteria_check.py` | turns a results file (and a task ledger) into PASS/FAIL against the written bar: per-screen means, weakest dimension, dark parity, pair win rate, tasks |
@@ -122,6 +123,9 @@ Write the bar down before the first round; a number without a gate is a mood.
    three judges steer, five claim.
 9. **Mirrors decide near-ties.** When two images are close, a flipped mirror is the answer: the pair
    is a tie, whatever the scores say.
+10. **Beware the monochrome trap.** Never sacrifice interactive affordances for flat minimalism.
+ Models rewarded for "clean hierarchy" often strip out all semantic color, resulting in washed-out
+ monochrome screens where primary buttons no longer look clickable. Maintain clear action affordances.
 
 ## Pitfalls, all measured
 
@@ -140,6 +144,11 @@ Write the bar down before the first round; a number without a gate is a mood.
   its hover state. Fine, as long as every round is shot the same way.
 - **Long lines and empty floors are what the critics actually penalise.** Cap prose at ~70
   characters, and anchor short pages with a footer rule: those two changes moved ten screens at once.
+- **The monochrome / grayscale local minima.** Left unconstrained, models attempting to score high
+ on "calm hierarchy" and "clean spacing" strip out color accents and borders until everything looks
+ like a washed-out wireframe and buttons lose their affordance. Explicitly check that primary actions
+ look clickable and light-mode text contrast remains sharp.
+
 ## Cutting the token cost
 
 A full round is every frame times five critics, plus controls and mirrors. Two cuts keep what a
@@ -151,12 +160,24 @@ judge sees, and so the verdicts, unchanged:
   when nothing changed. Carried screens keep last round's verdicts and are marked as carried. How
   much it saves depends on the builder: touching most screens saves little (measured 6 of 30
   frames identical), fixing two screens saves most of the round.
+- **Waterfall gating (`UC_PANEL=waterfall`).** Run a fast, low-cost screener judge first (e.g.
+ deepseek/kimi). If the screener fails or control errors spike, halt immediately before firing
+ tokens on the rest of the multi-lab jury.
 - **Steer with three judges, claim with five.** Run the cheap, ungated critics between builder
   runs (`UC_PANEL=steer` in the project's `run_critics.sh`). Only claim the bar on a full-panel
   round, and never compare a steer round's means with a full round's (rule 3).
 
 Deliberately not cut: the critic prompt, the four scores on both sides of a pair, controls, mirrors
 and `verify_blind.py`. The number's honesty rests on those.
+
+## Worktree isolation for aggressive climbs
+
+When pushing an already viable UI past a baseline (e.g. from 8.0 to 9.5+):
+- **Fork into a separate git worktree** (`git worktree add ../ui-climb-push`). Keep the baseline
+ PR clean and mergeable while the experimental climb runs in parallel.
+- Generate a visual diff diagram (`python3 scripts/visual_diff.py old.png new.png diff.png`)
+ at the end of each round to let human reviewers immediately inspect the exact pixel clusters
+ and component changes without squinting across screens.
 
 ## Report shape
 
