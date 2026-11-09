@@ -1,6 +1,6 @@
 ---
 name: ui-hill-climb
-description: Raise a desktop or web UI's design score by blind A/B grading against a reference app, one measured round at a time, against a bar written down before the first round. Use when asked to make an app look better than another app, to "push the UI score to X", to set up a design hill climb and its criteria, to run a design critic panel, to check whether a UI fix actually helped (before/after rounds), or when a UI change needs to be judged by something other than the person who made it.
+description: Push a desktop or web UI toward the best, most polished interface it can be, measured by blind A/B grading against best-in-class references, one round at a time, against a bar written down before the first round (the bar is a floor, not the finish line). Use when asked to make an app look better than another app, to "push the UI score to X", to set up a design hill climb and its criteria, to run a design critic panel, to check whether a UI fix actually helped (before/after rounds), or when a UI change needs to be judged by something other than the person who made it.
 ---
 
 # UI hill climb
@@ -9,7 +9,9 @@ A loop that turns "make it look better" into a number you can trust: screenshot 
 blind against the reference by independent critic models, read the one gap each critic names, fix
 that, shoot again. The builder never scores its own work.
 
-The loop is worth nothing without the honesty scaffolding. Most of this file is that scaffolding,
+The goal is not "better than it was". It is the best, most polished UI we can make — work that a
+Linear, Stripe or Vercel designer would ship without wincing. Climb hard, but only with numbers you can
+trust: the loop is worth nothing without the honesty scaffolding. Most of this file is that scaffolding,
 because every failure below actually happened and silently produced confident wrong numbers.
 
 ```
@@ -22,7 +24,7 @@ because every failure below actually happened and silently produced confident wr
    verify_blind.py  ── must print OK ──▶ abort if not
         │
         ▼
-   N critics (multimodal, different labs) ──▶ one JSON line per item
+   the council (3 flagship models, 3 providers; `skills/council`) ──▶ one JSON line per item
         │
         ▼
    analyze.py  ── control error FIRST, then votes, then means
@@ -31,8 +33,37 @@ because every failure below actually happened and silently produced confident wr
    criteria_check.py  ── PASS/FAIL against the written bar (visual + task track)
         │
         ▼
-   read the named gaps ──▶ fix the top one or two ──▶ capture again
+   read the named gaps ──▶ fix the top one or two (or a system pass when the mean stalls) ──▶ capture again
 ```
+
+## Ambition: the best UI we can make
+
+Default to aggressive. Unless the owner says otherwise:
+
+- **The bar is a floor.** Passing `criteria_check.py` is a checkpoint, not the end. Keep climbing while
+  the panel still names concrete, located gaps. Stop only when the judges' named gaps turn into taste
+  (single mentions, contradictory between judges, no locatable defect) for two rounds running, or when
+  the owner says stop. Then report the remaining gaps instead of declaring victory.
+- **Judge against the best, not the old build.** Before/after pairs prove direction; absolute scores
+  against best-in-class anchors (Linear, Stripe, GitHub, Vercel, Replit, Khan Academy for teaching UIs)
+  prove level. A screen that wins its pair but scores 6/10 is not finished.
+- **Escalate scope when gains stall.** Single-gap rounds fix defects; they rarely lift the mean. After
+  two flat rounds, run a spec-driven system pass (written type scale, spacing rhythm, colour roles,
+  component and state rules applied everywhere, council-reviewed first). Measured: one system pass
+  moved a mean +0.67 that four single-gap rounds had not moved at all.
+- **Polish is the job, not a final coat.** Every round checks the details best-in-class apps get right:
+  every interactive state (hover, focus-visible, active, selected, disabled, loading, empty, error,
+  success); alignment to a shared grid and baseline; one type scale with no stray sizes; consistent
+  radius, border and shadow; no orphaned words, ragged toolbars, clipped labels or off-grid edges;
+  motion that is quick and purposeful (respect reduced motion); phone layouts designed, not shrunk.
+- **Name the next three gaps, always.** End every round with the three biggest named gaps across the
+  panel, located and specific, so the next round never starts from "what now".
+- **Ambition never relaxes honesty.** A bigger change still gets the council review, the blind
+  capture, controls, mirrors and tests. Never trade a passing test, a semantic colour or an action's
+  affordance for a cleaner screenshot (rule 10, the monochrome trap). Never redefine the bar to claim it.
+- **Ask before crossing a content line.** If the remaining gap lives in content, data or behaviour the
+  climb is not cleared to touch (lesson text, copy owned by someone else, routes), say so with the
+  measured cost of leaving it, and ask; do not quietly route around it or stop short.
 
 ## What "blind" has to mean
 
@@ -66,6 +97,7 @@ edit the config block at the top of each file.
 | `scripts/visual_diff.py` | creates side-by-side before/after comparison with numbered bounding boxes around changed pixel clusters for human spot-checks |
 | `scripts/analyze.py` | parses verdicts, prints controls → mirrors → votes → per-screen means → dimensions |
 | `scripts/critic.md` | the prompt; `OUTFILE` is substituted per judge |
+| `scripts/council.md`, `scripts/run_council.sh` | the council step: three flagship delegates from three providers review the plan + diff, read-only, advisory only (see Council) |
 | `scripts/criteria_check.py` | turns a results file (and a task ledger) into PASS/FAIL against the written bar: per-screen means, weakest dimension, dark parity, pair win rate, tasks |
 
 Run:
@@ -77,11 +109,16 @@ bash run_critics.sh                # one detached `t3 thread start` per model, o
 python3 analyze.py > rN-analysis.txt
 ```
 
-Each critic starts a fresh thread with `--provider opencode --model ollama-cloud/<model> --wait
---json`, its prompt piped in, writing its verdicts to its own file. Five judges is enough; three is
-too few to separate a real 0.3 from noise.
+**The critics are the council.** Start at the `council` skill, Step 1: ask the user which harness,
+providers and models, then run `UC_COUNCIL="provider:model ×3" bash run_critics.sh`. Each member
+starts a fresh thread (`t3 thread start --provider <p> --model <m> --wait --json`) with `critic.md`
+piped in, writing verdicts to its own file. Never guess the members. The ollama-cloud panels
+(`UC_PANEL=steer|waterfall|full`) remain as the cheap extra judges between council rounds.
+Three council members steer; to claim the bar add the cheap judges (rule 8: three steer, five claim).
 
 ## Choosing judges
+
+The council is the primary panel; the rules below apply to every member, council or cheap.
 
 Probe every candidate before it earns a seat: hand it one screenshot and ask for a detail only
 visible in the image (a displayed name, the word inside a status tag). Reply `NO_IMAGE` or a guess →
@@ -97,7 +134,9 @@ A provider instance only serves some models, and `run_critics.sh` starts every t
 
 ## Criteria to meet
 
-Write the bar down before the first round; a number without a gate is a mood.
+Write the bar down before the first round; a number without a gate is a mood. Set it from the
+baseline and then aim past it: the bar says when the UI is acceptable, the Ambition section says when
+it is done.
 
 - **Visual**: every screen ≥ a stated mean, no dimension below a stated floor, a share of pairs won,
   dark within a delta of light.
@@ -128,6 +167,31 @@ Write the bar down before the first round; a number without a gate is a mood.
  monochrome screens where primary buttons no longer look clickable. Maintain clear action affordances.
 
 ## Pitfalls, all measured
+
+- **A member can die before it sees an image.** 2026-11-08: a claudeAgent judge started at the same
+  moment as two other providers failed with "Claude timed out while registering its MCP tools"; the
+  old one-shot retry fired at once, hit the same wall, and the council silently became two judges.
+  `scripts/t3_run.sh` (sourced by `run_critics.sh` and `run_council.sh`) reads the thread's own
+  `status`/`error`, retries startup and infra errors with backoff (`UC_BACKOFF`, default 45/120/300s),
+  re-runs a short but completed judge once and merges only the missing ids, staggers launches
+  (`UC_STAGGER`, default 20s), and on persistent failure writes `<member>.jsonl.unavailable` and
+  says so. A round with an unavailable member is a two-judge round: report it, never substitute a
+  model, never claim the bar on it.
+- **Single-gap rounds plateau the absolute mean.** shCode 2026-11-08: four rounds each won their
+  targeted pairs (3-0 most of the time) while the desktop mean stayed 5.94, because untouched screens
+  drift ±0.5 and one fixed defect barely moves a screen judged against best-in-class. One
+  spec-driven system pass (a written type scale, text floor, spacing rhythm, toolbar and CTA rules,
+  applied by two builders on disjoint files, then council-reviewed) won 25 of 27 pairs and moved the
+  mean +0.67 in one round. When two rounds of single-gap wins leave the mean flat, offer the owner a
+  system pass; keep single gaps for regressions.
+- **Give the council the round's own diff.** A council once reviewed two rounds combined because the
+  tool that cut the previous round's tree matched nothing, and scored round-1 code as round-2 creep.
+  Commit each round before the next builder runs, or cut the delta with `git apply --include`.
+- **A judge can misread the second copy of a control.** codex `gpt-6.1-sol`, 2026-11-08, four times
+  in one climb: the control's two byte-identical images got A ≈ 7 and B = 0 with "only a thin
+  fragment is visible" (the B image failed to load for the judge, not a score). The control catches
+  it; that judge's run on that pack is void even if its other verdicts look sane (its mirror flipped
+  in the same run). Re-run that judge alone on the same pack; do not average the void run in.
 
 - **The blind set can race itself.** Two runs of the old script: one rewrote the directory while the
   other rewrote the key. 6 of 21 pairs were graded against the wrong screen and the "same image
@@ -178,6 +242,55 @@ When pushing an already viable UI past a baseline (e.g. from 8.0 to 9.5+):
 - Generate a visual diff diagram (`python3 scripts/visual_diff.py old.png new.png diff.png`)
  at the end of each round to let human reviewers immediately inspect the exact pixel clusters
  and component changes without squinting across screens.
+
+## Council (the critics, and the fix reviewers)
+
+Specialization of the general `council` skill (`skills/council`, from tstack). The council is the
+panel that grades the blind set (see Run), and it has a second, advisory job: after the panel names
+gaps it reviews the fix plan and diff before the next capture. In that second job it never
+contributes to a mean.
+
+- **When (review job).** After `analyze.py` and `criteria_check.py`, once the builder has a fix plan and a diff,
+  before the next capture. Also once before claiming the bar on a full-panel round.
+- **Who.** Ask the user which harness, providers and models first (council skill, Step 1); never
+  guess `UC_COUNCIL`. Exactly three read-only delegates, one flagship per provider, high reasoning effort
+  (`UC_COUNCIL="claude:<opus> codex:<gpt> gemini:<pro>"`). Fewer than three distinct providers or an
+  unavailable member: report it, do not substitute (`run_council.sh` exits 3).
+- **What they get.** The analysis, the written bar, the plan, the git diff and any `visual_diff.py`
+  composites. They sort the plan into real defects (two judges, or the same screen two rounds) and
+  taste, check for the monochrome trap and scope creep, and give a /10 for plan-plus-diff.
+  A void round (split control) stays void; the council cannot rescue it.
+- **Loop.** If you agree, make the changes, then a fresh council pass is a new round (count passes
+  as in tstack: one full pass = one round). Stop when all three say `satisfied`. Do not let repeated
+  passes grow scope: fight to keep it to the top one or two gaps.
+- **Report.** Add the council table to the round report and, when the work ends in a PR, to the PR
+  description (edit it, do not comment), before the model/harness line. No score means `no score`.
+
+```markdown
+## Council review
+
+Rounds: 2
+
+| Delegate | Round 1 | Round 2 |
+| --- | --- | --- |
+| Claude Opus | 7/10 | 9/10 |
+| GPT Sol | 8/10 | 10/10 |
+| Gemini Pro | no score | 9/10 |
+```
+
+Run: `ROUND=3 UC_COUNCIL=... UC_ANALYSIS=r3-analysis.txt UC_CRITERIA=r3-criteria.txt UC_PLAN=plan.md
+UC_DIFF=pending.diff bash run_council.sh`. In T3 Code, resolve member models with
+`orchestrator_capabilities`.
+
+**Effort.** `t3 thread start` cannot set reasoning effort, so the default `run` mode leaves each member
+at its provider default (codex `gpt-6.1-sol` = low). In T3 Code use `UC_COUNCIL_MODE=prepare`: it
+writes each member's prompt and prints `provider model prompt outfile`; start the three members
+yourself with `delegate_task` (role review, async, all three in one turn) at high effort —
+codex `{reasoningEffort: high}`, claudeAgent `{effort: high}`, opencode `{variant: high}` — with the
+prompt file's text as the task; when all three report, run `UC_COUNCIL_MODE=summary`. A member whose
+task fails at startup is retried once after a pause, then reported unavailable (never substituted).
+The blind judges are a different job: keep them at one fixed effort for the whole climb, since a
+change of effort resets their scale like a change of judge (rule 3).
 
 ## Report shape
 

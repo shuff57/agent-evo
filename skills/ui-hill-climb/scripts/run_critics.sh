@@ -1,6 +1,8 @@
 #!/bin/bash
 # run_critics.sh — Execute multimodal design critics across model families
-# Modes:
+# Primary panel = the council: UC_COUNCIL="provider:model provider:model provider:model" (3 distinct
+# providers, chosen with the user via the council skill, Step 1). Set it and the council runs critic.md.
+# Modes (cheap ollama-cloud judges, used when UC_COUNCIL is unset or alongside it via UC_PANEL):
 #   UC_PANEL=full (default): Run all 5 critics concurrently across distinct model labs.
 #   UC_PANEL=steer: Run only 2 fast screener models for rapid iteration.
 #   UC_PANEL=waterfall: Run screener first; proceed to remaining judges only if screener succeeds.
@@ -20,7 +22,28 @@ run() {
     return $ret
 }
 
-PANEL="${UC_PANEL:-full}"
+if [ -n "${UC_COUNCIL:-}" ] && [ -z "${UC_PANEL:-}" ]; then
+    read -r -a MEMBERS <<< "$UC_COUNCIL"
+    provs=$(for m in "${MEMBERS[@]}"; do echo "${m%%:*}"; done | sort -u | wc -l)
+    if [ "${#MEMBERS[@]}" -ne 3 ] || [ "$provs" -ne 3 ]; then
+        echo "council needs 3 members from 3 different providers; do not substitute" >&2; exit 3
+    fi
+    echo "Running UI critics as the council..."
+    . "$(dirname "$(readlink -f "$0")")/t3_run.sh"
+    n=$(grep -c . "${UC_BLIND:-blind}/manifest.txt" 2>/dev/null); n=${n:-1}
+    for m in "${MEMBERS[@]}"; do
+        prov=${m%%:*}; model=${m#*:}
+        t3_member "$prov" "$model" "critic-$prov" "${UC_CRITIC:-critic.md}" "${UC_BLIND:-blind}/out/$prov.jsonl" "$n" . &
+        sleep "${UC_STAGGER:-20}"   # simultaneous starts contend for MCP registration (2026-11-08)
+    done
+    wait
+    ls "${UC_BLIND:-blind}"/out/*.unavailable 2>/dev/null && echo "COUNCIL INCOMPLETE: a member is unavailable; report it, do not substitute, do not claim the bar."
+    echo ALLDONE; exit 0
+fi
+if [ -z "${UC_PANEL:-}" ]; then
+    echo "No panel chosen: ask the user for council members (council skill, Step 1) and set UC_COUNCIL, or set UC_PANEL=steer|waterfall|full for the cheap judges." >&2; exit 4
+fi
+PANEL="$UC_PANEL"
 echo "Running UI critics with UC_PANEL=$PANEL..."
 
 case "$PANEL" in
