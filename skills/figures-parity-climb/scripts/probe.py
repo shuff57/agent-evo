@@ -12,14 +12,18 @@ Evidence tokens, joined with " + " (all must pass):
                                (case-insensitive); <action> is drag|click|scroll|label|any
   handle-edit:<key>            a handle that edits <key> inline (double-click)
   label-drag                   the figure is in labels::FIGURES
+  ui-test:<rust test path>     the named test (e.g. figuresui::tests::composite_canvas_moves_a_piece) exists in a
+                               file that names the figure id, and passes when run (cargo test --exact). For figures
+                               the workspace edits with its own canvas instead of figure handles; the round's
+                               checker still judges that the test drives the action the capability names.
   param:<key>                  the figure has this parameter            (not behavioural)
   param-choice:<key>=<option>  the parameter offers this option         (not behavioural)
   show-answers | style | label-size   the standard switch exists       (not behavioural)
   symbol:<path>:<text>         <text> occurs in <path>, a file that names the figure id (not behavioural)
 
 Class rules:
-  core, control, version, editor   need at least one changes:/handle:/handle-edit:/label-drag token
-  interaction                      needs a handle:/handle-edit:/label-drag token
+  core, control, version, editor   need at least one changes:/handle:/handle-edit:/label-drag/ui-test: token
+  interaction                      needs a handle:/handle-edit:/label-drag/ui-test: token
   output                           any token
   out-of-scope                     not checked
 
@@ -40,12 +44,12 @@ from pathlib import Path
 
 from lib import CLASS_WEIGHTS, binary, newest_src_mtime, read_json, run_bin, sha, write_json
 
-BEHAVIOURAL = ("changes:", "handle:", "handle-edit:", "label-drag")
-HANDLE_ONLY = ("handle:", "handle-edit:", "label-drag")
+BEHAVIOURAL = ("changes:", "handle:", "handle-edit:", "label-drag", "ui-test:")
+HANDLE_ONLY = ("handle:", "handle-edit:", "label-drag", "ui-test:")
 LIST_FILES = {"faq.rs", "interact.rs", "labels.rs", "start.rs", "census.rs", "mod.rs"}
 
 
-TOKEN_STARTS = ("changes:", "handle:", "handle-edit:", "label-drag", "param:", "param-choice:", "show-answers", "style", "label-size", "symbol:")
+TOKEN_STARTS = ("changes:", "handle:", "handle-edit:", "label-drag", "ui-test:", "param:", "param-choice:", "show-answers", "style", "label-size", "symbol:")
 
 
 def tokens(ev: str) -> list[str]:
@@ -113,6 +117,36 @@ class Renderer:
         return path
 
 
+_UI_TESTS: dict[str, tuple[bool, str]] = {}
+_UI_LOCK = threading.Lock()
+
+
+def ui_test(name: str, fid: str, repo: Path) -> tuple[bool, str]:
+    """Run one named Rust test (once per probe run) and say whether it exists for this figure and passes."""
+    import re
+    import subprocess
+    leaf = name.rsplit("::", 1)[-1]
+    if not re.fullmatch(r"[A-Za-z0-9_:]+", name) or not leaf:
+        return False, "use ui-test:<module::path::test_name>"
+    files = [f for f in (repo / "src").rglob("*.rs") if re.search(rf"\bfn {re.escape(leaf)}\s*\(", f.read_text(encoding="utf-8", errors="replace"))]
+    if not files:
+        return False, f"no test fn {leaf} in src/"
+    if not any(f'"{fid}"' in f.read_text(encoding="utf-8", errors="replace") for f in files):
+        return False, f"the file holding {leaf} does not name the figure id \"{fid}\""
+    with _UI_LOCK:
+        if name not in _UI_TESTS:
+            r = subprocess.run(["cargo", "test", "--profile", "figtest", "--lib", "--", "--exact", name],
+                               cwd=repo, capture_output=True, text=True, timeout=3600)
+            out = r.stdout + r.stderr
+            if f"test {name} ... ok" in out:
+                _UI_TESTS[name] = (True, "ok")
+            elif f"test {name} ... FAILED" in out:
+                _UI_TESTS[name] = (False, f"test {name} fails")
+            else:
+                _UI_TESTS[name] = (False, f"test {name} did not run (check the full path): {out.strip()[-200:]}")
+        return _UI_TESTS[name]
+
+
 def check_token(token: str, fid: str, fig: dict, repo: Path, rnd: Renderer, shown: list) -> tuple[bool, str]:
     params = {p["key"]: p for p in fig.get("params", [])}
     if token.startswith("changes:"):
@@ -147,6 +181,8 @@ def check_token(token: str, fid: str, fig: dict, repo: Path, rnd: Renderer, show
         return False, f"no handle edits {key} inline"
     if token == "label-drag":
         return (True, "ok") if fig.get("label_drag") else (False, "figure is not in labels::FIGURES")
+    if token.startswith("ui-test:"):
+        return ui_test(token[len("ui-test:"):].strip(), fid, repo)
     if token.startswith("param-choice:"):
         key, _, val = token[len("param-choice:"):].partition("=")
         p = params.get(key.strip())
@@ -187,10 +223,10 @@ def check(cap: dict, fid: str, fig: dict, repo: Path, rnd: Renderer) -> dict:
         return out
     toks = tokens(ev)
     if cls == "interaction" and not any(t.startswith(HANDLE_ONLY) for t in toks):
-        out["why"] = "weak evidence: an interaction needs handle:/handle-edit:/label-drag"
+        out["why"] = "weak evidence: an interaction needs handle:/handle-edit:/label-drag/ui-test:"
         return out
     if cls in ("core", "control", "version", "editor") and not any(t.startswith(BEHAVIOURAL) for t in toks):
-        out["why"] = f"weak evidence: a {cls} capability needs changes:/handle:/handle-edit:/label-drag"
+        out["why"] = f"weak evidence: a {cls} capability needs changes:/handle:/handle-edit:/label-drag/ui-test:"
         return out
     for t in toks:
         ok, why = check_token(t, fid, fig, repo, rnd, out["renders"])

@@ -52,12 +52,20 @@ built app. Tokens, joined with ` + ` (all must pass):
 | `handle:<drag\|click\|scroll\|label\|any>:<tip text>` | a handle at the opening state has that action and a tip containing the text | yes |
 | `handle-edit:<key>` | a handle edits `<key>` inline | yes |
 | `label-drag` | the figure is in `labels::FIGURES` | yes |
+| `ui-test:<module::path::test>` | that Rust test exists in a file naming the figure id, and passes when run | yes |
 | `param:<key>`, `param-choice:<key>=<opt>` | the control exists | no |
 | `show-answers`, `style`, `label-size` | the standard switch exists | no |
 | `symbol:<path>:<text>` | the text is in that file, and the file names the figure id | no |
 
 Class rules: `core`, `control`, `version` and `editor` need at least one
-behavioural token; `interaction` needs a handle token; `output` takes any.
+behavioural token; `interaction` needs a handle token or `ui-test:`; `output` takes any.
+
+`ui-test:` is for a figure the workspace edits with its own canvas editor instead
+of figure handles (composite-shape): the probe cannot see that canvas, so the
+evidence is a workspace test that drives the action through the canvas. Use it
+only where the figure has no handle path the teacher sees; never add handles the
+app does not show just to satisfy the probe. The round's checker reads the test
+and judges that it performs exactly the action the capability names.
 So a version capability is `changes:show_answers=false`, not `show-answers`, and a
 "drag a vertex" capability names the handle, not merely "has handles".
 
