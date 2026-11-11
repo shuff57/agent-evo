@@ -24,8 +24,8 @@ because every failure below actually happened and silently produced confident wr
    verify_blind.py  ── must print OK ──▶ abort if not
         │
         ▼
-   the council (3 flagship models, 3 providers; `skills/council`) ──▶ one JSON line per item
-        │
+   the council (2 critics: Claude Opus + GPT Sol, high) ──▶ one JSON line per item
+        │            split pair? ──▶ tie-breaker: Kimi K3.1 (opencode, ollama, high)
         ▼
    analyze.py  ── control error FIRST, then votes, then means
         │
@@ -97,7 +97,7 @@ edit the config block at the top of each file.
 | `scripts/visual_diff.py` | creates side-by-side before/after comparison with numbered bounding boxes around changed pixel clusters for human spot-checks |
 | `scripts/analyze.py` | parses verdicts, prints controls → mirrors → votes → per-screen means → dimensions |
 | `scripts/critic.md` | the prompt; `OUTFILE` is substituted per judge |
-| `scripts/council.md`, `scripts/run_council.sh` | the council step: three flagship delegates from three providers review the plan + diff, read-only, advisory only (see Council) |
+| `scripts/council.md`, `scripts/run_council.sh` | the council step: the two critics review the plan + diff, read-only, advisory only; the tie-breaker settles a split (see Council) |
 | `scripts/criteria_check.py` | turns a results file (and a task ledger) into PASS/FAIL against the written bar: per-screen means, weakest dimension, dark parity, pair win rate, tasks |
 
 Run:
@@ -109,12 +109,35 @@ bash run_critics.sh                # one detached `t3 thread start` per model, o
 python3 analyze.py > rN-analysis.txt
 ```
 
-**The critics are the council.** Start at the `council` skill, Step 1: ask the user which harness,
-providers and models, then run `UC_COUNCIL="provider:model ×3" bash run_critics.sh`. Each member
-starts a fresh thread (`t3 thread start --provider <p> --model <m> --wait --json`) with `critic.md`
-piped in, writing verdicts to its own file. Never guess the members. The ollama-cloud panels
-(`UC_PANEL=steer|waterfall|full`) remain as the cheap extra judges between council rounds.
-Three council members steer; to claim the bar add the cheap judges (rule 8: three steer, five claim).
+**The critics are the council: two of them.** At onboarding, suggest exactly two critics, both at
+high effort, and confirm them with the user before the first round (one question, the suggestion as
+the first option; never guess or substitute):
+
+| critic | T3 provider | model | effort |
+|---|---|---|---|
+| Claude Opus | the Claude instance (`orchestrator_capabilities`, e.g. `claudeAgent_claude_proxy`) | `claude-opus-5-5` | `{effort: high}` |
+| GPT Sol | `codex` | `gpt-6.1-sol` | `{reasoningEffort: high}` |
+
+Then `UC_COUNCIL="<claude-instance>:claude-opus-5-5 codex:gpt-6.1-sol"`. In T3 Code use
+`UC_CRITIC_MODE=prepare bash run_critics.sh`: it writes each critic's prompt and prints
+`provider model prompt outfile`; start both with `delegate_task` (async, both in one turn) at high
+effort with the prompt file's text as the task, then run `analyze.py`. Outside T3 Code the default
+`run` mode starts them with `t3 thread start`, which cannot set effort (see Effort under Council).
+
+**Tie-breaker: Kimi K3.1 on high.** Two judges can split. When `analyze.py` reports split pairs
+(one vote each way, or ours/ref against a tie), spawn one tie-breaker instead of guessing:
+opencode, model `ollama/kimi-k3.1-pro` (the ollama provider, not the `openrouter/` copy T3's model
+search lists; do not fall back to it unasked), `{variant: high}`.
+`UC_TIEBREAK=1 UC_CRITIC_MODE=prepare bash run_critics.sh` prepares it for `delegate_task`
+(override with `UC_TIEBREAK_MEMBER`). It grades the *whole* pack, controls and mirrors included,
+into `blind/tiebreak/`, so its honesty is measured like any judge's; if its control error is over
+1.0 its votes are ignored and the splits stay ties. Probe it once for image reading before its first
+use (Choosing judges). `analyze.py` uses it only to settle split pairs
+("pairs won after tie-break"); it never enters a mean, because a judge that sits in only some rounds
+would shift the scale (rule 3). No splits, no tie-breaker.
+
+The cheap ollama panels (`UC_PANEL=steer|waterfall|full`) remain as extra judges between council
+rounds. The two critics steer; to claim the bar add the cheap judges (rule 8).
 
 ## Choosing judges
 
@@ -129,8 +152,9 @@ Use models from different labs — agreement across labs is evidence, agreement 
 not. Expect a scale spread of up to 2 points between judges on the same image (deepseek ~5.9,
 mistral ~7.9 in one round); never compare means across a changed panel.
 
-A provider instance only serves some models, and `run_critics.sh` starts every thread with
-`--provider opencode`; start any other provider directly with `t3 thread start`.
+A provider instance only serves some models. The cheap `UC_PANEL` judges start with
+`--provider opencode`; council critics and the tie-breaker use the provider named in their
+`provider:model` pair.
 
 ## Criteria to meet
 
@@ -159,7 +183,8 @@ it is done.
    specific. Two rounds of gaps on one screen is a real defect; a single mention is taste.
 7. **Never trade a passing test for a look.** Build, run the suite, then shoot.
 8. **One judge cannot establish a delta.** Ten verdicts from one model are a hint, not a measurement;
-   three judges steer, five claim.
+   the two critics steer (Kimi K3.1 breaks their splits), and the bar is claimed only with the cheap
+   judges added on a full-panel round.
 9. **Mirrors decide near-ties.** When two images are close, a flipped mirror is the answer: the pair
    is a tie, whatever the scores say.
 10. **Beware the monochrome trap.** Never sacrifice interactive affordances for flat minimalism.
@@ -227,7 +252,7 @@ judge sees, and so the verdicts, unchanged:
 - **Waterfall gating (`UC_PANEL=waterfall`).** Run a fast, low-cost screener judge first (e.g.
  deepseek/kimi). If the screener fails or control errors spike, halt immediately before firing
  tokens on the rest of the multi-lab jury.
-- **Steer with three judges, claim with five.** Run the cheap, ungated critics between builder
+- **Steer with the two critics, claim with the full panel.** Run the cheap, ungated critics between builder
   runs (`UC_PANEL=steer` in the project's `run_critics.sh`). Only claim the bar on a full-panel
   round, and never compare a steer round's means with a full round's (rule 3).
 
@@ -245,24 +270,29 @@ When pushing an already viable UI past a baseline (e.g. from 8.0 to 9.5+):
 
 ## Council (the critics, and the fix reviewers)
 
-Specialization of the general `council` skill (`skills/council`, from tstack). The council is the
-panel that grades the blind set (see Run), and it has a second, advisory job: after the panel names
+Specialization of the general `council` skill (`skills/council`, from tstack), with one difference:
+here the council is two critics (Claude Opus + GPT Sol, high) plus a Kimi K3.1 tie-breaker, not three
+members. The council is the panel that grades the blind set (see Run), and it has a second, advisory job: after the panel names
 gaps it reviews the fix plan and diff before the next capture. In that second job it never
 contributes to a mean.
 
 - **When (review job).** After `analyze.py` and `criteria_check.py`, once the builder has a fix plan and a diff,
   before the next capture. Also once before claiming the bar on a full-panel round.
-- **Who.** Ask the user which harness, providers and models first (council skill, Step 1); never
-  guess `UC_COUNCIL`. Exactly three read-only delegates, one flagship per provider, high reasoning effort
-  (`UC_COUNCIL="claude:<opus> codex:<gpt> gemini:<pro>"`). Fewer than three distinct providers or an
+- **Who.** The same two critics confirmed at onboarding (see Run): Claude Opus and GPT Sol, both
+  high, read-only, each from a different provider. Fewer than two distinct providers or an
   unavailable member: report it, do not substitute (`run_council.sh` exits 3).
+- **Tie-breaker.** When the two disagree (one `satisfied`, one not), run the same round again with
+  `UC_TIEBREAK=1` (opencode `ollama/kimi-k3.1-pro`, `{variant: high}`). It joins as member
+  `tiebreak` and the summary takes the majority of three. Disagreement on whether a plan item is a
+  real defect or taste: Kimi's vote settles that item too. Never use it to outvote two critics who
+  agree.
 - **What they get.** The analysis, the written bar, the plan, the git diff and any `visual_diff.py`
   composites. They sort the plan into real defects (two judges, or the same screen two rounds) and
   taste, check for the monochrome trap and scope creep, and give a /10 for plan-plus-diff.
   A void round (split control) stays void; the council cannot rescue it.
 - **Loop.** If you agree, make the changes, then a fresh council pass is a new round (count passes
-  as in tstack: one full pass = one round). Stop when all three say `satisfied`. Do not let repeated
-  passes grow scope: fight to keep it to the top one or two gaps.
+  as in tstack: one full pass = one round). Stop when both say `satisfied`, or two of three after a
+  tie-break. Do not let repeated passes grow scope: fight to keep it to the top one or two gaps.
 - **Report.** Add the council table to the round report and, when the work ends in a PR, to the PR
   description (edit it, do not comment), before the model/harness line. No score means `no score`.
 
@@ -275,7 +305,7 @@ Rounds: 2
 | --- | --- | --- |
 | Claude Opus | 7/10 | 9/10 |
 | GPT Sol | 8/10 | 10/10 |
-| Gemini Pro | no score | 9/10 |
+| Kimi K3.1 (tie-break) | not run | 9/10 |
 ```
 
 Run: `ROUND=3 UC_COUNCIL=... UC_ANALYSIS=r3-analysis.txt UC_CRITERIA=r3-criteria.txt UC_PLAN=plan.md
@@ -284,13 +314,14 @@ UC_DIFF=pending.diff bash run_council.sh`. In T3 Code, resolve member models wit
 
 **Effort.** `t3 thread start` cannot set reasoning effort, so the default `run` mode leaves each member
 at its provider default (codex `gpt-6.1-sol` = low). In T3 Code use `UC_COUNCIL_MODE=prepare`: it
-writes each member's prompt and prints `provider model prompt outfile`; start the three members
-yourself with `delegate_task` (role review, async, all three in one turn) at high effort —
+writes each member's prompt and prints `provider model prompt outfile`; start the members
+yourself with `delegate_task` (role review, async, all in one turn) at high effort —
 codex `{reasoningEffort: high}`, claudeAgent `{effort: high}`, opencode `{variant: high}` — with the
-prompt file's text as the task; when all three report, run `UC_COUNCIL_MODE=summary`. A member whose
+prompt file's text as the task; when all report, run `UC_COUNCIL_MODE=summary`. A member whose
 task fails at startup is retried once after a pause, then reported unavailable (never substituted).
-The blind judges are a different job: keep them at one fixed effort for the whole climb, since a
-change of effort resets their scale like a change of judge (rule 3).
+The blind critics follow the same pattern (`UC_CRITIC_MODE=prepare bash run_critics.sh`) and stay at
+high for the whole climb, since a change of effort resets their scale like a change of judge (rule 3).
+The tie-breaker is always started at `{variant: high}`.
 
 ## Report shape
 

@@ -15,6 +15,8 @@ KEY = os.path.expanduser(os.environ.get('UC_KEY', '~/.local/state/ui-hill-climb/
 K = json.load(open(KEY))
 DIM = ['hierarchy', 'spacing', 'type', 'state']
 M = sorted(os.path.basename(f)[:-6] for f in glob.glob(f'{B}/out/*.jsonl'))
+# Tie-breaker verdicts (run_critics.sh UC_TIEBREAK=1): used only to settle split pairs, never in a mean.
+TBM = sorted(os.path.basename(f)[:-6] for f in glob.glob(f'{B}/tiebreak/*.jsonl'))
 
 
 def parse_lines(path):
@@ -74,25 +76,30 @@ def sc(x):
 
 avg = lambda s: sum(s[d] for d in DIM) / 4
 
-rows = []
-for i, k in K.items():
-    for m in M:
-        o = R[m].get(i)
-        if not o:
-            continue
-        if k['kind'] == 'pair':
-            ou, re = k['ours'], ('B' if k['ours'] == 'A' else 'A')
-            rows.append(dict(id=i, model=m, kind='mirror' if k.get('mirror_of') else 'pair',
-                             partner=k.get('mirror_of'), screen=k['screen'], view=k['view'],
-                             what=o.get('what'),
-                             better={'tie': 'tie', ou: 'ours', re: 'ref'}.get(o.get('better'), '?'),
-                             ours=sc(o[ou]), ref=sc(o[re]), gap=o[ou].get('gap')))
-        elif k['kind'] == 'control':
-            rows.append(dict(id=i, model=m, kind='control', screen=k['screen'], view=k['view'],
-                             better=o.get('better'), A=sc(o['A']), B=sc(o['B'])))
-        else:
-            rows.append(dict(id=i, model=m, kind='solo', screen=k['screen'], view=k['view'],
-                             theme=k['theme'], ours=sc(SOLO(o)), gap=SOLO(o).get('gap')))
+def build_rows(R, M):
+    rows = []
+    for i, k in K.items():
+        for m in M:
+            o = R[m].get(i)
+            if not o:
+                continue
+            if k['kind'] == 'pair':
+                ou, re = k['ours'], ('B' if k['ours'] == 'A' else 'A')
+                rows.append(dict(id=i, model=m, kind='mirror' if k.get('mirror_of') else 'pair',
+                                 partner=k.get('mirror_of'), screen=k['screen'], view=k['view'],
+                                 what=o.get('what'),
+                                 better={'tie': 'tie', ou: 'ours', re: 'ref'}.get(o.get('better'), '?'),
+                                 ours=sc(o[ou]), ref=sc(o[re]), gap=o[ou].get('gap')))
+            elif k['kind'] == 'control':
+                rows.append(dict(id=i, model=m, kind='control', screen=k['screen'], view=k['view'],
+                                 better=o.get('better'), A=sc(o['A']), B=sc(o['B'])))
+            else:
+                rows.append(dict(id=i, model=m, kind='solo', screen=k['screen'], view=k['view'],
+                                 theme=k['theme'], ours=sc(SOLO(o)), gap=SOLO(o).get('gap')))
+    return rows
+
+
+rows = build_rows(R, M)
 json.dump(rows, open(os.environ.get('UC_RESULTS', 'results.json'), 'w'), indent=0)
 
 print('\nCONTROLS  (the same image twice: the score gap is the judge measuring itself)')
@@ -140,6 +147,35 @@ for k, v in sorted(g.items()):
     print(f'  {k[0]:20s} {k[1]:7s} ' + ' '.join(f'{x["model"][:2]}:{x["better"]}' for x in v))
 votes = collections.Counter(r['better'] for r in rows if r['kind'] == 'pair')
 print(f'  votes {dict(votes)}  pairs won {won}/{len(g)}')
+
+splits = [k for k, v in sorted(g.items())
+          if sum(x['better'] == 'ours' for x in v) == sum(x['better'] == 'ref' for x in v)]
+if splits:
+    print(f'  split pairs (no majority): {len(splits)}' +
+          ('' if TBM else '  -> run the tie-breaker: UC_TIEBREAK=1 bash run_critics.sh'))
+
+if TBM:
+    TR = {m: {o['id']: o for o in parse_lines(f'{B}/tiebreak/{m}.jsonl') if 'id' in o} for m in TBM}
+    tbrows = build_rows(TR, TBM)
+    print('\nTIE-BREAK  (settles split pairs only; never enters a mean)')
+    for m in TBM:
+        ce = [abs(avg(r['A']) - avg(r['B'])) for r in tbrows if r['model'] == m and r['kind'] == 'control']
+        tp = {r['id']: r for r in tbrows if r['model'] == m and r['kind'] == 'pair'}
+        mir = [(tp[r['partner']]['better'] == r['better']) for r in tbrows
+               if r['model'] == m and r['kind'] == 'mirror' and r['partner'] in tp]
+        bad = ce and st.mean(ce) > 1.0
+        print(f'  {m}: {len(TR[m])} of {len(K)} parsed, control error '
+              f'{round(st.mean(ce), 2) if ce else "n/a"}, mirrors {sum(mir)}/{len(mir)}'
+              + ('  UNUSABLE: control error over 1.0, splits stay ties' if bad else ''))
+        if bad:
+            continue
+        tbv = {(r['screen'], r['view']): r['better'] for r in tp.values()}
+        settled = 0
+        for k in splits:
+            v = tbv.get(k, '?')
+            settled += v == 'ours'
+            print(f'  {k[0]:20s} {k[1]:7s} split -> {m[:8]}:{v}')
+        print(f'  pairs won after tie-break {won + settled}/{len(g)}')
 
 print('\nBY JUDGE')
 for m in M:

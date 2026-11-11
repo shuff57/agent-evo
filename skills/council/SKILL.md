@@ -69,7 +69,9 @@ keep scope limited.
 
 ## Specializations
 
-- **UI hill climb**: ask the Step 1 questions first, pass the answers as `UC_COUNCIL="provider:model ×3"`;
-  `skills/ui-hill-climb/scripts/run_council.sh` then runs this same council
-  (three providers, read-only, advisory) against a hill-climb round's plan and diff. The council
+- **UI hill climb**: uses two members, not three. Instead of the Step 1 questions, suggest Claude Opus
+  and GPT Sol, both at high effort, and confirm with the user; pass them as
+  `UC_COUNCIL="provider:model provider:model"`. On a split, an opencode Kimi K3.1 tie-breaker
+  (`ollama/kimi-k3.1-pro`, high) casts the third vote. `skills/ui-hill-climb/scripts/run_council.sh`
+  runs it (read-only, advisory) against a hill-climb round's plan and diff. The council
   never scores the UI; the blind panel owns the numbers. See "Council" in that skill.

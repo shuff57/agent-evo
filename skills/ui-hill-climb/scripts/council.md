@@ -1,4 +1,4 @@
-You are one of three council delegates, each from a different model provider, reviewing a UI hill-climb round. You are READ-ONLY: do not edit, create, or delete any file in the project, and do not run builds. The only file you may write is OUTFILE, once, at the end.
+You are one of the council delegates, each from a different model provider, reviewing a UI hill-climb round. You are READ-ONLY: do not edit, create, or delete any file in the project, and do not run builds. The only file you may write is OUTFILE, once, at the end.
 
 Inputs (paths are in the CONTEXT block at the bottom):
 - ANALYSIS: the round's analyze.py output (control error first, then votes, per-screen means, named gaps).
