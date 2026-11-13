@@ -1,6 +1,15 @@
 # Agent Roster
 
-19 agents, 1 team, 0 chains.
+10 agents, 0 teams, 0 chains.
+
+**2026-11-13:** the nine `*-expert` agents and the `experts` team were retired (zero
+calls in 60 days; they were reference docs wearing agent costumes). `evolver`,
+`evolver-meta`, `global-evolver` and `skill-reviewer` moved to `skills/<name>/SKILL.md`
+as fork skills: `context: fork` runs them isolated, and `model: sonnet` + `effort: high`
+in the frontmatter pin the model the way the agent file used to. Restore with
+`git checkout <sha>~1 -- roster/`. Later the same day `cs-student-tester` and
+`cs-teacher-tester` (run alone, end-to-end, one at a time) became fork skills too; the
+three `cs-student-*` lenses stay agents because callers spawn them in parallel.
 
 **19 agents were retired on 2026-09-19** as redundant to oh-my-openagent's builtins —
 `scout`, `librarian`, `oracle`, `metis`, `planner`, `critic`, `visual-analyzer`,
@@ -48,15 +57,10 @@ are visible to a Claude Code session — reaching them needs a forwarder that ca
 
 ## Agent Categories
 
-### Evolution (read-write)
-| Agent | Purpose |
-|-------|---------|
-| **evolver** | Session-end evolution pass — proposes surgical edits |
-| **evolver-meta** | Tunes the evolver's calibration against its own accuracy |
-| **global-evolver** | Create-mode — drafts new global agents/skills for a capability gap |
-
-Nothing in omo does self-modification of the agent config. These are the reason
-the roster still exists.
+### Evolution — now skills, not agents
+`evolver`, `evolver-meta`, `global-evolver` live in `skills/`. Invoke them with the Skill
+tool; each forks onto its pinned sonnet model. Nothing in omo does self-modification of
+the agent config.
 
 ### A/V Verification
 | Agent | Purpose |
@@ -69,30 +73,11 @@ It has no audio.
 ### Curriculum Testing (read-only)
 | Agent | Purpose |
 |-------|---------|
-| **cs-student-tester** | Works a CS course end-to-end as a real 14-year-old beginner |
 | **cs-student-advanced** | Strong-student lens — fewest characters that still score full marks |
 | **cs-student-moderate** | Competent-middle lens — reaches back for the course's own earlier material |
 | **cs-student-beginner** | Struggling-beginner lens — slowest, most literal path. Pinned `@low` on purpose: this persona must NOT infer |
-| **cs-teacher-tester** | Teacher side — a module as someone running 25 students would work it |
 
 Domain personas, not routing. Nothing in omo covers them.
-
-### Domain Experts (read-only, queried by the main session)
-| Agent | Domain |
-|-------|--------|
-| **extensions-expert** | Plugins, tools, event handlers |
-| **theme-expert** | Color tokens, theme configs |
-| **skills-expert** | SKILL.md format, registration |
-| **config-expert** | Settings, providers, models |
-| **ui-expert** | Components, overlays, widgets |
-| **prompts-expert** | Templates, arguments |
-| **agents-expert** | Agent .md format, teams, chains |
-| **cli-expert** | CLI flags, env vars, scripting |
-| **keybindings-expert** | Shortcuts, key combos |
-
-Unique in *subject* — Claude Code / opencode tooling knowledge baked into the
-prompt — but redundant in *mechanism*. These are reference docs wearing agent
-costumes; one skill would serve them better than nine agents.
 
 ### Utility
 | Agent | Purpose |
@@ -101,8 +86,7 @@ costumes; one skill would serve them better than nine agents.
 
 ## Teams
 
-One team, `experts`. See [teams.yaml](teams.yaml); the nine dissolved on
-2026-09-19 are listed there.
+None. See [teams.yaml](teams.yaml) for what was dissolved and when.
 
 ## Chains
 

@@ -313,7 +313,7 @@ export const TierGate = async ({ directory }) => {
             "",
             `${MARKER} Recon budget crossed: ${state.recon} read/grep/bash calls, no delegation this session.`,
             "AGENTS.md sends recon to a sub-agent before you read the codebase by hand:",
-            "codegraph_explore first, then explore / librarian / an *-expert. Their file dumps",
+            "codegraph_explore first, then explore / librarian. Their file dumps",
             "never enter this context; every call you make yourself does, and context volume is",
             "where the top-tier spend actually goes -- not output tokens.",
             "Spawn one for the next question, or say why this session has to look for itself.",

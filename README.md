@@ -54,19 +54,23 @@ sync.sh          # minimal symlink-only script
 
 Agents are organized into categories. See [roster/README.md](roster/README.md) for the full breakdown, including where each retired agent's role went.
 
-19 agents. **19 were retired on 2026-09-19** as redundant to oh-my-openagent's builtins, along with 9 of the 10 teams and all 6 chains that were composed out of them.
+10 agents. On 2026-11-13 the nine `*-expert` agents were retired (zero calls in 60 days), and the three evolvers plus `skill-reviewer` became fork skills (`context: fork`, `model: sonnet` pinned in the SKILL.md frontmatter). **19 were retired on 2026-09-19** as redundant to oh-my-openagent's builtins.
 
 | Category | Agents |
 |----------|--------|
-| Evolution | evolver, evolver-meta, global-evolver |
-| A/V Verification | eyes-and-ears |
-| Curriculum Testing | cs-student-tester, cs-student-advanced, cs-student-moderate, cs-student-beginner, cs-teacher-tester |
-| Domain Experts | extensions, theme, skills, config, ui, prompts, agents, cli, keybindings |
+| A/V Verification | eyes-and-ears, eyes-pages, eyes-decks, eyes-video, ears-narration, cs-function-audit |
+| Curriculum Testing | cs-student-advanced, cs-student-moderate, cs-student-beginner (parallel lenses) |
 | Utility | test-ping |
+
+| Fork skills (were agents) | Model |
+|----------|--------|
+| evolver, evolver-meta, global-evolver, skill-reviewer | sonnet @ high |
+| cs-student-tester, cs-teacher-tester | sonnet @ medium |
+| momus (plan critic) | sonnet |
 
 ## Teams & Chains
 
-**Teams** group agents for coordinated work. **Chains** are sequential pipelines where each step's output feeds the next. One team (`experts`) and no chains survive the 2026-09-19 retirement; both files record what was dissolved and where those shapes went.
+**Teams** group agents for coordinated work. **Chains** are sequential pipelines where each step's output feeds the next. No teams and no chains remain (`experts` went 2026-11-13); both files record what was dissolved and where those shapes went.
 
 ```bash
 cat roster/teams.yaml

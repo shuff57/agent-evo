@@ -1,6 +1,6 @@
 ---
 name: shcode-issue-reports
-description: Work through the student issue reports filed in shCode (the Report button, /teacher/issues): pull the queue, triage each report, mark it in progress, fix and verify it (tests, a real browser, the live site), deploy, then mark it fixed or deferred with a plain note the student can read. Use when asked to "address student issues", "work the issue reports", "what's left in the reports", "check the queue", "close out reports", or names a report number (#88). Also grows itself: every time the owner has to ask for a check the run should have done, it records the lesson here.
+description: "Work through the student issue reports filed in shCode (the Report button, /teacher/issues): pull the queue, triage each report, mark it in progress, fix and verify it (tests, a real browser, the live site), deploy, then mark it fixed or deferred with a plain note the student can read. Use when asked to \"address student issues\", \"work the issue reports\", \"what's left in the reports\", \"check the queue\", \"close out reports\", or names a report number (#88). Also grows itself: every time the owner has to ask for a check the run should have done, it records the lesson here."
 ---
 
 # shCode student issue reports

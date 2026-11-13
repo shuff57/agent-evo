@@ -78,9 +78,12 @@ fi
 # whole-directory symlink can never work there because synced/ and the Orca links
 # already live in it). opencode scans both roots; on 2026-09-30 `opencode debug skill`
 # showed a skill present in both collapses to a single entry, no duplicates.
+# evolution is NOT skipped any more (2026-11-13): the evolver fork skills read
+# ~/.claude/skills/evolution/references/ user-globally. steve-desktop's project-local
+# copy still shadows it inside that repo.
 SKILLS_SKIP="
-  evolution     # duplicate of steve-desktop/.claude/skills/evolution (live project-local; copies differ)
   roster-match  # duplicate of app-synced ~/.claude/skills/synced/*/roster-match (copies differ)
+  caveman       # measured net-negative, see docs/decisions.md; kept in git, not installed
   steve         # duplicate of steve-desktop/.claude/skills/steve (live project-local; copies differ)
 "
 SKIP=""

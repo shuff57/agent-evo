@@ -12,7 +12,7 @@ others.
 
 This is the **user-global** copy and is project-agnostic. It discovers
 project-local pieces by convention — create-mode evolvers via
-`.claude/agents/*-evolver.md` and a pending-triage skill via
+`.claude/agents/*-evolver.md` or `.claude/skills/*-evolver/SKILL.md`, and a pending-triage skill via
 `.claude/skills/memory-pending-triage/SKILL.md`, both CWD-relative — so it
 works across any repo that follows the pattern and skips cleanly in repos that
 don't. If a project ships its own `.claude/skills/session-end-wrap/SKILL.md`,
@@ -22,7 +22,7 @@ that copy shadows this one — useful when a repo needs custom phase behavior.
 
 Four skills + two agents cover the end-of-session concerns separately
 (`memory-pending-triage`, `memory-hygiene`, `session-reflector`, the
-modify-mode `evolver` agent, the project-local create-mode evolver, and
+modify-mode `evolver` skill, the project-local create-mode evolver, and
 `evolver-meta`). Running them manually one at a time is friction. This skill is
 a thin orchestrator so the user can fire them all with one command. The Stop-hook only nudges the user to type that command —
 it never invokes this skill directly.
@@ -36,8 +36,8 @@ does not block the others.
 - `memory-pending-triage` skill — project-local only, at `.claude/skills/memory-pending-triage/SKILL.md`. Bridges `pending/` (what `session-reflector` writes) to `active/` (what `memory-hygiene` manages) — nothing else does, so without it `pending/` grows unbounded. Absent in most repos; phase 0 skips.
 - `memory-hygiene` skill — project-local at `.claude/skills/memory-hygiene/SKILL.md` is preferred and resolves first; user-global at `~/.claude/skills/memory-hygiene/SKILL.md` is the cross-project fallback.
 - `session-reflector` skill — project-local at `.claude/skills/session-reflector/SKILL.md` is preferred and resolves first when a repo ships one; user-global at `~/.claude/skills/session-reflector/SKILL.md` is the cross-project fallback (typical case).
-- `evolver` agent (loads the `evolution` skill) — at `~/.claude/agents/evolver.md` (user-global). Modify-mode only.
-- Project-local create-mode evolver — any agent in `<repo>/.claude/agents/` whose filename matches `*-evolver.md` (e.g. `bookshelf-evolver.md`, `infra-evolver.md`). Each such agent is invoked once in phase 4. Repos without one simply skip phase 4 with a clean log line.
+- `evolver` skill (loads the `evolution` skill) — at `~/.claude/skills/evolver/SKILL.md` (user-global). Runs forked on a pinned sonnet model. Modify-mode only.
+- Project-local create-mode evolver — any agent in `<repo>/.claude/agents/` whose filename matches `*-evolver.md`, or any skill at `<repo>/.claude/skills/*-evolver/SKILL.md` (from a home session this finds the user-global `global-evolver` skill) (e.g. `bookshelf-evolver.md`, `infra-evolver.md`). Each such agent is invoked once in phase 4. Repos without one simply skip phase 4 with a clean log line.
 
 ## Worktree awareness
 
@@ -76,22 +76,22 @@ canonical copy.
    so the active tier has room for the new entry the reflector is about to add.
 2. **`session-reflector`** — capture this session's learnings as a new
    entry in `.agents/memory/active/`. Adds to the just-pruned active tier.
-3. **`evolver` (modify-mode)** — user-global agent. Analyze session
+3. **`evolver` (modify-mode)** — user-global skill. Analyze session
    friction and propose surgical edits to existing agents/skills/prompts.
    Reads the freshly-written reflector entry as one of its signals. Never
    creates new artefacts — that's phase 4's job.
 4. **Project-local create-mode evolvers** — each agent matching
-   `.claude/agents/*-evolver.md` in CWD. Scans `.agents/memory/active/` for
+   `.claude/agents/*-evolver.md`, or skill matching `.claude/skills/*-evolver/SKILL.md`, in CWD. Scans `.agents/memory/active/` for
    friction signals where no existing agent/skill/team fit (capability gap
    hit ≥2 times). Drafts at most ONE new artefact per evolver to
    `.claude/`, logs to `.agents/_evolution_log.jsonl`. Never auto-commits.
    Modify-mode signals are deferred back to phase 3's evolver.
-5. **`evolver-meta`** (optional) — user-global agent at
-   `~/.claude/agents/evolver-meta.md`. Scores the evolver's prediction
+5. **`evolver-meta`** (optional) — user-global skill at
+   `~/.claude/skills/evolver-meta/SKILL.md`. Scores the evolver's prediction
    accuracy from the evolution logs and applies at most one calibration
    edit to `~/.claude/skills/evolution/references/calibration.md` when its
-   evidence gate is met (it self-no-ops otherwise). Invoke via the `Agent`
-   tool with `subagent_type: "evolver-meta"`. If the agent is not
+   evidence gate is met (it self-no-ops otherwise). Invoke via the `Skill`
+   tool with `skill: "evolver-meta"` (it forks on its own). If the skill is not
    installed, skip cleanly with "meta pass skipped".
 
 ## Execution protocol
@@ -128,11 +128,14 @@ For each phase, in order:
      both skills; the workaround was reading the project `SKILL.md` directly
      — phase 0's step above now does the same proactively). If the Glob
      finds no project-local copy, invoke via the `Skill` tool as before.
-   - Phase 3 (modify-mode evolution): use the `Agent` tool with
-     `subagent_type: "evolver"` (user-global).
+   - Phase 3 (modify-mode evolution): use the `Skill` tool with
+     `skill: "evolver"` (user-global). Its frontmatter has `context: fork`
+     and pins `model: sonnet`, so it runs as an isolated subagent.
    - Phase 4 (create-mode evolution): before invoking, use the `Glob` tool
-     with pattern `.claude/agents/*-evolver.md` (CWD-relative) to discover
-     project-local create-mode evolvers. For each match, derive the agent
+     with patterns `.claude/agents/*-evolver.md` and
+     `.claude/skills/*-evolver/SKILL.md` (CWD-relative) to discover
+     project-local create-mode evolvers. A skill match is invoked via the
+     `Skill` tool by its directory name; an agent match as below. For each match, derive the agent
      name from the filename stem (e.g. `bookshelf-evolver.md` → agent name
      `bookshelf-evolver`) and invoke it via the `Agent` tool with that name
      as `subagent_type`. Brief each one that phase 3 already ran, so it
@@ -142,7 +145,7 @@ For each phase, in order:
      summary — this is the expected state for repos that don't yet use the
      create-mode pattern.
    - **Phase 3 and Phase 4 must run sequentially, never concurrently** —
-     both use the `Agent` tool, so it is possible to fire both calls in the
+     both are subagent calls, so it is possible to fire both calls in the
      same message the way independent tool calls normally get batched. Do
      not batch them. Invoke phase 3's `evolver` call, wait for its full
      response, THEN invoke phase 4's create-mode call. Confirmed failure (2026-07-29,

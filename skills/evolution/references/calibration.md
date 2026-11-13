@@ -4,9 +4,9 @@ This file is the AUTHORITATIVE source for the evolver's tunable thresholds
 and learned heuristics. It overrides any inline default values stated in
 `SKILL.md` or `evolver.md`.
 
-**Ownership rule:** only the `evolver-meta` agent may edit this file
+**Ownership rule:** only the `evolver-meta` skill may edit this file
 (max 1 surgical edit per meta run, within the hard bounds below). The
-`evolver` agent READS this file at the start of every evolution pass and
+`evolver` skill READS this file at the start of every evolution pass and
 never edits it. Humans may edit freely.
 
 ## Tunables
