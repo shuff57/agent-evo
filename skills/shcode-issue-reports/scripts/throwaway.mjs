@@ -32,8 +32,11 @@ function d1(sql) {
     { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
   return JSON.parse(out.slice(out.indexOf('['))).flatMap((r) => r.results ?? []);
 }
-const cookiesOf = (r) => (r.headers.getSetCookie?.() ?? []).map((c) => { const [nv] = c.split(';'); const i = nv.indexOf('='); return { name: nv.slice(0, i), value: nv.slice(i + 1) }; });
-const state = (cs) => ({ cookies: cs.map((c) => ({ ...c, domain: HOST, path: '/', expires: Math.floor(Date.now() / 1000) + 86400, httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' })), origins: [] });
+// Keep each cookie's own HttpOnly flag: shcode_owner and shcode_wk are READABLE on purpose (the page
+// reads them to know whose work it is). Marking them HttpOnly made every page load as 'guest' and the
+// server answer 409 owner-mismatch to every upload and save (2026-11-13).
+const cookiesOf = (r) => (r.headers.getSetCookie?.() ?? []).map((c) => { const [nv] = c.split(';'); const i = nv.indexOf('='); return { name: nv.slice(0, i), value: nv.slice(i + 1), httpOnly: /;\s*httponly/i.test(c) }; });
+const state = (cs) => ({ cookies: cs.map((c) => ({ ...c, domain: HOST, path: '/', expires: Math.floor(Date.now() / 1000) + 86400, httpOnly: c.httpOnly, secure: BASE.startsWith('https'), sameSite: 'Lax' })), origins: [] });
 
 async function signup(tag, first, last) {
   const email = `shcode-ct-${tag}-${randomBytes(4).toString('hex')}@example.invalid`;

@@ -98,6 +98,10 @@ node $S/issues.mjs set --ids 89 --status in-progress --note "We're working on th
 ## 6. Deploy
 
 From the repo: `TRIES_STAMP_ALLOW_OLD=1 npm run deploy` (never bare wrangler), only after `npm test` is green.
+Right before deploying, `git fetch` and check that `origin/cs-3d` has not moved; if it has, rebase, test
+again, then deploy, and push straight after (another session may be pushing to the same branch). If
+`npm test` stops on `check-sketch-movers` (it reads the sibling `../reshape-cad` repo), run the rest of the
+`test` chain yourself so nothing after it is skipped.
 A new migration: `npm run d1:migrate` first. The live Worker (`workers/live/`) changes only when
 `lib/live-protocol.ts`, `lib/live-doc-protocol.ts` or `workers/live/src/*` change: `cd workers/live && npx wrangler
 deploy`, BEFORE the site. Then `git push` (branch `cs-3d`).

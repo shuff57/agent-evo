@@ -3,6 +3,37 @@
 Read this before every run. Newest at the top. Each entry: the date, what the owner had to ask, why it was
 missed, and the rule. When a rule is general it is also in SKILL.md; this file keeps the reasons.
 
+## 2026-11-13 (evening): two more traps
+
+- **/tmp is wiped on a reboot.** The machine rebooted mid-run and took the review page, the demo clips and
+  every walk script with it. **Rule:** keep scratch work (walk scripts, clips, review pages, logs) in
+  `~/.cache/claude-shcode-issues/`, never `/tmp`.
+- **Another session's dev server can own your port.** `npm run dev` on a busy port fails quietly in its log,
+  and the walk then tests someone else's checkout (it found old CSS that way). **Rule:** pick a free port,
+  then confirm `readlink /proc/<pid>/cwd` of the listener is this repo before walking.
+- **A student's note must follow later changes.** #115's note described a design the owner then replaced
+  twice. **Rule:** when a fix is reworked after closing, rewrite that report's note to match what is live.
+
+## 2026-11-13: two traps that cost a cycle (no owner ask; found by the run)
+
+- **Deploying over a parallel push.** Another session pushed a lessons commit to `origin/cs-3d` while this
+  run was testing. The run deployed from its own tree, so live briefly lacked that commit (or never had
+  it), and the later `git push` was rejected.
+  **Rule:** `git fetch && git status -sb` right before `npm run deploy`. If `origin/cs-3d` moved, rebase,
+  run `npm test` again, and only then deploy and push. Deploy and push go together.
+- **throwaway.mjs marked every cookie HttpOnly.** `shcode_owner` and `shcode_wk` are readable on purpose,
+  so every throwaway page loaded as `guest` and the live site answered 409 owner-mismatch to uploads
+  and saves. That looked like an app bug. Fixed in the script (it now keeps each cookie's own flag).
+  **Rule:** a 409 owner-mismatch in a live walk means checking the state file's cookie flags before
+  suspecting the app.
+- **The two-row full-screen toolbar.** The walk found that the floating full-screen toggles covered
+  toolbar buttons (Exit full screen unclickable) only on the LIVE account, whose toolbar is laid out
+  differently from the dev one. The live walk is not a formality: run every click there, not only
+  the screenshots.
+- **`npm test` stops at the first failure.** `check-sketch-movers` reads the sibling `../reshape-cad`
+  repo and fails on a clean cs-3d since reshape-cad 9093f994. When it fails, run the remaining commands
+  of the `test` script yourself (split it on ` && `) so the rest is not silently skipped.
+
 ## 2026-11-08: proof recordings found four bugs the tests and the walk had passed
 
 - **Asked:** the owner asked for screenshots and videos of the fixes. Recording them turned up four more defects
