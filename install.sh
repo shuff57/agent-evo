@@ -440,10 +440,10 @@ verify() {
 
   # Verify evolution engine
   info "Checking evolution engine..."
-  if [ -f "$INSTALL_DIR/roster/evolver.md" ]; then
-    ok "evolver.md found in roster"
+  if [ -f "$INSTALL_DIR/skills/evolver/SKILL.md" ]; then
+    ok "evolver skill found"
   else
-    fail "evolver.md missing from roster"
+    fail "skills/evolver/SKILL.md missing"
     errors=$((errors + 1))
   fi
 

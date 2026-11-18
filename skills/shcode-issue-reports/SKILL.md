@@ -1,6 +1,6 @@
 ---
 name: shcode-issue-reports
-description: Work through the student issue reports filed in shCode (the Report button, /teacher/issues): pull the queue, triage each report, mark it in progress, fix and verify it (tests, a real browser, the live site), deploy, then mark it fixed or deferred with a plain note the student can read. Use when asked to "address student issues", "work the issue reports", "what's left in the reports", "check the queue", "close out reports", or names a report number (#88). Also grows itself: every time the owner has to ask for a check the run should have done, it records the lesson here.
+description: "Work through the student issue reports filed in shCode (the Report button, /teacher/issues): pull the queue, triage each report, mark it in progress, fix and verify it (tests, a real browser, the live site), deploy, then mark it fixed or deferred with a plain note the student can read. Use when asked to \"address student issues\", \"work the issue reports\", \"what's left in the reports\", \"check the queue\", \"close out reports\", or names a report number (#88). Also grows itself: every time the owner has to ask for a check the run should have done, it records the lesson here."
 ---
 
 # shCode student issue reports
@@ -50,6 +50,9 @@ with a throwaway account (section 5). Then put it in one bucket:
 | Cannot tell what they meant | ask one specific question in the note | deferred |
 | Noise ("never mind", a test) | short kind note | deferred |
 
+Before saying a feature "already exists" (to the owner or the student), open the page fresh at 1366x768 and
+screenshot it before any click: if it only appears after a click, or is hard to see, that is part of the report.
+
 The owner likes being asked with choices for anything that is a decision rather than a defect. Bundle several
 such questions into one AskUserQuestion call.
 
@@ -92,8 +95,9 @@ node $S/issues.mjs set --ids 89 --status in-progress --note "We're working on th
    loaded, two people at the same spot, long output, a wrapped line.
 4. Anything multiplayer or real-time: also check between two machines (`ssh pc2` desktop, `ssh minisforum` NAS;
    the NAS needs `source ~/.nvm/nvm.sh` for node), and clean up the test files on them.
-5. Leave proof: screenshots (and a short side-by-side video for anything two people do together) in the
-   scratchpad, and show the key ones to the owner.
+5. Leave proof: screenshots and a short video of every visible fix (side-by-side before/after for engine
+   changes; use the feature in the clip, e.g. press keys in a game), in the scratchpad, and show them to
+   the owner before asking to ship.
 
 ## 6. Deploy
 

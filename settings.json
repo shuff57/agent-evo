@@ -1,31 +1,18 @@
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "PYTHONUTF8": "1",
-    "ODYSSEUS_URL": "http://127.0.0.1:7000"
+    "PYTHONUTF8": "1"
   },
   "permissions": {
     "defaultMode": "auto"
   },
   "model": "sonnet",
   "skillOverrides": {
-    "hyperframes": "off",
-    "hyperframes-animation": "off",
-    "hyperframes-cli": "off",
-    "hyperframes-core": "off",
-    "hyperframes-creative": "off",
-    "hyperframes-keyframes": "off",
-    "hyperframes-registry": "off",
-    "media-use": "off",
-    "parallel-build": "off",
     "roster-match": "off",
     "steve": "off",
     "security-audit": "off",
-    "grill-with-docs": "off",
     "officecli": "off",
     "humanizer": "off",
-    "improve-codebase-architecture": "off",
-    "odysseus": "off",
     "switch-computers": "on"
   },
   "hooks": {

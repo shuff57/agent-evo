@@ -3,6 +3,40 @@
 Read this before every run. Newest at the top. Each entry: the date, what the owner had to ask, why it was
 missed, and the rule. When a rule is general it is also in SKILL.md; this file keeps the reasons.
 
+## 2026-11-16: "show me with videos where possible"
+
+- **Asked:** the owner wanted videos of each fix before choosing how to ship.
+- **Missed because:** the run had only stills. Recording the /play clip found a real bug the stills
+  and pass/fail checks had passed: after Full screen (pressed before Play) no key reached the game,
+  because the new frame got element focus but its window never did.
+- **Rule:** record a short clip of every visible fix before asking the owner to ship, and in it USE
+  the feature (press keys in a game, not just open it). Scripts: before/after side by side for engine
+  changes (old and new dev servers, runner iframe on a same-origin page), a walkthrough for page changes
+  with a drawn cursor dot. Record full screen with `chromium.launch({ channel: 'chromium' })`: the
+  default headless shell shrinks a full-screen page in the video. No libx264 here: encode with
+  `-c:v libopenh264 -b:v 3000k`. Watch a contact sheet (`fps=1/2,tile=3x3`) of each clip.
+
+## 2026-11-16: "there is no game fullscreen in sandbox"
+
+- **Asked:** a triage question told the owner #119 was answered by the sandbox's game-only full screen.
+  The owner said it did not exist. It did, but only after Run, as a faint corner square, so for a
+  student (and the owner) it was effectively missing.
+- **Missed because:** the claim came from reading the code and a commit message, not from looking at
+  the page the way a student first meets it (before pressing anything).
+- **Rule:** before telling the owner "that already exists", open the page fresh at 1366x768, screenshot
+  it before any click, and say where the thing is on that screenshot. If it needs a click first or is
+  hard to see, say so, and treat "hard to find" as part of the report.
+
+- **Trap (no ask):** the main checkout (`~/Documents/GitHub/shCode`) can be on another session's
+  unmerged branch, so worktrees or child agents made "from the parent commit" start from the wrong base.
+  Make per-report worktrees from `origin/cs-3d` (`git worktree add -b fix/issue-N <dir> origin/cs-3d`,
+  symlink `node_modules`, copy the git-ignored generated files and `public/reshape/kernel` from
+  shCode-deploy, or the dev server will not start). `origin/cs-3d` and upstream moshion `main` both
+  moved during this run: rebase every branch before the integration test, not after.
+- **Trap (no ask):** engine changes go to upstream moshion first; the vendored copy must equal one
+  upstream commit plus the textures line. With several engine reports, make one upstream branch per
+  report plus an integration branch, and check the vendored file byte-for-byte against it.
+
 ## 2026-11-13 (evening): two more traps
 
 - **/tmp is wiped on a reboot.** The machine rebooted mid-run and took the review page, the demo clips and

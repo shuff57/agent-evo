@@ -65,8 +65,7 @@ and context drift fail independently.
   codegraph MCP answers "how does X work / where is Y" by returning the verbatim source
   of the relevant symbols plus the call path between them, in one capped call — treat
   what it shows as already read rather than re-opening those files. Then `explore` for
-  wider internal sweeps (parallel-friendly), `librarian` for external docs, an
-  `*-expert` for this repo's own tooling. Fire one *before* you Grep, not after Grep
+  wider internal sweeps (parallel-friendly), `librarian` for external docs. Fire one *before* you Grep, not after Grep
   fails; reading the codebase by hand is the most common way a session spends expensive
   tokens on cheap work.
 - **codegraph replaced graphify on 2026-09-19** and needs no bootstrap: omo indexes it
@@ -193,9 +192,11 @@ while an omo hook had disabled it entirely, so it was never registered at all
 (`docs/decisions.md`). Read the config, or run `opencode agent list`, before naming an
 agent in a plan.
 
-`roster/*.md` holds only the agents omo does **not** ship — the three evolvers,
-`eyes-and-ears` (multimodal-looker has no audio), five `cs-*` curriculum personas, nine
-`*-expert`s, and `test-ping`. `bin/gen-agents.mjs` generates
+`roster/*.md` holds only the agents omo does **not** ship — `eyes-and-ears` and its
+`eyes-*`/`ears-*` lens runners (multimodal-looker has no audio), the three `cs-student-*`
+lenses, `cs-function-audit`, and `test-ping`. The evolvers, `skill-reviewer`,
+`cs-student-tester`, `cs-teacher-tester` and `momus` are fork skills in `skills/`
+now, with `model:` pinned in their frontmatter. `bin/gen-agents.mjs` generates
 `~/.config/opencode/agents/` from it and **must be re-run after any roster edit**;
 `sync.sh` does that. `roster/README.md` records where every retired agent's role went.
 
@@ -337,9 +338,6 @@ dive", "council review".
 - **Review** — `review-work` fires 5 parallel background reviewers (3 on
   goal/quality/security, 2 on hands-on QA and context mining) and all must pass. See the
   diversity caveat under Delegation.
-
-The **experts team** in `roster/teams.yaml` is NOT for app code — it applies only when
-the artifact under test IS agent tooling: a skill, an agent, a theme, a plugin.
 
 ## Coding conduct
 

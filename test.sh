@@ -40,7 +40,7 @@ info "Agent count"
 
 # Floor was 29 until the 2026-09-19 omo retirement took the roster to 19.
 agent_count=$(ls "$ROSTER/"*.md 2>/dev/null | grep -cv README || echo 0)
-[ "$agent_count" -ge 15 ] && ok "$agent_count agents (expected 15+)" || fail "$agent_count agents (expected 15+)"
+[ "$agent_count" -ge 10 ] && ok "$agent_count agents (expected 10+)" || fail "$agent_count agents (expected 10+)"
 
 # ── Frontmatter validation ──────────────────────────────────────────────────
 info "Frontmatter validation"

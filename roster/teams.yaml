@@ -11,14 +11,6 @@
 # advisory, `hyperplan` covers planning, and `security-research` covers the
 # red-team seat. A team here may only name a roster/<name>.md file — test.sh
 # enforces that — so an omo builtin cannot be a member.
-
-experts:
-  - extensions-expert
-  - theme-expert
-  - skills-expert
-  - config-expert
-  - ui-expert
-  - prompts-expert
-  - agents-expert
-  - cli-expert
-  - keybindings-expert
+#
+# The last team, `experts` (nine *-expert reference agents), was dissolved on
+# 2026-11-13: zero calls in 60 days. No teams remain.
