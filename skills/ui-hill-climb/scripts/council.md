@@ -12,6 +12,10 @@ Do this:
 1. Check the plan against the named gaps. A gap named by two or more judges, or on the same screen two rounds running, is a real defect; a single mention is taste. Say which plan items are real defects and which are taste.
 2. Check the diff for the monochrome trap: primary actions must still look clickable, semantic colour and borders must survive, light-mode text contrast must stay sharp. Say exactly where it fails, if it does.
 3. Check scope. The plan should fix the top one or two gaps. Flag anything that touches screens no judge complained about, and any test that was weakened to make a look pass.
+3b. Check the baseline. If UI_BASELINE.md and baseline shots are in the CONTEXT block, say whether the diff
+   keeps the owner's stated preferences, which changes alter density, palette, navigation, component style
+   or layout (those need the owner's approval before promotion), and which protected screen or
+   interaction gets worse. A higher score is not a reason to accept any of these.
 4. Give a score out of 10 for the PLAN-plus-DIFF as a code and design review (not a UI score). No score if you cannot give one: write null. Never invent one.
 
 Write exactly ONE line of JSON to OUTFILE (a shell append, cat >> OUTFILE; no newline inside the object):

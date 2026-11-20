@@ -15,7 +15,8 @@
 # same round dir; the summary then takes the majority of three.
 #
 # Context (env): UC_ANALYSIS (analyze.py output), UC_CRITERIA (criteria_check output),
-#   UC_PLAN (builder's fix plan), UC_DIFF (git diff file), UC_VDIFF (dir of visual_diff PNGs, optional)
+#   UC_PLAN (builder's fix plan), UC_DIFF (git diff file), UC_VDIFF (dir of visual_diff PNGs, optional),
+#   UC_BASELINE (the owner-confirmed UI_BASELINE.md), UC_BASELINE_SHOTS (dir of approved baseline shots)
 # ROUND=N names the round; results land in ${UC_BLIND:-blind}/council/rN/<member>.jsonl
 #
 # UC_COUNCIL_MODE (effort matters: the council must run at HIGH reasoning effort):
@@ -49,8 +50,9 @@ member_name() { if [ -n "${UC_TIEBREAK:-}" ]; then echo tiebreak; else echo "${1
 [ -n "${UC_TIEBREAK:-}" ] && MEMBERS=("${UC_TIEBREAK_MEMBER:-opencode:ollama/kimi-k3.1-pro}")
 
 ctx() {
-    printf '\nCONTEXT\nROUND: %s\nANALYSIS: %s\nCRITERIA: %s\nPLAN: %s\nDIFF: %s\nVISUAL_DIFFS: %s\n' \
-        "$R" "${UC_ANALYSIS:-none}" "${UC_CRITERIA:-none}" "${UC_PLAN:-none}" "${UC_DIFF:-none}" "${UC_VDIFF:-none}"
+    printf '\nCONTEXT\nROUND: %s\nANALYSIS: %s\nCRITERIA: %s\nPLAN: %s\nDIFF: %s\nVISUAL_DIFFS: %s\nUI_BASELINE: %s\nBASELINE_SHOTS: %s\n' \
+        "$R" "${UC_ANALYSIS:-none}" "${UC_CRITERIA:-none}" "${UC_PLAN:-none}" "${UC_DIFF:-none}" "${UC_VDIFF:-none}" \
+        "${UC_BASELINE:-none}" "${UC_BASELINE_SHOTS:-none}"
 }
 
 . "$(dirname "$(readlink -f "$0")")/t3_run.sh"

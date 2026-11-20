@@ -9,10 +9,16 @@ A loop that turns "make it look better" into a number you can trust: screenshot 
 blind against the reference by independent critic models, read the one gap each critic names, fix
 that, shoot again. The builder never scores its own work.
 
-The goal is not "better than it was". It is the best, most polished UI we can make — work that a
-Linear, Stripe or Vercel designer would ship without wincing. Climb hard, but only with numbers you can
-trust: the loop is worth nothing without the honesty scaffolding. Most of this file is that scaffolding,
-because every failure below actually happened and silently produced confident wrong numbers.
+The goal is not "better than it was". It is the most polished version of the UI the owner already
+approved — work that a Linear, Stripe or Vercel designer would ship without wincing, **without losing
+the layout and character the owner likes**. Climb hard, but only with numbers you can trust: the loop is
+worth nothing without the honesty scaffolding. Most of this file is that scaffolding, because every
+failure below actually happened and silently produced confident wrong numbers.
+
+**The score is evidence, never permission.** Judges can be perfectly consistent (clean controls,
+stable mirrors) and still consistently prefer a design the owner dislikes. This has happened: rounds
+that reported the same or a higher score while the owner judged the UI worse. The panel advises; the
+owner's approved baseline decides what is kept (see Owner baseline and promotion gate).
 
 ```
    capture (one build, every screen/view)
@@ -33,24 +39,88 @@ because every failure below actually happened and silently produced confident wr
    criteria_check.py  ── PASS/FAIL against the written bar (visual + task track)
         │
         ▼
-   read the named gaps ──▶ fix the top one or two (or a system pass when the mean stalls) ──▶ capture again
+   read the named gaps ──▶ fix the top one or two ──▶ capture again (candidate vs previous round
+        │                                              AND vs the approved baseline)
+        ▼
+   promotion gate  ── baseline respected? no protected regression? clear benefit? ──▶ promote, else keep baseline
+        │            direction change? ──▶ owner approves a before/after, or it is not promoted
 ```
 
-## Ambition: the best UI we can make
+## Owner baseline and promotion gate
 
-Default to aggressive. Unless the owner says otherwise:
+Controls and mirrors prove a judge is steady. They cannot prove the judge shares the owner's taste.
+This section is what stops a climb from replacing a UI the owner likes with one the panel likes.
+
+**1. Write the baseline down before round 1.** One file in the project, `UI_BASELINE.md`, confirmed by
+the owner (extract it from the screens and ask; never guess what they like):
+
+- the approved build (commit/tag) and approved screenshots of every representative screen;
+- the preferences to preserve, concretely: information density, palette and semantic colour use,
+  compact controls, visible borders, navigation model, component style, anything the owner names;
+- known quirks: defects the owner wants fixed (the climb's legitimate targets);
+- protected screens and interactions (the ones that must not get worse).
+
+The owner's approved reference apps are **shCode, verSHion and raSHio**: their overall layout and
+character are approved; their individual quirks are not. Each still needs its own `UI_BASELINE.md`
+captured at its first climb. If the file does not exist, ask for it instead of climbing on generic
+"best-in-class" taste. Linear/Stripe/Vercel are inspiration for craft; the baseline wins on direction.
+
+**2. Protect the best-approved version.** The approved baseline is the last version the owner
+approved, kept as a commit/tag. Experiments live on a separate branch or worktree (see Worktree
+isolation). Every round compares the candidate against the previous round **and** against the approved
+baseline (`ref_same_names: true`, `UC_REFS` = the approved shots). A candidate that wins its pair
+against the previous round but ties or loses against the baseline has drifted, not improved.
+
+**3. Promotion gate.** A candidate replaces the baseline only if all three hold:
+
+- **It respects the baseline's preferences** (density, colour, controls, navigation, style).
+- **No protected regression.** Check each affected screen and each important interaction on its own:
+  readability, semantic colour, action affordance, visible actions, usefulness at the original
+  density. A better overall mean never offsets a worse screen; a screen that drops beyond noise, or
+  loses its pair against the baseline, blocks promotion regardless of the average.
+- **A clear benefit**: located defects fixed, a gain outside the ±0.3–0.5 noise band, and a majority
+  of pairs won against the baseline with mirrors agreeing.
+
+Anything else, including an unchanged score or a small rise inside the noise band, is inconclusive
+and **inconclusive keeps the baseline**.
+
+**4. Direction changes need the owner.** Routine defect fixes (clipping, alignment, spacing
+consistency, state clarity, contrast) proceed. A change to density, palette, navigation, component
+style or overall layout goes back to the owner as a before/after (`visual_diff.py`) with one line on
+what changed and why, and is not promoted until they say yes. The owner's rejection stands even if
+every judge prefers the candidate. While waiting, keep working only on items that are not direction
+changes.
+
+**5. Scoring is separate from advocacy.** The blind critics see the images and manifest only: never put
+the builder's explanation, previous scores or claims about what improved into their prompt or pack.
+Run scoring and the plan/diff review as separate fresh delegates each round; a council member that
+reviewed the plan never doubles as a score judge for the same round, since it would defend changes it
+encouraged.
+
+> A higher panel score alone never establishes improvement. Promote a candidate only when it respects
+> the owner's design preferences, introduces no protected regression, and shows a clear benefit.
+> Otherwise keep the approved baseline.
+
+## Ambition: the most polished version of the approved UI
+
+Within the owner's baseline (above), push hard. Unless the owner says otherwise:
 
 - **The bar is a floor.** Passing `criteria_check.py` is a checkpoint, not the end. Keep climbing while
-  the panel still names concrete, located gaps. Stop only when the judges' named gaps turn into taste
-  (single mentions, contradictory between judges, no locatable defect) for two rounds running, or when
-  the owner says stop. Then report the remaining gaps instead of declaring victory.
-- **Judge against the best, not the old build.** Before/after pairs prove direction; absolute scores
-  against best-in-class anchors (Linear, Stripe, GitHub, Vercel, Replit, Khan Academy for teaching UIs)
-  prove level. A screen that wins its pair but scores 6/10 is not finished.
-- **Escalate scope when gains stall.** Single-gap rounds fix defects; they rarely lift the mean. After
-  two flat rounds, run a spec-driven system pass (written type scale, spacing rhythm, colour roles,
-  component and state rules applied everywhere, council-reviewed first). Measured: one system pass
-  moved a mean +0.67 that four single-gap rounds had not moved at all.
+  the panel still names concrete, located gaps that pass the promotion gate. Stop when the judges'
+  named gaps turn into taste (single mentions, contradictory between judges, no locatable defect) for
+  two rounds running, or when the owner says stop. Then report the remaining gaps instead of declaring
+  victory.
+- **Judge against the baseline first, the best second.** Before/after pairs against the approved
+  baseline prove direction; absolute scores against best-in-class anchors (Linear, Stripe, GitHub,
+  Vercel, Replit, Khan Academy for teaching UIs) show level and are secondary inspiration, not the
+  target to copy. A screen that wins its pair but scores 6/10 is not finished.
+- **Stop and reassess when gains stall.** Single-gap rounds fix defects; they rarely lift the mean.
+  After two flat rounds, stop and report: a plateau often means what remains is taste, not a case for a
+  bigger redesign. A spec-driven system pass (written type scale, spacing rhythm, colour roles,
+  component and state rules applied everywhere, council-reviewed first) is an *offer to the owner*,
+  not an automatic escalation, and it is a direction change (point 4). Measured: one system pass moved
+  a mean +0.67 that four single-gap rounds had not moved at all, so it is worth offering, not
+  worth imposing.
 - **Polish is the job, not a final coat.** Every round checks the details best-in-class apps get right:
   every interactive state (hover, focus-visible, active, selected, disabled, loading, empty, error,
   success); alignment to a shared grid and baseline; one type scale with no stray sizes; consistent
@@ -176,7 +246,8 @@ it is done.
 2. **Controls first.** A round with a split control is void. Say so and re-run; do not average it in.
 3. **Same panel across rounds.** A new judge resets the scale. If the panel must change, report both.
 4. **Means are ±0.3–0.5.** Unchanged screens drift that much between rounds even with perfect
-   controls. Quote a range and lean on the vote count for direction.
+   controls. Quote a range and lean on the vote count for direction. A change inside that range is
+   inconclusive, not a win, and never justifies promoting a candidate.
 5. **One build per round.** Every frame from the same binary. A pool/feature build used for two
    screens and a plain build for the rest is a two-build round; rebuild and re-shoot.
 6. **Fix what they name, not what you like.** Each judge names exactly one biggest gap, located and
@@ -190,6 +261,12 @@ it is done.
 10. **Beware the monochrome trap.** Never sacrifice interactive affordances for flat minimalism.
  Models rewarded for "clean hierarchy" often strip out all semantic color, resulting in washed-out
  monochrome screens where primary buttons no longer look clickable. Maintain clear action affordances.
+11. **A higher score alone never promotes a candidate.** Promotion needs the gate: baseline
+    preferences respected, no protected regression, clear benefit. Inconclusive keeps the baseline.
+12. **No regression is paid for by another gain.** Better spacing does not excuse worse readability,
+    lost colour meaning, hidden actions or a worse screen. Check screens individually; an average hides them.
+13. **The owner's rejection stands over the panel.** Direction changes are not promoted without the
+    owner's yes, whatever the judges prefer. The baseline file is the owner's, not the builder's.
 
 ## Pitfalls, all measured
 
@@ -237,6 +314,13 @@ it is done.
  on "calm hierarchy" and "clean spacing" strip out color accents and borders until everything looks
  like a washed-out wireframe and buttons lose their affordance. Explicitly check that primary actions
  look clickable and light-mode text contrast remains sharp.
+- **Consistent judges can still prefer a UI the owner dislikes.** Measured on the owner's own apps:
+  rounds reported "same or higher" while the owner thought the result was worse. Controls, mirrors and
+  noise bands all passed, because they measure the panel's consistency, not its agreement with the
+  owner. Cumulative small wins can also drift the UI away from the approved look one round at a time.
+  The guard is the promotion gate: compare against the approved baseline (not just the last round),
+  check protected screens one by one, let an inconclusive result keep the baseline, and take direction
+  changes to the owner.
 
 ## Cutting the token cost
 
@@ -263,7 +347,8 @@ and `verify_blind.py`. The number's honesty rests on those.
 
 When pushing an already viable UI past a baseline (e.g. from 8.0 to 9.5+):
 - **Fork into a separate git worktree** (`git worktree add ../ui-climb-push`). Keep the baseline
- PR clean and mergeable while the experimental climb runs in parallel.
+ PR clean and mergeable while the experimental climb runs in parallel. The approved baseline is never
+ edited by the climb; a candidate reaches it only through the promotion gate.
 - Generate a visual diff diagram (`python3 scripts/visual_diff.py old.png new.png diff.png`)
  at the end of each round to let human reviewers immediately inspect the exact pixel clusters
  and component changes without squinting across screens.
@@ -290,9 +375,14 @@ contributes to a mean.
   composites. They sort the plan into real defects (two judges, or the same screen two rounds) and
   taste, check for the monochrome trap and scope creep, and give a /10 for plan-plus-diff.
   A void round (split control) stays void; the council cannot rescue it.
+- **Baseline check.** They also read `UI_BASELINE.md` and the baseline shots, and say whether the diff
+  keeps the owner's preferences, flags any direction change (density, palette, navigation, component
+  style, layout) for the owner, and names any protected screen that gets worse.
 - **Loop.** If you agree, make the changes, then a fresh council pass is a new round (count passes
   as in tstack: one full pass = one round). Stop when both say `satisfied`, or two of three after a
-  tie-break. Do not let repeated passes grow scope: fight to keep it to the top one or two gaps.
+  tie-break. `satisfied` means the plan and diff are sound; it is not promotion. The promotion gate
+  and any owner approval still apply. Do not let repeated passes grow scope: fight to keep it to the
+  top one or two gaps.
 - **Report.** Add the council table to the round report and, when the work ends in a PR, to the PR
   description (edit it, do not comment), before the model/harness line. No score means `no score`.
 
@@ -309,7 +399,7 @@ Rounds: 2
 ```
 
 Run: `ROUND=3 UC_COUNCIL=... UC_ANALYSIS=r3-analysis.txt UC_CRITERIA=r3-criteria.txt UC_PLAN=plan.md
-UC_DIFF=pending.diff bash run_council.sh`. In T3 Code, resolve member models with
+UC_DIFF=pending.diff UC_BASELINE=UI_BASELINE.md UC_BASELINE_SHOTS=baseline-shots bash run_council.sh`. In T3 Code, resolve member models with
 `orchestrator_capabilities`.
 
 **Effort.** `t3 thread start` cannot set reasoning effort, so the default `run` mode leaves each member
@@ -326,5 +416,7 @@ The tie-breaker is always started at `{variant: high}`.
 ## Report shape
 
 Per round: the mean (as a range), the vote count, the per-judge control error, then a table of
-per-screen means and the named gap on the weakest three. Keep a running per-screen table across
+per-screen means and the named gap on the weakest three. Add the promotion-gate verdict: pairs won
+against the approved baseline, any protected screen that dropped, any direction change awaiting the
+owner, and the outcome (promoted / kept baseline / waiting on owner). Keep a running per-screen table across
 rounds — it is the only way to see which fix actually paid.
